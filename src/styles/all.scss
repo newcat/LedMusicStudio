@@ -1,0 +1,12 @@
+@import "./animations.scss";
+@import "./graph.scss";
+
+html {
+    overflow: hidden !important;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    user-select: none;
+}
