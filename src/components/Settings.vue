@@ -1,44 +1,49 @@
-<template lang="pug">
-v-dialog(:value="value", @input="$emit('input', $event)" max-width="400")
-    v-card
-        v-card-title
-            .headline Settings
-        v-card-text
-            v-text-field(outlined, label="Resolution", v-model="vResolution")
-            v-text-field(outlined, label="FPS", v-model="vFps")
-        v-card-actions
-            v-spacer
-            v-btn(text, @click="cancel") Cancel
-            v-btn(text, @click="save") Save
+<template>
+    <n-modal :show="modelValue" @update:show="emit('update:modelValue', $event)" preset="card" title="Settings">
+        <n-form-item label="Resolution">
+            <n-input v-model="vResolution"></n-input>
+        </n-form-item>
+        <n-form-item label="FPS">
+            <n-input v-model="vFps"></n-input>
+        </n-form-item>
+        <template #action>
+            <n-button @click="cancel">Cancel</n-button>
+            <n-button @click="save">Save</n-button>
+        </template>
+    </n-modal>
 </template>
 
-<script lang="ts">
-import { Component, Prop, Vue, Watch } from "vue-property-decorator";
+<script setup lang="ts">
+import { ref, watch } from "vue";
+import { NModal, NFormItem, NInput, NButton } from "naive-ui";
+
 import { globalState } from "@/globalState";
 
-@Component
-export default class Settings extends Vue {
-    @Prop()
-    value!: boolean;
+const props = defineProps({
+    modelValue: { type: Boolean, required: true },
+});
 
-    vResolution = "0";
-    vFps = "0";
+const emit = defineEmits(["update:modelValue"]);
 
-    @Watch("value")
-    updateValues() {
-        this.vResolution = globalState.resolution.toString();
-        this.vFps = globalState.fps.toString();
+const vResolution = ref("0");
+const vFps = ref("0");
+
+watch(
+    () => props.modelValue,
+    () => {
+        vResolution.value = globalState.resolution.toString();
+        vFps.value = globalState.fps.toString();
     }
+);
 
-    cancel() {
-        this.$emit("input", false);
-    }
+function cancel() {
+    emit("update:modelValue", false);
+}
 
-    save() {
-        this.$emit("input", false);
-        // TODO: Validation
-        globalState.resolution = parseInt(this.vResolution, 10);
-        globalState.fps = parseInt(this.vFps, 10);
-    }
+function save() {
+    emit("update:modelValue", false);
+    // TODO: Validation
+    globalState.resolution = parseInt(vResolution.value, 10);
+    globalState.fps = parseInt(vFps.value, 10);
 }
 </script>

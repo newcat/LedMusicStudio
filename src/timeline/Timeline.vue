@@ -1,77 +1,89 @@
-<template lang="pug">
-.fill-height
-    .d-flex.px-3.align-items-center(style="height:48px")
-        v-btn(text, @click="() => editor.addDefaultTrack()") Add Track
-        v-divider.mx-4(vertical)
-        v-slider(:value="volume * 100", @input="setVolume", :min="0", :max="100", prepend-icon="volume_up", dense, style="max-width: 10em;", hide-details)
-        v-divider.mx-4(vertical)
-        v-select(:value="snapUnits", @input="setSnap", :items="snapItems", style="max-width: 12em;", dense, flat, solo, hide-details, prepend-icon="straighten")
-        v-divider.mx-4(vertical)
-        v-text-field(:value="bpm", @input="setBpm", label="BPM", style="max-width: 6em;", dense, flat, solo, hide-details, prepend-icon="speed")
-    #wrapper
-        timeline-base
+<template>
+    <div class="fill-height">
+        <div class="d-flex px-3 align-items-center" style="height: 48px">
+            <n-button @click="() => editor.addDefaultTrack()">Add Track</n-button>
+            <n-divider class="mx-4" vertical></n-divider>
+            <n-icon>
+                <volume-up-filled />
+            </n-icon>
+            <n-slider
+                :value="volume * 100"
+                @update:value="setVolume"
+                :min="0"
+                :max="100"
+                :tooltip="false"
+                style="max-width: 10em"
+            ></n-slider>
+            <n-divider class="mx-4" vertical></n-divider>
+            <n-icon>
+                <straighten-filled />
+            </n-icon>
+            <n-select
+                :value="snapUnits"
+                @update:value="setSnap"
+                :options="snapItems"
+                style="max-width: 12em"
+                prepend-icon="straighten"
+            ></n-select>
+            <n-divider class="mx-4" vertical></n-divider>
+            <n-form-item label="BPM" label-placement="left">
+                <n-input :value="bpm" @update:value="setBpm" style="max-width: 6em"></n-input>
+            </n-form-item>
+        </div>
+        <div id="wrapper">
+            <timeline-base></timeline-base>
+        </div>
+    </div>
 </template>
 
-<script lang="ts">
-import { Component, Vue } from "vue-property-decorator";
+<script setup lang="ts">
+import { computed } from "vue";
+import { NDivider, NButton, NIcon, NSlider, NSelect, SelectOption, NInput, NFormItem } from "naive-ui";
+import { VolumeUpFilled, StraightenFilled } from "@vicons/material";
 
 import { TICKS_PER_BEAT } from "@/constants";
 import { globalState } from "@/globalState";
 import TimelineBase from "./components/Timeline.vue";
 
-enum LabelMode {
-    BEATS,
-    BARS,
+const snapItems: SelectOption[] = [
+    { label: "Disabled", value: "1" },
+    { label: "1/8 Beat", value: (TICKS_PER_BEAT / 8).toString() },
+    { label: "1/6 Beat", value: (TICKS_PER_BEAT / 6).toString() },
+    { label: "1/4 Beat", value: (TICKS_PER_BEAT / 4).toString() },
+    { label: "1/3 Beat", value: (TICKS_PER_BEAT / 3).toString() },
+    { label: "1/2 Beat", value: (TICKS_PER_BEAT / 2).toString() },
+    { label: "1 Beat", value: TICKS_PER_BEAT.toString() },
+    { label: "2 Beats", value: (2 * TICKS_PER_BEAT).toString() },
+    { label: "4 Beats", value: (4 * TICKS_PER_BEAT).toString() },
+    { label: "8 Beats", value: (8 * TICKS_PER_BEAT).toString() },
+];
+
+const editor = computed(() => {
+    return globalState.timeline;
+});
+
+const volume = computed(() => {
+    return globalState.volume;
+});
+
+const bpm = computed(() => {
+    return globalState.bpm.toString();
+});
+
+const snapUnits = computed(() => {
+    return globalState.snapUnits.toString();
+});
+
+function setVolume(v: number) {
+    globalState.volume = Math.max(0, Math.min(1, v / 100));
 }
 
-@Component({
-    components: { TimelineBase },
-})
-export default class Timeline extends Vue {
-    public snapItems = [
-        { text: "Disabled", value: "1" },
-        { text: "1/8 Beat", value: (TICKS_PER_BEAT / 8).toString() },
-        { text: "1/6 Beat", value: (TICKS_PER_BEAT / 6).toString() },
-        { text: "1/4 Beat", value: (TICKS_PER_BEAT / 4).toString() },
-        { text: "1/3 Beat", value: (TICKS_PER_BEAT / 3).toString() },
-        { text: "1/2 Beat", value: (TICKS_PER_BEAT / 2).toString() },
-        { text: "1 Beat", value: TICKS_PER_BEAT.toString() },
-        { text: "2 Beats", value: (2 * TICKS_PER_BEAT).toString() },
-        { text: "4 Beats", value: (4 * TICKS_PER_BEAT).toString() },
-        { text: "8 Beats", value: (8 * TICKS_PER_BEAT).toString() },
-    ];
+function setBpm(v: string) {
+    globalState.bpm = parseInt(v, 10);
+}
 
-    private labelMode: LabelMode = LabelMode.BEATS;
-
-    private globalState = globalState;
-
-    public get editor() {
-        return this.globalState.timeline;
-    }
-
-    public get volume() {
-        return this.globalState.volume;
-    }
-
-    public get bpm() {
-        return globalState.bpm.toString();
-    }
-
-    public get snapUnits() {
-        return globalState.snapUnits.toString();
-    }
-
-    public setVolume(v: number) {
-        globalState.volume = Math.max(0, Math.min(1, v / 100));
-    }
-
-    public setBpm(v: string) {
-        globalState.bpm = parseInt(v, 10);
-    }
-
-    public setSnap(value: string) {
-        globalState.snapUnits = parseInt(value, 10);
-    }
+function setSnap(value: string) {
+    globalState.snapUnits = parseInt(value, 10);
 }
 </script>
 

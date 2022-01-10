@@ -1,90 +1,101 @@
-<template lang="pug">
-v-dialog(:value="value", @input="$emit('input', $event)" max-width="400")
-    v-card
-        v-card-title
-            .headline Loading
-        
-        v-card-text
-            
-            template(v-for="item in items")
-                .my-3(v-if="item.loading || item.error", :key="item.id")
-                    .d-flex.align-items-center
-                        .mr-2
-                            v-progress-circular(v-if="item.loading", indeterminate, color="green", :size="25", :width="2")
-                            v-icon(v-else-if="item.error", color="red") close
-                        div
-                            div {{ item.name }}
-                            v-btn(v-if="isAudioItem(item) && item.error", @click="replaceAudioFile(item)", x-small, outlined) Choose File
+<template>
+    <n-modal :show="modelValue" @update:show="emit('update:modelValue', $event)" preset="card" title="Loading">
+        <template v-for="item in items">
+            <div class="my-3" v-if="item.loading || item.error" :key="item.id">
+                <div class="d-flex align-items-center">
+                    <div class="mr-2">
+                        <n-spin v-if="item.loading" size="small" />
+                        <n-icon v-else-if="item.error" color="red">
+                            <close-filled />
+                        </n-icon>
+                    </div>
+                    <div>
+                        <div>{{ item.name }}</div>
+                        <n-button
+                            v-if="isAudioItem(item) && item.error"
+                            @click="item instanceof AudioLibraryItem ? replaceAudioFile(item) : undefined"
+                            size="small"
+                        >
+                            Choose File
+                        </n-button>
+                    </div>
+                </div>
+            </div>
+        </template>
 
-        v-card-actions
-            v-spacer
-            v-btn(text, @click="close") Close
+        <template #action>
+            <n-button @click="close">Close</n-button>
+        </template>
+    </n-modal>
 </template>
 
-<script lang="ts">
-import type { AudioLibraryItem } from "@/audio";
-
-import { Component, Prop, Vue, Watch } from "vue-property-decorator";
-import { remote } from "electron";
+<script setup lang="ts">
 import { BaklavaEvent } from "@baklavajs/events";
+import { dialog } from "@electron/remote";
+import { computed, watch } from "vue";
+import { NModal, NButton, NSpin, NIcon } from "naive-ui";
+import { CloseFilled } from "@vicons/material";
+
+import { AudioLibraryItem } from "@/audio";
 import { globalState } from "@/globalState";
 import { LibraryItem, LibraryItemType } from "@/library";
 
-@Component
-export default class LoadingDialog extends Vue {
-    @Prop({ type: Boolean, required: true })
-    public value!: boolean;
+const token = Symbol();
 
-    private gs = globalState;
+const props = defineProps({
+    modelValue: { type: Boolean },
+});
 
-    get items() {
-        return this.gs.library.items.slice().sort((a) => (a.loading ? 0 : 1));
+const emit = defineEmits(["update:modelValue"]);
+
+const items = computed<LibraryItem[]>(() => {
+    return globalState.library.items.slice().sort((a) => (a.loading ? 0 : 1));
+});
+
+function isAudioItem(item: LibraryItem) {
+    return item.type === LibraryItemType.AUDIO;
+}
+
+async function replaceAudioFile(item: AudioLibraryItem) {
+    const dialogResult = await dialog.showOpenDialog({
+        title: "Select Audio File",
+        filters: [
+            { name: "Audio Files", extensions: ["mp3", "wav", "flac", "ogg"] },
+            { name: "All Files", extensions: ["*"] },
+        ],
+    });
+    if (dialogResult.canceled) {
+        return "";
     }
+    item.path = dialogResult.filePaths![0];
+    item.load();
+}
 
-    isAudioItem(item: LibraryItem) {
-        return item.type === LibraryItemType.AUDIO;
-    }
-
-    async replaceAudioFile(item: AudioLibraryItem) {
-        const dialogResult = await remote.dialog.showOpenDialog({
-            title: "Select Audio File",
-            filters: [
-                { name: "Audio Files", extensions: ["mp3", "wav", "flac", "ogg"] },
-                { name: "All Files", extensions: ["*"] },
-            ],
-        });
-        if (dialogResult.canceled) {
-            return "";
-        }
-        item.path = dialogResult.filePaths![0];
-        item.load();
-    }
-
-    @Watch("value")
-    subscribeLoadedEvents() {
-        if (this.value) {
-            this.items.forEach((i) => {
+watch(
+    () => props.modelValue,
+    () => {
+        if (props.modelValue) {
+            items.value.forEach((i) => {
                 if ((i as any).events?.loaded) {
-                    ((i as any).events.loaded as BaklavaEvent<void>).addListener(this, () => this.checkIfLoadingDone());
+                    ((i as any).events.loaded as BaklavaEvent<void, unknown>).subscribe(token, () => checkIfLoadingDone());
                 }
             });
         }
     }
+);
 
-    /*@Watch("items", { deep: true })*/
-    checkIfLoadingDone() {
-        if (this.items.every((i) => !i.loading && !i.error)) {
-            this.close();
+function checkIfLoadingDone() {
+    if (items.value.every((i) => !i.loading && !i.error)) {
+        close();
+    }
+}
+
+function close() {
+    items.value.forEach((i) => {
+        if ((i as any).events?.loaded) {
+            ((i as any).events.loaded as BaklavaEvent<void, unknown>).unsubscribe(token);
         }
-    }
-
-    close() {
-        this.items.forEach((i) => {
-            if ((i as any).events?.loaded) {
-                ((i as any).events.loaded as BaklavaEvent<void>).removeListener(this);
-            }
-        });
-        this.$emit("input", false);
-    }
+    });
+    emit("update:modelValue", false);
 }
 </script>

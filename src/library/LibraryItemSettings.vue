@@ -1,49 +1,50 @@
-<template lang="pug">
-v-dialog(:value="value", @input="$emit('input', $event)" max-width="400")
-    v-card
-        v-card-title
-            .headline Edit Library Item
-        v-card-text
-            v-text-field(outlined, label="Name", v-model="vName")
-        v-card-actions
-            v-btn(text, @click="remove") Delete
-            v-spacer
-            v-btn(text, @click="cancel") Cancel
-            v-btn(text, @click="save") Save
+<template>
+    <n-modal :show="modelValue" @update:show="emit('update:modelValue', $event)" preset="card" title="Edit Library Item">
+        <n-form-item label="Name">
+            <n-input v-model="vName" />
+        </n-form-item>
+        <template #action>
+            <n-button @click="remove">Delete</n-button>
+            <n-button @click="cancel">Cancel</n-button>
+            <n-button @click="save">Save</n-button>
+        </template>
+    </n-modal>
 </template>
 
-<script lang="ts">
-import { Component, Prop, Vue, Watch } from "vue-property-decorator";
+<script setup lang="ts">
+import { ref, watch } from "vue";
+import { NModal, NFormItem, NInput, NButton } from "naive-ui";
+
 import { globalState } from "@/globalState";
 import { LibraryItem } from "./libraryItem";
 
-@Component
-export default class Settings extends Vue {
-    @Prop()
-    value!: boolean;
+const props = defineProps({
+    modelValue: { type: Boolean, required: true },
+    item: { type: Object as () => LibraryItem, required: true },
+});
 
-    @Prop()
-    item!: LibraryItem;
+const emit = defineEmits(["update:modelValue"]);
 
-    vName = "";
+const vName = ref("");
 
-    @Watch("value")
-    updateValues() {
-        this.vName = this.item.name;
+watch(
+    () => props.modelValue,
+    () => {
+        vName.value = props.item.name;
     }
+);
 
-    remove() {
-        this.$emit("input", false);
-        globalState.library.removeItem(this.item);
-    }
+function remove() {
+    emit("update:modelValue", false);
+    globalState.library.removeItem(props.item);
+}
 
-    cancel() {
-        this.$emit("input", false);
-    }
+function cancel() {
+    emit("update:modelValue", false);
+}
 
-    save() {
-        this.$emit("input", false);
-        this.item.name = this.vName;
-    }
+function save() {
+    emit("update:modelValue", false);
+    props.item.name = vName.value;
 }
 </script>

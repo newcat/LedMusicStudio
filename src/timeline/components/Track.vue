@@ -4,22 +4,22 @@
             <div class="__title">{{ track.name }}</div>
             <div class="__actions" v-if="confirmRemove">
                 <div class="text-caption">Remove?</div>
-                <v-btn text="text" x-small="x-small" @click="remove">Yes</v-btn>
-                <v-btn text="text" x-small="x-small" @click="confirmRemove = false">No</v-btn>
+                <n-button size="tiny" @click="remove">Yes</n-button>
+                <n-button size="tiny" @click="confirmRemove = false">No</n-button>
             </div>
-            <div class="__actions" v-else="v-else">
-                <v-btn icon="icon" x-small="x-small" @click="settingsOpen = true">
-                    <v-icon>create</v-icon>
-                </v-btn>
-                <v-btn icon="icon" x-small="x-small" @click="moveUp">
-                    <v-icon>keyboard_arrow_up</v-icon>
-                </v-btn>
-                <v-btn icon="icon" x-small="x-small" @click="moveDown">
-                    <v-icon>keyboard_arrow_down</v-icon>
-                </v-btn>
-                <v-btn icon="icon" x-small="x-small" @click="confirmRemove = true">
-                    <v-icon>close</v-icon>
-                </v-btn>
+            <div class="__actions" v-else>
+                <n-button text size="tiny" @click="settingsOpen = true">
+                    <n-icon><create-filled /></n-icon>
+                </n-button>
+                <n-button text size="tiny" @click="moveUp">
+                    <n-icon><keyboard-arrow-up-filled /></n-icon>
+                </n-button>
+                <n-button text size="tiny" @click="moveDown">
+                    <n-icon><keyboard-arrow-down-filled /></n-icon>
+                </n-button>
+                <n-button text size="tiny" @click="confirmRemove = true">
+                    <n-icon><close-filled /></n-icon>
+                </n-button>
             </div>
         </div>
         <div
@@ -42,6 +42,9 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { NButton, NIcon } from "naive-ui";
+import { CreateFilled, KeyboardArrowUpFilled, KeyboardArrowDownFilled, CloseFilled } from "@vicons/material";
+
 import { Track, TimelineEditor } from "../model";
 import TimelineItem from "./TimelineItem.vue";
 import TrackSettings from "./TrackSettings.vue";

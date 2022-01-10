@@ -1,18 +1,17 @@
-<template lang="pug">
-v-card.d-flex.flex-column(flat)
-    v-toolbar(dense, flat, style="max-height: 48px;")
-        v-toolbar-title
-            | Editor
-            small(v-if="selectedItem") &nbsp; ({{ selectedItem.name }})
-    baklava-editor(v-if="isGraph", :plugin="selectedItem.editor.viewPlugin", :key="selectedItemId")
-    note-editor(v-else-if="isPattern", :notePattern="selectedItem", :key="selectedItemId")
-    automation-editor(v-else-if="isAutomation", :automationClip="selectedItem", :key="selectedItemId")
-    output-editor(v-else-if="isOutput", :output="selectedItem", :key="selectedItemId")
-    stage-editor(v-else-if="isStage", :output="selectedItem", :key="selectedItemId")
+<template>
+    <n-card class="d-flex flex-column" :title="title">
+        <baklava-editor v-if="isGraph" :plugin="selectedItem.editor.viewPlugin" :key="'g' + selectedItemId"></baklava-editor>
+        <note-editor v-else-if="isPattern" :notePattern="selectedItem" :key="'p' + selectedItemId"></note-editor>
+        <automation-editor v-else-if="isAutomation" :automationClip="selectedItem" :key="'a' + selectedItemId"></automation-editor>
+        <output-editor v-else-if="isOutput" :output="selectedItem" :key="'o' + selectedItemId"></output-editor>
+        <stage-editor v-else-if="isStage" :output="selectedItem" :key="'s' + selectedItemId"></stage-editor>
+    </n-card>
 </template>
 
-<script lang="ts">
-import { Component, Prop, Vue } from "vue-property-decorator";
+<script setup lang="ts">
+import { computed } from "vue";
+import { NCard } from "naive-ui";
+
 import { globalState } from "@/globalState";
 import { LibraryItemType } from "@/library";
 import { NoteEditor } from "@/pattern";
@@ -20,35 +19,39 @@ import { AutomationEditor } from "@/automation";
 import { OutputEditor } from "@/output";
 import { StageEditor } from "@/stage";
 
-@Component({
-    components: { NoteEditor, AutomationEditor, OutputEditor, StageEditor },
-})
-export default class Graph extends Vue {
-    @Prop({ type: String, default: "" })
-    selectedItemId!: string;
+const props = defineProps({
+    selectedItemId: { type: String, default: "" },
+});
 
-    get selectedItem() {
-        return globalState.library.getItemById(this.selectedItemId);
-    }
+const selectedItem = computed(() => {
+    return globalState.library.getItemById(props.selectedItemId);
+});
 
-    get isGraph() {
-        return this.selectedItem?.type === LibraryItemType.GRAPH;
+const title = computed(() => {
+    let t = "Editor";
+    if (selectedItem.value) {
+        t += ` (${selectedItem.value.name})`;
     }
+    return t;
+});
 
-    get isAutomation() {
-        return this.selectedItem?.type === LibraryItemType.AUTOMATION;
-    }
+const isGraph = computed(() => {
+    return selectedItem.value?.type === LibraryItemType.GRAPH;
+});
 
-    get isPattern() {
-        return this.selectedItem?.type === LibraryItemType.PATTERN;
-    }
+const isAutomation = computed(() => {
+    return selectedItem.value?.type === LibraryItemType.AUTOMATION;
+});
 
-    get isOutput() {
-        return this.selectedItem?.type === LibraryItemType.OUTPUT;
-    }
+const isPattern = computed(() => {
+    return selectedItem.value?.type === LibraryItemType.PATTERN;
+});
 
-    get isStage() {
-        return this.selectedItem?.type === LibraryItemType.STAGE;
-    }
-}
+const isOutput = computed(() => {
+    return selectedItem.value?.type === LibraryItemType.OUTPUT;
+});
+
+const isStage = computed(() => {
+    return selectedItem.value?.type === LibraryItemType.STAGE;
+});
 </script>

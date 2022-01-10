@@ -1,42 +1,43 @@
-<template lang="pug">
-v-dialog(:value="value", @input="$emit('input', $event)" max-width="400")
-    v-card
-        v-card-title
-            .headline Edit Track
-        v-card-text
-            v-text-field(outlined, label="Name", v-model="vName")
-        v-card-actions
-            v-spacer
-            v-btn(text, @click="cancel") Cancel
-            v-btn(text, @click="save") Save
+<template>
+    <n-modal :show="modelValue" @update:show="emit('update:modelValue', $event)" preset="card" title="Loading">
+        <n-form-item label="Name">
+            <n-input v-model="vName"></n-input>
+        </n-form-item>
+        <template #action>
+            <n-button @click="cancel">Cancel</n-button>
+            <n-button @click="save">Save</n-button>
+        </template>
+    </n-modal>
 </template>
 
-<script lang="ts">
-import { Component, Prop, Vue, Watch } from "vue-property-decorator";
+<script setup lang="ts">
+import { ref, watch } from "vue";
+import { NModal, NFormItem, NInput } from "naive-ui";
+
 import { Track } from "../model";
 
-@Component
-export default class TrackSettings extends Vue {
-    @Prop()
-    value!: boolean;
+const props = defineProps({
+    modelValue: { type: Boolean, required: true },
+    track: { type: Object as () => Track, required: true },
+});
 
-    @Prop()
-    track!: Track;
+const emit = defineEmits(["update:modelValue"]);
 
-    vName = "";
+const vName = ref("");
 
-    @Watch("value")
-    updateValues() {
-        this.vName = this.track.name;
+watch(
+    () => props.modelValue,
+    () => {
+        vName.value = props.track.name;
     }
+);
 
-    cancel() {
-        this.$emit("input", false);
-    }
+function cancel() {
+    emit("update:modelValue", false);
+}
 
-    save() {
-        this.$emit("input", false);
-        this.track.name = this.vName;
-    }
+function save() {
+    emit("update:modelValue", false);
+    props.track.name = vName.value;
 }
 </script>

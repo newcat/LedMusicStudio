@@ -1,35 +1,38 @@
-<template lang="pug">
-v-toolbar(dense)
-    v-toolbar-items
-        v-menu(v-for="i in items", :key="i.name", offset-y)
-            template(v-slot:activator="{ on }")
-                v-btn(text, v-on="on")
-                    | {{ i.name }}
-                    v-icon arrow_drop_down
-            v-list
-                v-list-item(v-for="c in i.children", :key="c.name", @click="$emit(c.event)")
-                    v-list-item-title {{ c.name }}
+<template>
+    <n-menu v-model:value="selected" mode="horizontal" :options="menuItems"></n-menu>
 </template>
 
-<script lang="ts">
-import { Component, Vue } from "vue-property-decorator";
+<script setup lang="ts">
+import { NMenu, MenuOption } from "naive-ui";
+import { ref, watch } from "vue";
 
-@Component
-export default class Toolbar extends Vue {
-    items = [
-        {
-            name: "File",
-            children: [
-                { name: "New", event: "newProject" },
-                { name: "Open", event: "load" },
-                { name: "Save", event: "save" },
-                { name: "Save as", event: "saveAs" },
-            ],
-        },
-        {
-            name: "Edit",
-            children: [{ name: "Settings", event: "showSettings" }],
-        },
-    ];
-}
+const events = ["newProject", "load", "save", "saveAs", "showSettings"];
+
+const emit = defineEmits(events);
+
+const selected = ref<string | null>(null);
+
+watch(selected, () => {
+    if (!selected) {
+        return;
+    }
+    if (events.includes(selected.value!)) {
+        emit(selected.value!);
+    }
+    selected.value = null;
+});
+
+const menuItems: MenuOption[] = [
+    {
+        key: "file",
+        label: "File",
+        children: [
+            { key: "newProject", label: "New" },
+            { key: "load", label: "Open" },
+            { key: "save", label: "Save" },
+            { key: "saveAs", label: "Save as" },
+        ],
+    },
+    { key: "Edit", label: "Edit", children: [{ key: "showSettings", label: "Settings" }] },
+];
 </script>
