@@ -1,36 +1,30 @@
-import { Node } from "@baklavajs/core";
+import type { InterpolationMode } from "chroma-js";
+import { defineNode } from "@baklavajs/core";
+import { SelectInterface } from "@baklavajs/renderer-vue";
+import { ColorArrayInterface, SliderInterface } from "@/graph/interfaces";
 import { Color, mix } from "../../colors";
 
-export class MixColorNode extends Node {
-    public type = "Mix Color";
-    public name = this.type;
-
-    public constructor() {
-        super();
-        this.addInputInterface("Color 1", undefined, () => [[0, 0, 0]], { type: "color_array" });
-        this.addInputInterface("Color 2", undefined, () => [[0, 0, 0]], { type: "color_array" });
-        this.addInputInterface("Factor", "SliderOption", 0.5, { type: "number", min: 0, max: 1 });
-        this.addOption("Color Space", "SelectOption", "RGB", undefined, {
-            items: ["RGB", "HSL", "LAB", "LCH", "LRGB"],
-        });
-        this.addOutputInterface("Output", { type: "color_array" });
-    }
-
-    public calculate() {
-        const colorsA: Color[] = this.getInterface("Color 1").value;
-        const colorsB: Color[] = this.getInterface("Color 2").value;
-        const factor: number = this.getInterface("Factor").value;
-        const cspace = this.getOptionValue("Color Space").toLowerCase();
-
-        const length = Math.max(colorsA.length, colorsB.length);
+export const MixColorNode = defineNode({
+    type: "Mix Color",
+    inputs: {
+        color1: () => new ColorArrayInterface("Color 1"),
+        color2: () => new ColorArrayInterface("Color 2"),
+        factor: () => new SliderInterface("Factor", 0.5, 0, 1),
+        colorSpace: () => new SelectInterface("Color Space", "RGB", ["RGB", "HSL", "LAB", "LCH", "LRGB"]),
+    },
+    outputs: {
+        output: () => new ColorArrayInterface("Output"),
+    },
+    calculate({ color1, color2, factor, colorSpace }) {
+        const length = Math.max(color1.length, color2.length);
         const result: Color[] = new Array(length);
 
         for (let i = 0; i < length; i++) {
-            const a = i < colorsA.length ? colorsA[i] : colorsA[colorsA.length - 1];
-            const b = i < colorsB.length ? colorsB[i] : colorsB[colorsB.length - 1];
-            result[i] = mix(a, b, factor, cspace);
+            const a = i < color1.length ? color1[i] : color1[color1.length - 1];
+            const b = i < color2.length ? color2[i] : color2[color2.length - 1];
+            result[i] = mix(a, b, factor, colorSpace.toLowerCase() as InterpolationMode);
         }
 
-        this.getInterface("Output").value = result;
-    }
-}
+        return { output: result };
+    },
+});

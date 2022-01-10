@@ -2,46 +2,44 @@
     <canvas ref="canvas" class="option-canvas"></canvas>
 </template>
 
-<script lang="ts">
-import { Component, Prop, Vue, Watch } from "vue-property-decorator";
+<script setup lang="ts">
+import { onMounted, ref, watch } from "vue";
 import { Color, toChroma } from "../colors";
 
-@Component
-export default class PreviewOption extends Vue {
-    @Prop({})
-    public value!: Color[];
+const props = defineProps({
+    modelValue: { type: Array as () => Color[], required: true },
+});
 
-    private canvas!: HTMLCanvasElement;
-    private ctx!: CanvasRenderingContext2D;
+const canvas = ref<HTMLCanvasElement | null>(null);
+let ctx: CanvasRenderingContext2D;
 
-    public mounted() {
-        this.canvas = this.$refs.canvas as HTMLCanvasElement;
-        this.ctx = this.canvas.getContext("2d")!;
-        this.draw();
+onMounted(() => {
+    ctx = canvas.value!.getContext("2d")!;
+    draw();
+});
+
+function draw() {
+    if (!canvas.value || !ctx) {
+        return;
     }
 
-    @Watch("value")
-    public draw() {
-        if (!this.canvas || !this.ctx) {
-            return;
-        }
+    const { width, height } = canvas.value;
 
-        const { width, height } = this.canvas;
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, width, height);
 
-        this.ctx.fillStyle = "black";
-        this.ctx.fillRect(0, 0, width, height);
-
-        if (!this.value || this.value.length === 0) {
-            return;
-        }
-
-        const grad = this.ctx.createLinearGradient(0, 0, width, 0);
-        this.value.forEach((v, i) => {
-            grad.addColorStop(i / this.value.length, toChroma(v).css());
-        });
-
-        this.ctx.fillStyle = grad;
-        this.ctx.fillRect(0, 0, width, height);
+    if (!props.modelValue || props.modelValue.length === 0) {
+        return;
     }
+
+    const grad = ctx.createLinearGradient(0, 0, width, 0);
+    props.modelValue.forEach((v, i) => {
+        grad.addColorStop(i / props.modelValue.length, toChroma(v).css());
+    });
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
 }
+
+watch(() => props.modelValue, draw);
 </script>

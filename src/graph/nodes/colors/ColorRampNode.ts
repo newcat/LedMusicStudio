@@ -1,6 +1,8 @@
-import { NodeBuilder } from "@baklavajs/core";
+/*
+TODO: 
+import { defineNode, NodeBuilder } from "@baklavajs/core";
 
-export const ColorRampNode = new NodeBuilder("Color Ramp")
+export const ColorRampNode2 = new NodeBuilder("Color Ramp")
     .addInputInterface("Factor", "SliderOption", 0, { type: "number", min: 0, max: 1 })
     .addOption("Color Ramp", "ColorRampOption", () => [
         { color: [0, 0, 0], position: 0 },
@@ -9,3 +11,4 @@ export const ColorRampNode = new NodeBuilder("Color Ramp")
     .addOutputInterface("Color Band", { type: "color_array" })
     .addOutputInterface("Single Color", { type: "color_single" })
     .build();
+*/

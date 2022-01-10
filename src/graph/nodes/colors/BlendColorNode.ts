@@ -1,34 +1,32 @@
-import { Node } from "@baklavajs/core";
+import { defineNode } from "@baklavajs/core";
+import { ColorArrayInterface } from "@/graph/interfaces";
 import { Color, blend } from "../../colors";
+import { SelectInterface } from "@baklavajs/renderer-vue";
 
-export class BlendColorNode extends Node {
-    public type = "Blend Color";
-    public name = this.type;
+const BLEND_MODES = ["Multiply", "Darken", "Lighten", "Screen", "Overlay", "Burn", "Dodge"] as const;
+type BlendModeTuple = typeof BLEND_MODES;
+type BlendMode = BlendModeTuple[number];
 
-    public constructor() {
-        super();
-        this.addInputInterface("Color 1", undefined, () => [[0, 0, 0]], { type: "color_array" });
-        this.addInputInterface("Color 2", undefined, () => [[0, 0, 0]], { type: "color_array" });
-        this.addOption("Mode", "SelectOption", "Multiply", undefined, {
-            items: ["Multiply", "Darken", "Lighten", "Screen", "Overlay", "Burn", "Dodge"],
-        });
-        this.addOutputInterface("Output", { type: "color_array" });
-    }
-
-    public calculate() {
-        const colorsA: Color[] = this.getInterface("Color 1").value;
-        const colorsB: Color[] = this.getInterface("Color 2").value;
-        const mode = this.getOptionValue("Mode").toLowerCase();
-
-        const length = Math.max(colorsA.length, colorsB.length);
+export const BlendColorNode = defineNode({
+    type: "Blend Color",
+    inputs: {
+        color1: () => new ColorArrayInterface("Color 1"),
+        color2: () => new ColorArrayInterface("Color 2"),
+        mode: () => new SelectInterface<BlendMode>("Mode", "Multiply", [...BLEND_MODES]).setPort(false),
+    },
+    outputs: {
+        output: () => new ColorArrayInterface("Output"),
+    },
+    calculate({ color1, color2, mode }) {
+        const length = Math.max(color1.length, color2.length);
         const result: Color[] = new Array(length);
 
         for (let i = 0; i < length; i++) {
-            const a = i < colorsA.length ? colorsA[i] : colorsA[colorsA.length - 1];
-            const b = i < colorsB.length ? colorsB[i] : colorsB[colorsB.length - 1];
-            result[i] = blend(a, b, mode);
+            const a = i < color1.length ? color1[i] : color1[color1.length - 1];
+            const b = i < color2.length ? color2[i] : color2[color2.length - 1];
+            result[i] = blend(a, b, mode.toLowerCase() as any);
         }
 
-        this.getInterface("Output").value = result;
-    }
-}
+        return { output: result };
+    },
+});

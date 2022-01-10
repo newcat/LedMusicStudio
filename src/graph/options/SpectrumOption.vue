@@ -2,45 +2,43 @@
     <canvas ref="canvas" class="option-canvas"></canvas>
 </template>
 
-<script lang="ts">
-import { Component, Prop, Vue, Watch } from "vue-property-decorator";
+<script setup lang="ts">
+import { onMounted, ref, watch } from "vue";
 
-@Component
-export default class SpectrumOption extends Vue {
-    @Prop()
-    public value?: Float32Array;
+const props = defineProps({
+    modelValue: { type: Object as () => Float32Array, required: true },
+});
 
-    private canvas!: HTMLCanvasElement;
-    private ctx!: CanvasRenderingContext2D;
+const canvas = ref<HTMLCanvasElement | null>(null);
+let ctx: CanvasRenderingContext2D;
 
-    public mounted() {
-        this.canvas = this.$refs.canvas as HTMLCanvasElement;
-        this.ctx = this.canvas.getContext("2d")!;
-        this.draw();
+onMounted(() => {
+    ctx = canvas.value!.getContext("2d")!;
+    draw();
+});
+
+function draw() {
+    if (!canvas.value || !ctx) {
+        return;
     }
 
-    @Watch("value")
-    public draw() {
-        if (!this.canvas || !this.ctx) {
-            return;
-        }
+    const { width, height } = canvas.value;
 
-        const { width, height } = this.canvas;
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, width, height);
 
-        this.ctx.fillStyle = "black";
-        this.ctx.fillRect(0, 0, width, height);
-
-        if (!this.value || !(this.value instanceof Float32Array)) {
-            return;
-        }
-
-        const barWidth = width / this.value.length;
-
-        this.value.forEach((v, i) => {
-            const b = 255 * v;
-            this.ctx.fillStyle = `rgb(${b}, ${b}, ${b})`;
-            this.ctx.fillRect(i * barWidth, 0, barWidth, height);
-        });
+    if (!props.modelValue || !(props.modelValue instanceof Float32Array)) {
+        return;
     }
+
+    const barWidth = width / props.modelValue.length;
+
+    props.modelValue.forEach((v, i) => {
+        const b = 255 * v;
+        ctx.fillStyle = `rgb(${b}, ${b}, ${b})`;
+        ctx.fillRect(i * barWidth, 0, barWidth, height);
+    });
 }
+
+watch(() => props.modelValue, draw);
 </script>

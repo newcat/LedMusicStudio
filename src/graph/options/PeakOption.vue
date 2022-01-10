@@ -2,45 +2,43 @@
     <canvas ref="canvas" class="option-canvas"></canvas>
 </template>
 
-<script lang="ts">
-import { Component, Prop, Vue, Watch } from "vue-property-decorator";
+<script setup lang="ts">
+import { onMounted, ref, watch } from "vue";
 
-@Component
-export default class SpectrumOption extends Vue {
-    @Prop()
-    public value!: number;
+const props = defineProps({
+    modelValue: { type: Number, required: true },
+});
 
-    private canvas!: HTMLCanvasElement;
-    private ctx!: CanvasRenderingContext2D;
+const canvas = ref<HTMLCanvasElement | null>(null);
+let ctx: CanvasRenderingContext2D;
 
-    public mounted() {
-        this.canvas = this.$refs.canvas as HTMLCanvasElement;
-        this.ctx = this.canvas.getContext("2d")!;
-        this.draw();
+onMounted(() => {
+    ctx = canvas.value!.getContext("2d")!;
+    draw();
+});
+
+function draw() {
+    if (!canvas.value || !ctx) {
+        return;
     }
 
-    @Watch("value")
-    public draw() {
-        if (!this.canvas || !this.ctx) {
-            return;
-        }
+    const { width, height } = canvas.value;
 
-        const { width, height } = this.canvas;
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, width, height);
 
-        this.ctx.fillStyle = "black";
-        this.ctx.fillRect(0, 0, width, height);
-
-        if (!this.value) {
-            return;
-        }
-
-        const grad = this.ctx.createLinearGradient(0, 0, width, 0);
-        grad.addColorStop(0, "green");
-        grad.addColorStop(0.5, "orange");
-        grad.addColorStop(1, "red");
-
-        this.ctx.fillStyle = grad;
-        this.ctx.fillRect(0, 0, this.value * width, height);
+    if (!props.modelValue) {
+        return;
     }
+
+    const grad = ctx.createLinearGradient(0, 0, width, 0);
+    grad.addColorStop(0, "green");
+    grad.addColorStop(0.5, "orange");
+    grad.addColorStop(1, "red");
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, props.modelValue * width, height);
 }
+
+watch(() => props.modelValue, draw);
 </script>

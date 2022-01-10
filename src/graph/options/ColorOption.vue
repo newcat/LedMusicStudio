@@ -1,38 +1,34 @@
-<template lang="pug">
-.color-option
-    .__name {{ name }}
-    .__color
-        d-color-picker(:value="color" @input="setColor")
+<template>
+    <div class="color-option">
+        <div class="__name">{{ name }}</div>
+        <div class="__color">
+            <color-picker :model-value="color" @update:model-value="setColor"></color-picker>
+        </div>
+    </div>
 </template>
 
-<script lang="ts">
-import { Component, Prop, Vue } from "vue-property-decorator";
+<script setup lang="ts">
+import { computed } from "vue";
 import ColorPicker from "./ColorPicker.vue";
 import { fromChroma, Color, chroma, toChroma } from "../colors";
 
-@Component({
-    components: {
-        "d-color-picker": ColorPicker,
-    },
-})
-export default class ColorOption extends Vue {
-    @Prop()
-    name!: any;
+const props = defineProps({
+    name: { type: String, required: true },
+    modelValue: { type: Array as unknown as () => Color, required: true },
+});
 
-    @Prop()
-    value!: Color;
+const emit = defineEmits(["update:modelValue"]);
 
-    get color() {
-        if (!this.value) {
-            return "#000000";
-        } else {
-            return toChroma(this.value).css();
-        }
+const color = computed(() => {
+    if (!props.modelValue) {
+        return "#000000";
+    } else {
+        return toChroma(props.modelValue).css();
     }
+});
 
-    setColor(color: string) {
-        this.$emit("input", fromChroma(chroma(color)));
-    }
+function setColor(color: string) {
+    emit("update:modelValue", fromChroma(chroma(color)));
 }
 </script>
 

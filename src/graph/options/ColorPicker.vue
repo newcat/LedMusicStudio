@@ -1,36 +1,34 @@
-<template lang="pug">
-.color-picker(@click.self="open = true", :style="styles", v-click-outside="() => { open = false; }")
-    transition(name="slide-fade")
-        cp-chrome.color-picker-overlay(v-show="open", :value="value", @input="$emit('input', $event.hex)")
+<template>
+    <div ref="el" class="color-picker" @click.self="open = true" :style="{ backgroundColor: modelValue }">
+        <transition name="slide-fade">
+            <cp-chrome
+                class="color-picker-overlay"
+                v-show="open"
+                :model-value="modelValue"
+                @update:model-value="emit('update:modelValue', $event.hex)"
+            ></cp-chrome>
+        </transition>
+    </div>
 </template>
 
-<script lang="ts">
-import { Component, Prop, Vue } from "vue-property-decorator";
+<script setup lang="ts">
+import { ref } from "vue";
 // @ts-ignore
-import { Chrome } from "vue-color";
-// @ts-ignore
-import ClickOutside from "v-click-outside";
+import { Chrome as CpChrome } from "@ckpack/vue-color";
+import { onClickOutside } from "@vueuse/core";
 
-@Component({
-    components: {
-        "cp-chrome": Chrome,
-    },
-    directives: {
-        ClickOutside: ClickOutside.directive,
-    },
-})
-export default class ColorPicker extends Vue {
-    @Prop({ type: String, default: "#000000" })
-    value!: string;
+defineProps({
+    modelValue: { type: String, default: "#000000" },
+});
 
-    open = false;
+const emit = defineEmits(["update:modelValue"]);
 
-    get styles() {
-        return {
-            "background-color": this.value,
-        };
-    }
-}
+const el = ref<HTMLElement | null>(null);
+const open = ref(false);
+
+onClickOutside(el, () => {
+    open.value = false;
+});
 </script>
 
 <style scoped>

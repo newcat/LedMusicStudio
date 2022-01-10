@@ -1,25 +1,23 @@
-import { Node } from "@baklavajs/core";
+import { defineNode } from "@baklavajs/core";
+import { ColorSingleInterface, PreviewInterface, SliderInterface } from "@/graph/interfaces";
 import { fromChroma, chroma } from "../../colors";
 
-export class RgbNode extends Node {
-    public type = "RGB";
-    public name = this.type;
-
-    public constructor() {
-        super();
-        this.addInputInterface("R", "SliderOption", 0, { type: "number", min: 0, max: 1 });
-        this.addInputInterface("G", "SliderOption", 0, { type: "number", min: 0, max: 1 });
-        this.addInputInterface("B", "SliderOption", 0, { type: "number", min: 0, max: 1 });
-        this.addOption("Preview", "PreviewOption", [[0, 0, 0]]);
-        this.addOutputInterface("Color", { type: "color_single" });
-    }
-
-    public calculate() {
-        const r = this.getInterface("R").value * 255;
-        const g = this.getInterface("G").value * 255;
-        const b = this.getInterface("B").value * 255;
-        const c = fromChroma(chroma(r, g, b, "rgb"));
-        this.setOptionValue("Preview", [c]);
-        this.getInterface("Color").value = c;
-    }
-}
+export const RgbNode = defineNode({
+    type: "RGB",
+    inputs: {
+        r: () => new SliderInterface("R", 0, 0, 1),
+        g: () => new SliderInterface("G", 0, 0, 1),
+        b: () => new SliderInterface("B", 0, 0, 1),
+    },
+    outputs: {
+        preview: () => new PreviewInterface("Preview"),
+        color: () => new ColorSingleInterface("Color"),
+    },
+    calculate({ r, g, b }) {
+        const c = fromChroma(chroma(r * 255, g * 255, b * 255, "rgb"));
+        return {
+            preview: [c],
+            color: c,
+        };
+    },
+});
