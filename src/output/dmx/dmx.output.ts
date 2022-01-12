@@ -1,6 +1,6 @@
 import { Buffer } from "buffer";
 import { v4 as uuidv4 } from "uuid";
-import { ipcRenderer } from "electron";
+import { ipcRenderer } from "@/native";
 import { BaseOutput } from "../base.output";
 import { OutputType } from "../outputTypes";
 

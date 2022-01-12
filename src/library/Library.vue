@@ -1,7 +1,6 @@
 <template>
-    <n-card>
+    <n-card class="full-height" title="Library">
         <div class="flex">
-            <h3>Library</h3>
             <n-dropdown trigger="click" @select="addItem" :options="addItemOptions">
                 <n-button>Add Item</n-button>
             </n-dropdown>
@@ -10,13 +9,13 @@
         <n-tree block-line selectable :data="items"></n-tree>
 
         <input ref="fileinput" type="file" @change="loadAudio" style="display: none" />
-        <item-settings v-model="settingsOpen" :item="activeItem!"></item-settings>
+        <item-settings v-if="activeItem" v-model="settingsOpen" :item="activeItem"></item-settings>
     </n-card>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, Ref } from "vue";
-import { NCard, NDropdown, DropdownOption, NTree, TreeOption } from "naive-ui";
+import { NCard, NDropdown, DropdownOption, NTree, TreeOption, NButton } from "naive-ui";
 
 import { AudioLibraryItem } from "@/audio/audio.libraryItem";
 import { AutomationLibraryItem } from "@/automation/automation.libraryItem";

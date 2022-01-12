@@ -1,5 +1,5 @@
 <template>
-    <n-card class="d-flex flex-column" :title="title">
+    <n-card class="full-height" :title="title">
         <baklava-editor v-if="isGraph" :plugin="selectedItem.editor.viewPlugin" :key="'g' + selectedItemId"></baklava-editor>
         <note-editor v-else-if="isPattern" :notePattern="selectedItem" :key="'p' + selectedItemId"></note-editor>
         <automation-editor v-else-if="isAutomation" :automationClip="selectedItem" :key="'a' + selectedItemId"></automation-editor>
@@ -11,6 +11,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { NCard } from "naive-ui";
+import { EditorComponent as BaklavaEditor } from "@baklavajs/renderer-vue";
 
 import { globalState } from "@/globalState";
 import { LibraryItemType } from "@/library";

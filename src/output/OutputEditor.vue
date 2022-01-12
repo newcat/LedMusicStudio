@@ -1,18 +1,14 @@
-<template lang="pug">
-.output-editor
-    v-select(
-        style="max-width: 12em;",
-        outlined,
-        label="Output Type",
-        :items="outputTypes",
-        :value="output.outputInstance.type",
-        @input="onOutputTypeChanged")
-    component(v-if="outputSettingsComponent", :is="outputSettingsComponent", :output="output.outputInstance")
+<template>
+    <div class="output-editor">
+        <n-select :value="output.outputInstance.type" :options="outputTypes" @update:value="onOutputTypeChanged" />
+        <component v-if="outputSettingsComponent" :is="outputSettingsComponent" :output="output.outputInstance" />
+    </div>
 </template>
 
-<script lang="ts">
-import { VueConstructor } from "vue";
-import { Component, Prop, Vue } from "vue-property-decorator";
+<script setup lang="ts">
+import { ComponentOptions, computed } from "vue";
+import { NSelect } from "naive-ui";
+
 import { OutputType } from "./outputTypes";
 import { OutputLibraryItem } from "./output.libraryItem";
 
@@ -20,33 +16,31 @@ import WledOutputSettings from "./wled/WledOutputSettings.vue";
 import DmxOutputSettings from "./dmx/DmxOutputSettings.vue";
 import { createOutput } from "./outputFactory";
 
-const outputSettingsComponentMapping: Record<OutputType, VueConstructor<Vue> | undefined> = {
+const outputSettingsComponentMapping: Record<OutputType, ComponentOptions<any> | undefined> = {
     [OutputType.DUMMY]: undefined,
     [OutputType.WLED]: WledOutputSettings,
     [OutputType.DMX]: DmxOutputSettings,
     [OutputType.RAZER_CHROMA]: undefined,
 };
 
-@Component
-export default class OutputEditor extends Vue {
-    @Prop()
-    output!: OutputLibraryItem;
+const props = defineProps({
+    output: { type: Object as () => OutputLibraryItem, required: true },
+});
 
-    outputTypes = [
-        { text: "Dummy", value: OutputType.DUMMY },
-        { text: "WLED", value: OutputType.WLED },
-        { text: "DMX", value: OutputType.DMX },
-        { text: "Razer Chroma", value: OutputType.RAZER_CHROMA },
-    ];
+const outputTypes = [
+    { label: "Dummy", value: OutputType.DUMMY },
+    { label: "WLED", value: OutputType.WLED },
+    { label: "DMX", value: OutputType.DMX },
+    { label: "Razer Chroma", value: OutputType.RAZER_CHROMA },
+];
 
-    get outputSettingsComponent() {
-        return outputSettingsComponentMapping[this.output.outputInstance.type];
-    }
+const outputSettingsComponent = computed(() => {
+    return outputSettingsComponentMapping[props.output.outputInstance.type];
+});
 
-    async onOutputTypeChanged(newOutputType: OutputType) {
-        await this.output.outputInstance.destroy();
-        this.output.outputInstance = createOutput(newOutputType);
-    }
+async function onOutputTypeChanged(newOutputType: OutputType) {
+    await props.output.outputInstance.destroy();
+    props.output.outputInstance = createOutput(newOutputType);
 }
 </script>
 

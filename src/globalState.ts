@@ -1,9 +1,9 @@
 import { serialize, deserialize } from "bson";
 import { reactive } from "vue";
 import { BaklavaEvent } from "@baklavajs/events";
-import { ipcRenderer } from "electron";
 
 import { TimelineEditor } from "@/timeline";
+import { ipcRenderer } from "@/native";
 import { LibraryModel } from "./library/libraryModel";
 import { TICKS_PER_BEAT } from "./constants";
 
@@ -122,4 +122,4 @@ export class State implements IState {
     }
 }
 
-export const globalState = reactive(new State());
+export const globalState = reactive(new State()) as State;

@@ -1,49 +1,54 @@
-<template lang="pug">
-div
-    v-text-field(outlined, label="Host", v-model="host")
-    v-text-field(outlined, type="number", step="1", label="Port", v-model="port")
-    v-text-field(outlined, type="number", step="1", label="Timeout", v-model="timeout")
-    v-text-field(outlined, type="number", step="1", label="Led Count", v-model="numLeds")
-    v-btn(text, @click="apply") Apply
-    v-btn(text, @click="updateValues") Cancel
+<template>
+    <div>
+        <n-form-item label="Host">
+            <n-input v-model="host"></n-input>
+        </n-form-item>
+        <n-form-item label="Port">
+            <n-input v-model.number="port"></n-input>
+        </n-form-item>
+        <n-form-item label="Timeout">
+            <n-input v-model.number="timeout"></n-input>
+        </n-form-item>
+        <n-form-item label="Led Count">
+            <n-input v-model.number="numLeds"></n-input>
+        </n-form-item>
+        <n-button @click="apply">Apply</n-button>
+        <n-button @click="updateValues">Cancel</n-button>
+    </div>
 </template>
 
-<script lang="ts">
-import { Component, Prop, Vue } from "vue-property-decorator";
+<script setup lang="ts">
+import { onMounted, ref } from "vue";
+import { NInput, NFormItem, NButton } from "naive-ui";
 import { WledOutput } from "./wled.output";
 
-@Component
-export default class WledOutputSettings extends Vue {
-    host = "";
-    port = 0;
-    timeout = 0;
-    numLeds = 0;
+const props = defineProps({
+    output: { type: Object as () => WledOutput, required: true },
+});
 
-    @Prop()
-    output!: WledOutput;
+const host = ref("");
+const port = ref(0);
+const timeout = ref(0);
+const numLeds = ref(0);
 
-    mounted() {
-        this.updateValues();
-    }
-
-    updateValues() {
-        const { host, port, timeout, numLeds } = this.output.state;
-        this.host = host;
-        this.port = port;
-        this.timeout = timeout;
-        this.numLeds = numLeds;
-    }
-
-    apply() {
-        this.output.applyState({
-            host: this.host,
-            port: this.port,
-            timeout: this.timeout,
-            numLeds: this.numLeds,
-        });
-        this.updateValues();
-    }
+function updateValues() {
+    host.value = props.output.state.host;
+    port.value = props.output.state.port;
+    timeout.value = props.output.state.timeout;
+    numLeds.value = props.output.state.numLeds;
 }
+
+function apply() {
+    props.output.applyState({
+        host: host.value,
+        port: port.value,
+        timeout: timeout.value,
+        numLeds: numLeds.value,
+    });
+    updateValues();
+}
+
+onMounted(updateValues);
 </script>
 
 <style lang="css" scoped>

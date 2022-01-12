@@ -1,6 +1,6 @@
 <template>
     <div class="fill-height">
-        <div class="d-flex px-3 align-items-center" style="height: 48px">
+        <toolbar>
             <n-button @click="() => editor.addDefaultTrack()">Add Track</n-button>
             <n-divider class="mx-4" vertical></n-divider>
             <n-icon>
@@ -26,10 +26,9 @@
                 prepend-icon="straighten"
             ></n-select>
             <n-divider class="mx-4" vertical></n-divider>
-            <n-form-item label="BPM" label-placement="left">
-                <n-input :value="bpm" @update:value="setBpm" style="max-width: 6em"></n-input>
-            </n-form-item>
-        </div>
+            <div class="mr-2">BPM</div>
+            <n-input :value="bpm" @update:value="setBpm" style="max-width: 6em"></n-input>
+        </toolbar>
         <div id="wrapper">
             <timeline-base></timeline-base>
         </div>
@@ -38,12 +37,13 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { NDivider, NButton, NIcon, NSlider, NSelect, SelectOption, NInput, NFormItem } from "naive-ui";
+import { NDivider, NButton, NIcon, NSlider, NSelect, SelectOption, NInput } from "naive-ui";
 import { VolumeUpFilled, StraightenFilled } from "@vicons/material";
 
 import { TICKS_PER_BEAT } from "@/constants";
 import { globalState } from "@/globalState";
 import TimelineBase from "./components/Timeline.vue";
+import Toolbar from "@/components/Toolbar.vue";
 
 const snapItems: SelectOption[] = [
     { label: "Disabled", value: "1" },

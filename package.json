@@ -34,7 +34,6 @@
     "vue": "^3.2.25"
   },
   "devDependencies": {
-    "@electron/remote": "^2.0.1",
     "@types/bson": "^4.2.0",
     "@types/chroma-js": "^2.1.3",
     "@types/offscreencanvas": "^2019.6.4",

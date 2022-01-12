@@ -32,7 +32,7 @@ export class TimelineProcessor {
 
     public constructor() {
         (window as any).processor = this; // for debugging purposes; can now be accessed in dev tools console
-        globalState.events.initialized.addListener(this, () => this.initialize());
+        globalState.events.initialized.subscribe(this, () => this.initialize());
     }
 
     public initialize() {
@@ -161,8 +161,9 @@ export class TimelineProcessor {
 
     private async processGraph(item: Item, calculationData: ICalculationData, outputMap: Map<BaseOutput, any>): Promise<void> {
         const graph = item.libraryItem as GraphLibraryItem;
-        const results = (await graph.editor.enginePlugin.calculate(calculationData))!;
-        results.forEach((v) => {
+        const results = (await graph.editor.enginePlugin.runOnce(calculationData))!;
+        // TODO:
+        /*results.forEach((v) => {
             if (!v) {
                 return;
             }
@@ -171,7 +172,7 @@ export class TimelineProcessor {
             if (outputInstance) {
                 outputMap.set(outputInstance, data);
             }
-        });
+        });*/
     }
 
     private processAutomation(unit: number, item: Item): void {

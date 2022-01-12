@@ -31,11 +31,11 @@
 
 <script setup lang="ts">
 import { BaklavaEvent } from "@baklavajs/events";
-import { dialog } from "@electron/remote";
 import { computed, watch } from "vue";
 import { NModal, NButton, NSpin, NIcon } from "naive-ui";
 import { CloseFilled } from "@vicons/material";
 
+import { dialog } from "@/native";
 import { AudioLibraryItem } from "@/audio";
 import { globalState } from "@/globalState";
 import { LibraryItem, LibraryItemType } from "@/library";

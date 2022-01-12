@@ -1,9 +1,8 @@
 import { serialize, deserialize } from "bson";
+import { BaklavaEvent } from "@baklavajs/events";
 import { LibraryItem, LibraryItemType } from "@/library";
 import WaveformWorker from "./workerInstance";
-import { BaklavaEvent } from "@baklavajs/events";
-import { readFile } from "fs";
-import { promisify } from "util";
+import { readFile } from "@/native";
 
 export interface IWaveformPart {
     start: number;
@@ -26,7 +25,7 @@ export class AudioLibraryItem extends LibraryItem {
     public waveform: IWaveform | null = null;
 
     public events = {
-        loaded: new BaklavaEvent<void>(),
+        loaded: new BaklavaEvent<void, this>(this),
     };
 
     public async load() {
@@ -42,10 +41,7 @@ export class AudioLibraryItem extends LibraryItem {
         try {
             console.log("Reading Data");
             const timeoutSymbol = Symbol("timeout");
-            const rawData = await Promise.race([
-                promisify(readFile)(this.path),
-                new Promise<symbol>((res) => setTimeout(res, 5000, timeoutSymbol)),
-            ]);
+            const rawData = await Promise.race([readFile(this.path), new Promise<symbol>((res) => setTimeout(res, 5000, timeoutSymbol))]);
             if (rawData === timeoutSymbol) {
                 throw new Error("Timeout while reading data");
             }

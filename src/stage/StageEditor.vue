@@ -1,29 +1,25 @@
-<template lang="pug">
-.stage-editor
-    v-toolbar(dense, flat)
-        v-btn(icon)
-            v-icon add
-        v-btn(icon)
-            v-icon play_circle_filled
-    .edit-area(v-if="editMode")
-        .prop-area
-            prop-wrapper(selected, :prop="testProp")
-        .properties Properties
+<template>
+    <div class="stage-editor">
+        <div>
+            <n-button>add</n-button>
+            <n-button>play_circle_filled</n-button>
+        </div>
+        <div class="edit-area" v-if="editMode">
+            <div class="prop-area">
+                <prop-wrapper selected :prop="testProp"></prop-wrapper>
+            </div>
+            <div class="properties">Properties</div>
+        </div>
+    </div>
 </template>
 
-<script lang="ts">
-import { Component, Prop, Vue } from "vue-property-decorator";
+<script setup lang="ts">
+import { ref } from "vue";
 import { PropWrapper } from "./components";
 import { StripProp } from "./props/strip/strip";
 
-@Component({
-    components: { PropWrapper },
-})
-export default class StageEditor extends Vue {
-    editMode = true;
-
-    testProp = new StripProp();
-}
+const editMode = ref(true);
+const testProp = ref(new StripProp());
 </script>
 
 <style scoped>

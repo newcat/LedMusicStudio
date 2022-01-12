@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { NModal, NFormItem, NInput } from "naive-ui";
+import { NModal, NFormItem, NInput, NButton } from "naive-ui";
 
 import { Track } from "../model";
 

@@ -1,35 +1,34 @@
-<template lang="pug">
-div
-    v-text-field(outlined, label="Port", v-model="port")
-    v-btn(text, @click="apply") Apply
-    v-btn(text, @click="updateValues") Cancel
+<template>
+    <div>
+        <n-form-item label="Port">
+            <n-input v-model="port"></n-input>
+        </n-form-item>
+        <n-button @click="apply">Apply</n-button>
+        <n-button @click="updateValues">Cancel</n-button>
+    </div>
 </template>
 
-<script lang="ts">
-import { Component, Prop, Vue } from "vue-property-decorator";
+<script setup lang="ts">
+import { NInput, NFormItem, NButton } from "naive-ui";
+import { onMounted, ref } from "vue";
 import { DmxOutput } from "./dmx.output";
 
-@Component
-export default class DmxOutputSettings extends Vue {
-    port = "";
+const props = defineProps({
+    output: { type: Object as () => DmxOutput, required: true },
+});
 
-    @Prop()
-    output!: DmxOutput;
+const port = ref("");
 
-    mounted() {
-        this.updateValues();
-    }
-
-    updateValues() {
-        const { port } = this.output.state;
-        this.port = port;
-    }
-
-    apply() {
-        this.output.applyState({
-            port: this.port,
-        });
-        this.updateValues();
-    }
+function updateValues() {
+    port.value = props.output.state.port;
 }
+
+function apply() {
+    props.output.applyState({
+        port: port.value,
+    });
+    updateValues();
+}
+
+onMounted(updateValues);
 </script>
