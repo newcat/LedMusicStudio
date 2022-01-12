@@ -1,21 +1,17 @@
-import { Node } from "@baklavajs/core";
+import { ColorArrayInterface, SliderInterface } from "@/graph/interfaces";
+import { defineNode } from "@baklavajs/core";
 import { Color, mix, blend } from "../../colors";
 
-export class MirrorNode extends Node {
-    public type = "Mirror";
-    public name = this.type;
-
-    public constructor() {
-        super();
-        this.addInputInterface("Input", undefined, [[0, 0, 0]], { type: "color_array" });
-        this.addInputInterface("Strength", "SliderOption", 1, { type: "number", min: 0, max: 1 });
-        this.addOutputInterface("Output", { type: "color_array" });
-    }
-
-    public calculate() {
-        const input: Color[] = this.getInterface("Input").value;
-        const strength: number = this.getInterface("Strength").value;
-
+export const MirrorNode = defineNode({
+    type: "Mirror",
+    inputs: {
+        input: () => new ColorArrayInterface("Input"),
+        strength: () => new SliderInterface("Strength", 1, 0, 1),
+    },
+    outputs: {
+        output: () => new ColorArrayInterface("Output"),
+    },
+    calculate({ input, strength }) {
         const resolution = input.length;
         const reverseColors: Color[] = new Array(resolution);
         const result: Color[] = new Array(resolution);
@@ -26,6 +22,6 @@ export class MirrorNode extends Node {
             result[i] = blend(input[i], reverseColors[i], "lighten");
         }
 
-        this.getInterface("Output").value = result;
-    }
-}
+        return { output: result };
+    },
+});

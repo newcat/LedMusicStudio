@@ -12,7 +12,7 @@ export class GraphLibraryItem extends LibraryItem {
         return serialize({
             id: this.id,
             name: this.name,
-            state: this.editor.save(),
+            state: this.editor.editor.save(),
         });
     }
 
@@ -20,6 +20,6 @@ export class GraphLibraryItem extends LibraryItem {
         const { id, name, state } = deserialize(buffer);
         this.id = id;
         this.name = name;
-        this.editor.load(state);
+        this.editor.editor.load(state);
     }
 }

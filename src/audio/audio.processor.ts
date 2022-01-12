@@ -1,5 +1,5 @@
-import { observe } from "@nx-js/observer-util";
 import type { State } from "@/globalState";
+import { watch } from "vue";
 
 // inspired by: https://github.com/katspaugh/wavesurfer.js/blob/master/src/webaudio.js
 
@@ -29,6 +29,8 @@ export class AudioProcessor {
     private startTime = 0;
     private startPosition = 0;
 
+    private unwatch: () => void;
+
     public constructor(state: State) {
         this.state = state;
         this.gainNode.connect(this.audioContext.destination);
@@ -36,8 +38,11 @@ export class AudioProcessor {
         this.analyserNode.fftSize = 8192;
         AudioProcessor.sampleRate = this.audioContext.sampleRate;
 
-        observe(() => this.gainNode.gain.setValueAtTime(this.state.volume, this.audioContext.currentTime));
-        this.state.events.positionSetByUser.addListener(this, () => {
+        this.unwatch = watch(
+            () => this.state.volume,
+            () => this.gainNode.gain.setValueAtTime(this.state.volume, this.audioContext.currentTime)
+        );
+        this.state.events.positionSetByUser.subscribe(this, () => {
             if (this.state.isPlaying) {
                 this.pause(false);
                 this.play();
@@ -78,6 +83,7 @@ export class AudioProcessor {
             this.pause();
         }
         this.tracks = [];
+        this.unwatch();
         this.gainNode.disconnect();
         this.analyserNode.disconnect();
         this.audioContext.close();

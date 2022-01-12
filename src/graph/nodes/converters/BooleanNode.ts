@@ -1,27 +1,23 @@
-import { Node } from "@baklavajs/core";
+import { CheckboxInterface, NumberInterface } from "@/graph/interfaces";
+import { defineNode } from "@baklavajs/core";
+import { SelectInterface } from "@baklavajs/renderer-vue";
 
 const operations = ["==", ">", "<", ">=", "<="];
 
-export class BooleanNode extends Node {
-    type = "Boolean";
-    name = this.type;
-
-    constructor() {
-        super();
-        this.addInputInterface("Value 1", "NumberOption", 0, { type: "number" });
-        this.addInputInterface("Value 2", "NumberOption", 0, { type: "number" });
-        this.addInputInterface("Round Values", "CheckboxOption", false, { type: "boolean" });
-        this.addInputInterface("Invert Output", "CheckboxOption", false, { type: "boolean" });
-        this.addOption("Operation", "SelectOption", "==", undefined, { items: operations });
-        this.addOutputInterface("Result", { type: "boolean" });
-    }
-
-    calculate() {
-        const val1 = this.getInterface("Value 1").value;
-        const val2 = this.getInterface("Value 2").value;
-        const useInt = this.getInterface("Round Values").value;
-        const invert = this.getInterface("Invert Output").value;
-        const operation = this.getOptionValue("Operation");
+export const BooleanNode = defineNode({
+    type: "Boolean",
+    inputs: {
+        val1: () => new NumberInterface("Value 1", 0),
+        val2: () => new NumberInterface("Value 2", 0),
+        useInt: () => new CheckboxInterface("Round Values", false),
+        invert: () => new CheckboxInterface("Invert Output", false),
+        operation: () => new SelectInterface("Operation", "==", operations),
+    },
+    outputs: {
+        result: () => new CheckboxInterface("Result", false),
+    },
+    calculate(inputs) {
+        const { val1, val2, useInt, invert, operation } = inputs;
 
         let result = false;
         switch (operation) {
@@ -45,6 +41,6 @@ export class BooleanNode extends Node {
             result = !result;
         }
 
-        this.getInterface("Result").value = result;
-    }
-}
+        return { result };
+    },
+});

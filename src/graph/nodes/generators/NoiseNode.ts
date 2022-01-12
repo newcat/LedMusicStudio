@@ -1,11 +1,34 @@
-import { Node } from "@baklavajs/core";
+import { ColorArrayInterface, NumberInterface, SliderInterface } from "@/graph/interfaces";
+import { CalculateFunction, Node } from "@baklavajs/core";
 import { makeNoise2D } from "open-simplex-noise";
 import { Color, fromChroma, chroma } from "../../colors";
 import { ICalculationData } from "../../types";
 
-export class NoiseNode extends Node {
+interface Inputs {
+    spaceFreq: number;
+    timeFreq: number;
+    magnitude: number;
+    coloring: number;
+}
+
+interface Outputs {
+    colors: Color[];
+}
+
+export class NoiseNode extends Node<Inputs, Outputs> {
     public type = "Noise";
-    public name = this.type;
+    public title = this.type;
+
+    public inputs = {
+        spaceFreq: new NumberInterface("Space Freq", 10, 0),
+        timeFreq: new NumberInterface("Time Freq", 0.1, 0),
+        magnitude: new SliderInterface("Magnitude", 1, 0, 1),
+        coloring: new SliderInterface("Coloring", 0, 0, 1),
+    };
+
+    public outputs = {
+        colors: new ColorArrayInterface("Colors"),
+    };
 
     private hueNoise = makeNoise2D(Math.random() * 100000);
     private valueNoise = makeNoise2D(Math.random() * 100000);
@@ -13,20 +36,16 @@ export class NoiseNode extends Node {
 
     public constructor() {
         super();
-        this.addInputInterface("Space Freq", "NumberOption", 10, { type: "number", min: 0 });
-        this.addInputInterface("Time Freq", "NumberOption", 0.1, { type: "number", min: 0 });
-        this.addInputInterface("Magnitude", "SliderOption", 1, { type: "number", min: 0, max: 1 });
-        this.addInputInterface("Coloring", "SliderOption", 0, { type: "number", min: 0, max: 1 });
-        this.addOutputInterface("Colors", { type: "color_array" });
+        this.initializeIo();
     }
 
-    public calculate(data: ICalculationData) {
+    public calculate: CalculateFunction<Inputs, Outputs> = (inputs, data: ICalculationData) => {
         const { resolution } = data;
 
-        const spaceFreq = Math.max(this.getInterface("Space Freq").value, 0);
-        const timeFreq = Math.max(this.getInterface("Time Freq").value, 0);
-        const magnitude = this.clamp(this.getInterface("Magnitude").value, 0, 1);
-        const coloring = this.clamp(this.getInterface("Coloring").value, 0, 1);
+        const spaceFreq = Math.max(inputs.spaceFreq, 0);
+        const timeFreq = Math.max(inputs.timeFreq, 0);
+        const magnitude = this.clamp(inputs.magnitude, 0, 1);
+        const coloring = this.clamp(inputs.coloring, 0, 1);
 
         const result: Color[] = new Array(resolution);
 
@@ -38,9 +57,9 @@ export class NoiseNode extends Node {
             result[i] = fromChroma(chroma(h, coloring, v, "hsv"));
         }
 
-        this.getInterface("Colors").value = result;
         this.timer++;
-    }
+        return { colors: result };
+    };
 
     private clamp(v: number, min: number, max: number) {
         if (!Number.isFinite(v)) {

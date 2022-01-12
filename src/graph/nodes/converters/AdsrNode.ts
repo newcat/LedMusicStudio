@@ -1,11 +1,36 @@
+import { CheckboxInterface, NumberInterface } from "@/graph/interfaces";
 import { ICalculationData } from "@/graph/types";
-import { Node } from "@baklavajs/core";
+import { CalculateFunction, Node } from "@baklavajs/core";
 
 type Phase = "Attack" | "Decay" | "Sustain" | "Release" | "None";
 
-export class AdsrNode extends Node {
-    type = "ADSR";
-    name = this.type;
+interface Inputs {
+    trigger: boolean;
+    attack: number;
+    decay: number;
+    sustain: number;
+    release: number;
+}
+
+interface Outputs {
+    value: number;
+}
+
+export class AdsrNode extends Node<Inputs, Outputs> {
+    public type = "ADSR";
+    public title = this.type;
+
+    public inputs = {
+        trigger: new CheckboxInterface("Trigger", false),
+        attack: new NumberInterface("Attack", 0.2, 0),
+        decay: new NumberInterface("Decay", 0.3, 0),
+        sustain: new NumberInterface("Sustain", 0.7, 0, 1),
+        release: new NumberInterface("Release", 0.5, 0),
+    };
+
+    public outputs = {
+        value: new NumberInterface("Value", 0),
+    };
 
     private phase: Phase = "None";
     private value = 0;
@@ -14,20 +39,11 @@ export class AdsrNode extends Node {
 
     constructor() {
         super();
-        this.addInputInterface("Trigger", "CheckboxOption", false, { type: "boolean" });
-        this.addInputInterface("Attack", "NumberOption", 0.2, { type: "number", min: 0 });
-        this.addInputInterface("Decay", "NumberOption", 0.3, { type: "number", min: 0 });
-        this.addInputInterface("Sustain", "NumberOption", 0.7, { type: "number", min: 0, max: 1 });
-        this.addInputInterface("Release", "NumberOption", 0.5, { type: "number", min: 0 });
-        this.addOutputInterface("Value", { type: "number" });
+        this.initializeIo();
     }
 
-    calculate(data: ICalculationData) {
-        const trigger: boolean = this.getInterface("Trigger").value;
-        const attack: number = this.getInterface("Attack").value;
-        const decay: number = this.getInterface("Decay").value;
-        const sustain: number = this.getInterface("Sustain").value;
-        const release: number = this.getInterface("Release").value;
+    public override calculate: CalculateFunction<Inputs, Outputs> = (inputs, data: ICalculationData) => {
+        const { trigger, attack, decay, sustain, release } = inputs;
 
         let offsetFromStartInSeconds = Math.max(0, (data.position - this.startFrame) / data.fps);
 
@@ -62,7 +78,6 @@ export class AdsrNode extends Node {
             value = this.startValue - offsetFromStartInSeconds / release;
         }
 
-        this.value = value;
-        this.getInterface("Value").value = value;
-    }
+        return { value };
+    };
 }

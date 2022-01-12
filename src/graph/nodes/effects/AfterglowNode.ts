@@ -1,26 +1,40 @@
-import { Node } from "@baklavajs/core";
+import { ColorArrayInterface, NumberInterface } from "@/graph/interfaces";
+import { CalculateFunction, Node } from "@baklavajs/core";
 import { Color, mix, blend } from "../../colors";
 import { ICalculationData } from "../../types";
 
 const THRESHOLD = 4;
 
-export class AfterglowNode extends Node {
+interface Inputs {
+    input: Color[];
+    strength: number;
+}
+
+interface Outputs {
+    output: Color[];
+}
+
+export class AfterglowNode extends Node<Inputs, Outputs> {
     public type = "Afterglow";
-    public name = this.type;
+    public title = this.type;
+
+    public inputs = {
+        input: new ColorArrayInterface("Input"),
+        strength: new NumberInterface("Strength", 0.75),
+    };
+
+    public outputs = {
+        output: new ColorArrayInterface("Output"),
+    };
 
     private buffer: Color[] = [];
 
     public constructor() {
         super();
-        this.addInputInterface("Input", undefined, [[0, 0, 0]], { type: "color_array" });
-        this.addInputInterface("Strength", "NumberOption", 0.75, { type: "number" });
-        this.addOutputInterface("Output", { type: "color_array" });
+        this.initializeIo();
     }
 
-    public calculate(data: ICalculationData) {
-        const input: Color[] = this.getInterface("Input").value;
-        const strength: number = this.getInterface("Strength").value;
-
+    public calculate: CalculateFunction<Inputs, Outputs> = ({ input, strength }, data: ICalculationData) => {
         const { resolution } = data;
         if (resolution !== this.buffer.length) {
             this.initializeBuffer(resolution);
@@ -36,8 +50,8 @@ export class AfterglowNode extends Node {
             result[i] = c;
         }
 
-        this.getInterface("Output").value = result;
-    }
+        return { output: result };
+    };
 
     private initializeBuffer(resolution: number) {
         this.buffer = [];

@@ -1,25 +1,22 @@
-import { Node } from "@baklavajs/core";
+import { CheckboxInterface } from "@/graph/interfaces";
+import { defineNode } from "@baklavajs/core";
+import { SelectInterface } from "@baklavajs/renderer-vue";
 
 const operations = ["AND", "OR", "XOR", "NAND", "NOR", "XNOR"];
 
-export class LogicNode extends Node {
-    type = "Logic";
-    name = this.type;
-
-    constructor() {
-        super();
-        this.addInputInterface("A", "CheckboxOption", true, { type: "boolean" });
-        this.addInputInterface("B", "CheckboxOption", true, { type: "boolean" });
-        this.addOption("Gatter", "SelectOption", "AND", undefined, { items: operations });
-        this.addOutputInterface("Result", { type: "boolean" });
-    }
-
-    calculate() {
-        const a = this.getInterface("A").value;
-        const b = this.getInterface("B").value;
-        const operation = this.getOptionValue("Gatter").selected;
+export const LogicNode = defineNode({
+    type: "Logic",
+    inputs: {
+        a: () => new CheckboxInterface("A", true),
+        b: () => new CheckboxInterface("B", true),
+        gate: () => new SelectInterface("Gate", "AND", operations),
+    },
+    outputs: {
+        result: () => new CheckboxInterface("Result", false),
+    },
+    calculate({ a, b, gate }) {
         let output = false;
-        switch (operation) {
+        switch (gate) {
             case "AND":
                 output = a && b;
                 break;
@@ -39,7 +36,6 @@ export class LogicNode extends Node {
                 output = a ? b : !b;
                 break;
         }
-        console.log(a, b, output);
-        this.getInterface("Result").value = output;
-    }
-}
+        return { result: output };
+    },
+});

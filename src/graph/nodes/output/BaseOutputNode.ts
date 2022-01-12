@@ -1,31 +1,40 @@
 import { Node } from "@baklavajs/core";
-import { observe, unobserve } from "@nx-js/observer-util";
 import { globalState } from "@/globalState";
 import { OutputLibraryItem, OutputType } from "@/output";
 import { LibraryItemType } from "@/library";
+import { watchEffect } from "vue";
+import { SelectInterface } from "@baklavajs/renderer-vue";
 
-export abstract class BaseOutputNode extends Node {
-    public abstract type: string;
-    public abstract name: string;
+export interface BaseOutputNodeInputs {
+    output: string;
+}
 
-    private reaction: () => void;
+export interface BaseOutputNodeOutputs<T> {
+    outputId: string | undefined;
+    data: T | undefined;
+}
+
+export abstract class BaseOutputNode<T, I extends BaseOutputNodeInputs, O extends BaseOutputNodeOutputs<T>> extends Node<I, O> {
+    private unwatch?: () => void;
 
     public constructor(private compatibleOutputTypes: OutputType[]) {
         super();
-        this.addOption("Output", "SelectOption", "", undefined, { items: [] });
-        this.reaction = observe(() => this.updateOutputs());
-        globalState.library.events.loaded.addListener(this, () => this.reaction());
+    }
+
+    public override onPlaced() {
+        this.unwatch = watchEffect(() => this.updateOutputs());
     }
 
     public destroy() {
-        unobserve(this.reaction);
-        globalState.library.events.loaded.removeListener(this);
+        this.unwatch?.();
     }
 
-    protected afterCalculate(data: any) {
-        const id = this.getOptionValue("Output");
-        if (id) {
-            return { id, data };
+    protected afterCalculate(inputs: I, data: T): BaseOutputNodeOutputs<T> {
+        const { output } = inputs;
+        if (output) {
+            return { outputId: output, data };
+        } else {
+            return { outputId: undefined, data: undefined };
         }
     }
 
@@ -39,8 +48,8 @@ export abstract class BaseOutputNode extends Node {
                 optionItems.push({ text: item.name, value: item.id });
             }
         }
-        const outputOption = this.options.get("Output")!;
-        outputOption.items = optionItems;
-        outputOption.events.updated.emit();
+        const selectOutputIntf = this.inputs.output as SelectInterface;
+        selectOutputIntf.items = optionItems;
+        selectOutputIntf.events.updated.emit();
     }
 }

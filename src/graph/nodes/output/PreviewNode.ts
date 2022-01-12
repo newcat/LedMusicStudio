@@ -1,26 +1,19 @@
-import { Color } from "@/graph/colors";
+import { ColorArrayInterface, IntegerInterface, PreviewInterface } from "@/graph/interfaces";
 import { scaleColorArray } from "@/utils";
-import { Node } from "@baklavajs/core";
+import { defineNode } from "@baklavajs/core";
 
-export class PreviewNode extends Node {
-    public type = "Preview";
-    public name = this.type;
-
-    public constructor() {
-        super();
-        this.addInputInterface("Colors", undefined, [[0, 0, 0]], { type: "color_array" });
-        this.addOption("Preview", "PreviewOption", [[0, 0, 0]]);
-        this.addOption("Led Count", "NumberOption", 30, undefined, { min: 1 });
-    }
-
-    public calculate() {
-        const input = this.getInterface("Colors").value as Color[];
-        const ledCount = this.getOptionValue("Led Count") as number;
-        const scaled = scaleColorArray(input, ledCount);
-
-        this.setOptionValue("Preview", scaled);
-        // return input;
-        /*globalProcessor.globalPreview = input;
+export const PreviewNode = defineNode({
+    type: "Preview",
+    inputs: {
+        colors: () => new ColorArrayInterface("Colors"),
+        ledCount: () => new IntegerInterface("Led Count", 30, 1),
+    },
+    outputs: {
+        preview: () => new PreviewInterface("Preview"),
+    },
+    calculate({ colors, ledCount }) {
+        return { preview: scaleColorArray(colors, ledCount) };
+        /*globalProcessor.globalPreview = colors;
         globalProcessor.events.globalPreviewUpdated.emit();*/
-    }
-}
+    },
+});

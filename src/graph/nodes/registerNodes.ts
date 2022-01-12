@@ -1,4 +1,4 @@
-import { Editor, AbstractNodeConstructor } from "@baklavajs/core";
+import { Editor } from "@baklavajs/core";
 
 import * as InputNodes from "./input";
 import * as ColorNodes from "./colors";

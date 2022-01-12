@@ -1,21 +1,36 @@
+import { NumberInterface } from "@/graph/interfaces";
+import { CalculateFunction } from "@baklavajs/core";
+import { SelectInterface } from "@baklavajs/renderer-vue";
 import { ICalculationData } from "../../types";
-import { TrackInputNode } from "./TrackInputNode";
+import { TrackInputNode, TrackInputNodeInputs } from "./TrackInputNode";
 
-export class PatternNode extends TrackInputNode {
-    public type = "Pattern";
-    public name = this.type;
+interface Outputs {
+    singleNote: number;
+}
+
+export class PatternNode extends TrackInputNode<TrackInputNodeInputs, Outputs> {
+    public type = "Automation";
+    public title = this.type;
+
+    public inputs = {
+        track: new SelectInterface("Track", "", []).setPort(false),
+    };
+
+    public outputs = {
+        singleNote: new NumberInterface("Value", 0),
+    };
 
     public constructor() {
         super();
-        this.addOutputInterface("Single Note", { type: "number" });
+        this.initializeIo();
     }
 
-    public calculate(data: ICalculationData) {
-        const trackValue = this.getTrackValue(data);
+    public calculate: CalculateFunction<TrackInputNodeInputs, Outputs> = (inputs, data: ICalculationData) => {
+        const trackValue = this.getTrackValue(inputs, data);
         let value = 0;
         if (Array.isArray(trackValue) && trackValue.length > 0 && typeof trackValue[0].value === "number") {
             value = trackValue[0].value;
         }
-        this.getInterface("Single Note").value = value;
-    }
+        return { singleNote: value };
+    };
 }

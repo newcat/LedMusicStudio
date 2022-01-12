@@ -1,25 +1,44 @@
+import { NumberInterface } from "@/graph/interfaces";
+import { CalculateFunction } from "@baklavajs/core";
+import { SelectInterface } from "@baklavajs/renderer-vue";
 import { ICalculationData } from "../../types";
-import { TrackInputNode } from "./TrackInputNode";
+import { TrackInputNode, TrackInputNodeInputs } from "./TrackInputNode";
 
-export class AutomationNode extends TrackInputNode {
+interface Inputs extends TrackInputNodeInputs {
+    min: number;
+    max: number;
+}
+
+interface Outputs {
+    value: number;
+}
+
+export class AutomationNode extends TrackInputNode<Inputs, Outputs> {
     public type = "Automation";
-    public name = this.type;
+    public title = this.type;
+
+    public inputs = {
+        track: new SelectInterface("Track", "", []).setPort(false),
+        min: new NumberInterface("Min", 0),
+        max: new NumberInterface("Max", 1),
+    };
+
+    public outputs = {
+        value: new NumberInterface("Value", 0),
+    };
 
     public constructor() {
         super();
-        this.addInputInterface("Min", "NumberOption", 0, { type: "number" });
-        this.addInputInterface("Max", "NumberOption", 1, { type: "number" });
-        this.addOutputInterface("Value", { type: "number" });
+        this.initializeIo();
     }
 
-    public calculate(data: ICalculationData) {
-        const min = this.getInterface("Min").value;
-        const max = this.getInterface("Max").value;
-        const trackValue = this.getTrackValue(data);
+    public calculate: CalculateFunction<Inputs, Outputs> = (inputs, data: ICalculationData) => {
+        const { min, max } = inputs;
+        const trackValue = this.getTrackValue(inputs, data);
         let value = 0;
         if (typeof trackValue === "number") {
             value = trackValue;
         }
-        this.getInterface("Value").value = min + value * (max - min);
-    }
+        return { value: min + value * (max - min) };
+    };
 }

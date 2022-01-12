@@ -1,4 +1,6 @@
-import { Node } from "@baklavajs/core";
+import { NumberInterface } from "@/graph/interfaces";
+import { defineNode } from "@baklavajs/core";
+import { SelectInterface } from "@baklavajs/renderer-vue";
 
 const operations = [
     "Add",
@@ -20,25 +22,17 @@ const operations = [
     "Absolute",
 ];
 
-export class MathNode extends Node {
-    type = "Math";
-    name = this.type;
-
-    constructor() {
-        super();
-        this.addInputInterface("Value 1", "NumberOption", 0, { type: "number" });
-        this.addInputInterface("Value 2", "NumberOption", 0, { type: "number" });
-        this.addOption("Operation", "SelectOption", "Add", undefined, {
-            items: operations,
-        });
-        this.addOutputInterface("Result", { type: "number" });
-    }
-
-    calculate() {
-        const val1 = this.getInterface("Value 1").value;
-        const val2 = this.getInterface("Value 2").value;
-        const operation = this.getOptionValue("Operation");
-
+export const MathNode = defineNode({
+    type: "Math",
+    inputs: {
+        val1: () => new NumberInterface("Value 1", 0),
+        val2: () => new NumberInterface("Value 2", 0),
+        operation: () => new SelectInterface("Operation", "Add", operations),
+    },
+    outputs: {
+        result: () => new NumberInterface("Result", 0),
+    },
+    calculate({ val1, val2, operation }) {
         let outputVal = 0;
         switch (operation) {
             case "Add":
@@ -94,6 +88,6 @@ export class MathNode extends Node {
                 break;
         }
 
-        this.getInterface("Result").value = outputVal;
-    }
-}
+        return { result: outputVal };
+    },
+});

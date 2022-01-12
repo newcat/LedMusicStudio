@@ -1,19 +1,25 @@
+import { watch } from "vue";
 import { Node } from "@baklavajs/core";
 import { globalState } from "@/globalState";
 import { ICalculationData } from "../../types";
-import Vue from "vue";
+import { INote } from "@/pattern";
+import { SelectInterface } from "@baklavajs/renderer-vue";
 
-export abstract class TrackInputNode extends Node {
-    private vueInstance: Vue;
+export interface TrackInputNodeInputs {
+    track: string;
+}
+
+export abstract class TrackInputNode<I extends TrackInputNodeInputs, O> extends Node<I, O> {
+    private unwatch?: () => void;
 
     public constructor() {
         super();
-        this.addOption("Track", "SelectOption", "", undefined, { items: [] });
+    }
 
-        // Hacky workaround because the nx-js observer doesnt pick the change up
-        // for whatever reason
-        this.vueInstance = new Vue();
-        this.vueInstance.$watch(
+    protected override initializeIo() {
+        super.initializeIo();
+
+        this.unwatch = watch(
             () => globalState.timeline.tracks.map((t) => t.name),
             () => {
                 this.updateAvailableTracks();
@@ -22,16 +28,16 @@ export abstract class TrackInputNode extends Node {
         );
     }
 
-    protected getTrackValue(data: ICalculationData): unknown {
+    protected getTrackValue<T extends number | INote[]>(inputs: TrackInputNodeInputs, data: ICalculationData): T | undefined {
         const { trackValues } = data;
-        const selectedTrack = this.getOptionValue("Track");
-        if (selectedTrack) {
-            return trackValues.get(selectedTrack);
+        const { track } = inputs;
+        if (track) {
+            return trackValues.get(track) as T;
         }
     }
 
     public destroy() {
-        this.vueInstance.$destroy();
+        this.unwatch?.();
     }
 
     private updateAvailableTracks() {
@@ -39,8 +45,8 @@ export abstract class TrackInputNode extends Node {
         for (const track of globalState.timeline.tracks) {
             optionItems.push({ text: track.name, value: track.id });
         }
-        const trackOption = this.options.get("Track")!;
-        trackOption.items = optionItems;
-        trackOption.events.updated.emit();
+        const trackIntf = this.inputs.track as SelectInterface;
+        trackIntf.items = optionItems;
+        trackIntf.events.updated.emit();
     }
 }

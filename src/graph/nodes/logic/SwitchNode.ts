@@ -1,5 +1,6 @@
+/*
+TODO: 
 import { Node, Editor } from "@baklavajs/core";
-import Vue from "vue";
 
 export class SwitchNode extends Node {
     public type = "Switch";
@@ -104,3 +105,5 @@ export class SwitchNode extends Node {
         });
     }
 }
+
+*/
