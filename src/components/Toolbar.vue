@@ -1,15 +1,18 @@
 <template>
-<div class="toolbar">
+<n-el class="toolbar" style="background-color: var(--card-color);">
     <slot></slot>
-</div>
+</n-el>
 </template>
+
+<script setup lang="ts">
+import { NEl } from "naive-ui";
+</script>
 
 <style scoped>
 .toolbar {
     display: flex;
     height: 3rem;
     padding: 0.5rem;
-    background-color: black;
     align-items: center;
 }
 </style>

@@ -20,6 +20,8 @@ export class BaklavaEditor {
 
         this.editor.graphEvents.addConnection.subscribe(this, () => this.updateNodeInterfaceTypes());
         this.editor.graphEvents.removeConnection.subscribe(this, () => this.updateNodeInterfaceTypes());
+
+        console.log(this.viewModel);
     }
 
     private updateNodeInterfaceTypes() {

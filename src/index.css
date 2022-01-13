@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind utilities;
+
+.splitpanes--vertical > .splitpanes__splitter {
+    min-width: 0.5rem;
+}
+
+.splitpanes--horizontal > .splitpanes__splitter {
+    min-height: 0.5rem;
+}

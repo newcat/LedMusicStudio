@@ -1,10 +1,18 @@
 <template>
     <n-card class="full-height" :title="title">
-        <baklava-editor v-if="isGraph" :plugin="selectedItem.editor.viewPlugin" :key="'g' + selectedItemId"></baklava-editor>
-        <note-editor v-else-if="isPattern" :notePattern="selectedItem" :key="'p' + selectedItemId"></note-editor>
-        <automation-editor v-else-if="isAutomation" :automationClip="selectedItem" :key="'a' + selectedItemId"></automation-editor>
-        <output-editor v-else-if="isOutput" :output="selectedItem" :key="'o' + selectedItemId"></output-editor>
-        <stage-editor v-else-if="isStage" :output="selectedItem" :key="'s' + selectedItemId"></stage-editor>
+        <baklava-editor
+            v-if="isGraph(selectedItem)"
+            :view-model="selectedItem.editor.viewModel"
+            :key="'g' + selectedItemId"
+        ></baklava-editor>
+        <note-editor v-else-if="isPattern(selectedItem)" :notePattern="selectedItem" :key="'p' + selectedItemId"></note-editor>
+        <automation-editor
+            v-else-if="isAutomation(selectedItem)"
+            :automationClip="selectedItem"
+            :key="'a' + selectedItemId"
+        ></automation-editor>
+        <output-editor v-else-if="isOutput(selectedItem)" :output="selectedItem" :key="'o' + selectedItemId"></output-editor>
+        <stage-editor v-else-if="isStage(selectedItem)" :output="selectedItem" :key="'s' + selectedItemId"></stage-editor>
     </n-card>
 </template>
 
@@ -14,11 +22,12 @@ import { NCard } from "naive-ui";
 import { EditorComponent as BaklavaEditor } from "@baklavajs/renderer-vue";
 
 import { globalState } from "@/globalState";
-import { LibraryItemType } from "@/library";
-import { NoteEditor } from "@/pattern";
-import { AutomationEditor } from "@/automation";
-import { OutputEditor } from "@/output";
-import { StageEditor } from "@/stage";
+import { LibraryItem, LibraryItemType } from "@/library";
+import { NoteEditor, PatternLibraryItem } from "@/pattern";
+import { AutomationEditor, AutomationLibraryItem } from "@/automation";
+import { OutputEditor, OutputLibraryItem } from "@/output";
+import { StageEditor, StageLibraryItem } from "@/stage";
+import { GraphLibraryItem } from "@/graph";
 
 const props = defineProps({
     selectedItemId: { type: String, default: "" },
@@ -36,23 +45,23 @@ const title = computed(() => {
     return t;
 });
 
-const isGraph = computed(() => {
-    return selectedItem.value?.type === LibraryItemType.GRAPH;
-});
+function isGraph(item?: LibraryItem): item is GraphLibraryItem {
+    return !!item && item.type === LibraryItemType.GRAPH;
+}
 
-const isAutomation = computed(() => {
-    return selectedItem.value?.type === LibraryItemType.AUTOMATION;
-});
+function isAutomation(item?: LibraryItem): item is AutomationLibraryItem {
+    return !!item && item.type === LibraryItemType.AUTOMATION;
+}
 
-const isPattern = computed(() => {
-    return selectedItem.value?.type === LibraryItemType.PATTERN;
-});
+function isPattern(item?: LibraryItem): item is PatternLibraryItem {
+    return !!item && item.type === LibraryItemType.PATTERN;
+}
 
-const isOutput = computed(() => {
-    return selectedItem.value?.type === LibraryItemType.OUTPUT;
-});
+function isOutput(item?: LibraryItem): item is OutputLibraryItem {
+    return !!item && item.type === LibraryItemType.OUTPUT;
+}
 
-const isStage = computed(() => {
-    return selectedItem.value?.type === LibraryItemType.STAGE;
-});
+function isStage(item?: LibraryItem): item is StageLibraryItem {
+    return !!item && item.type === LibraryItemType.STAGE;
+}
 </script>

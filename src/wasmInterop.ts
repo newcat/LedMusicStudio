@@ -1,4 +1,4 @@
-import * as WasmModuleNs from "./rust/pkg";
+import type * as WasmModuleNs from "./rust/pkg/rust";
 
 export interface WasmModule {
     CalculationData: typeof WasmModuleNs.CalculationData;
@@ -22,8 +22,8 @@ class WasmInterop {
     }
 
     public async init() {
-        const module = await import("./rust/pkg");
-        module.init();
+        const module = await import("./rust/pkg/rust");
+        module.default();
         this._wasmModule = module as any;
     }
 }

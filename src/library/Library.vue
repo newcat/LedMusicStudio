@@ -1,12 +1,12 @@
 <template>
     <n-card class="full-height" title="Library">
-        <div class="flex">
+        <div class="mb-5">
             <n-dropdown trigger="click" @select="addItem" :options="addItemOptions">
                 <n-button>Add Item</n-button>
             </n-dropdown>
         </div>
 
-        <n-tree block-line selectable :data="items"></n-tree>
+        <n-tree block-line selectable :data="items" v-model:expanded-keys="expandedKeys" v-model:selected-keys="selectedKeys"></n-tree>
 
         <input ref="fileinput" type="file" @change="loadAudio" style="display: none" />
         <item-settings v-if="activeItem" v-model="settingsOpen" :item="activeItem"></item-settings>
@@ -32,6 +32,21 @@ const emit = defineEmits(["itemSelected"]);
 const settingsOpen = ref(false);
 const activeItem = ref<LibraryItem | null>(null) as Ref<LibraryItem | null>;
 const fileinput = ref<HTMLInputElement | null>(null);
+
+const expandedKeys = ref(["_folder_af", "_folder_graphs", "_folder_ac", "_folder_np", "_folder_op", "_folder_stages"]);
+const selectedKeys = computed<string[]>({
+    get() {
+        return activeItem.value ? [activeItem.value.id] : [];
+    },
+    set(v) {
+        if (v.length > 0) {
+            activeItem.value = globalState.library.getItemById(v[0]) ?? null;
+        } else {
+            activeItem.value = null;
+        }
+        emit("itemSelected", activeItem.value);
+    },
+});
 
 const addItemOptions: DropdownOption[] = [
     { label: "Audio", key: LibraryItemType.AUDIO },
@@ -97,15 +112,6 @@ const items = computed(() => {
     });
     return rootItems;
 });
-
-function onActiveItemChanged(newActiveItems: string[]) {
-    if (newActiveItems.length === 0 || newActiveItems[0].startsWith("_folder")) {
-        activeItem.value = null;
-    } else {
-        activeItem.value = globalState.library.getItemById(newActiveItems[0]) ?? null;
-    }
-    emit("itemSelected", activeItem);
-}
 
 function openFileDialog() {
     fileinput.value!.click();

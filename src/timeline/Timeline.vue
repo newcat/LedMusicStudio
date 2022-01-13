@@ -3,7 +3,7 @@
         <toolbar>
             <n-button @click="() => editor.addDefaultTrack()">Add Track</n-button>
             <n-divider class="mx-4" vertical></n-divider>
-            <n-icon>
+            <n-icon class="mr-2" size="1.5em">
                 <volume-up-filled />
             </n-icon>
             <n-slider
@@ -15,7 +15,7 @@
                 style="max-width: 10em"
             ></n-slider>
             <n-divider class="mx-4" vertical></n-divider>
-            <n-icon>
+            <n-icon class="mr-2" size="1.5em">
                 <straighten-filled />
             </n-icon>
             <n-select

@@ -10,7 +10,7 @@
                     @showSettings="showSettings = true"
                 ></c-toolbar>
                 <splitpanes>
-                    <pane min-size="10" size="20">
+                    <pane min-size="10" size="15">
                         <c-library class="fill-height" @item-selected="onItemSelected"></c-library>
                     </pane>
                     <pane>
@@ -27,13 +27,14 @@
             </div>
             <c-settings v-model="showSettings"></c-settings>
             <c-loading-dialog v-model="showLoadingDialog"></c-loading-dialog>
+            <n-global-style />
         </n-config-provider>
     </main>
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { NConfigProvider, darkTheme } from "naive-ui";
+import { NConfigProvider, darkTheme, NGlobalStyle } from "naive-ui";
 
 // @ts-ignore
 import { Splitpanes, Pane } from "splitpanes";
@@ -49,7 +50,6 @@ import CTimeline from "@/timeline/Timeline.vue";
 import { globalState } from "@/globalState";
 import { LibraryItem } from "@/library";
 import { TimelineProcessor } from "@/timeline";
-
 import { dialog, readFile, writeFile } from "@/native";
 
 const showSettings = ref(false);
