@@ -1,5 +1,5 @@
 <template>
-    <n-card class="full-height" :title="title">
+    <n-card class="full-height unified-editor" :title="title">
         <baklava-editor
             v-if="isGraph(selectedItem)"
             :view-model="selectedItem.editor.viewModel"
@@ -65,3 +65,9 @@ function isStage(item?: LibraryItem): item is StageLibraryItem {
     return !!item && item.type === LibraryItemType.STAGE;
 }
 </script>
+
+<style scoped>
+.unified-editor > :deep(.n-card__content) {
+    padding: 0;
+}
+</style>

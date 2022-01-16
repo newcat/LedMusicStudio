@@ -6,47 +6,41 @@
             </n-dropdown>
         </div>
 
-        <n-tree block-line selectable :data="items" v-model:expanded-keys="expandedKeys" v-model:selected-keys="selectedKeys"></n-tree>
+        <library-category :type="LibraryItemType.AUDIO" name="Audio" />
+        <n-divider class="my-1" />
+        <library-category :type="LibraryItemType.GRAPH" name="Graph" />
+        <n-divider class="my-1" />
+        <library-category :type="LibraryItemType.AUTOMATION" name="Automation Clip" />
+        <n-divider class="my-1" />
+        <library-category :type="LibraryItemType.PATTERN" name="Note Pattern" />
+        <n-divider class="my-1" />
+        <library-category :type="LibraryItemType.OUTPUT" name="Output" />
+        <n-divider class="my-1" />
+        <library-category :type="LibraryItemType.STAGE" name="Stage" />
 
         <input ref="fileinput" type="file" @change="loadAudio" style="display: none" />
-        <item-settings v-if="activeItem" v-model="settingsOpen" :item="activeItem"></item-settings>
+        <!-- TODO <item-settings v-if="activeItem" v-model="settingsOpen" :item="activeItem"></item-settings> -->
     </n-card>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, Ref } from "vue";
-import { NCard, NDropdown, DropdownOption, NTree, TreeOption, NButton } from "naive-ui";
+import { reactive, ref, Ref } from "vue";
+import { NCard, NDropdown, DropdownOption, NButton, NDivider } from "naive-ui";
 
 import { AudioLibraryItem } from "@/audio/audio.libraryItem";
 import { AutomationLibraryItem } from "@/automation/automation.libraryItem";
 import { GraphLibraryItem } from "@/graph/graph.libraryItem";
 import { PatternLibraryItem } from "@/pattern/pattern.libraryItem";
 import { globalState } from "@/globalState";
-import { LibraryItemType, LibraryItem } from "./libraryItem";
-import ItemSettings from "./LibraryItemSettings.vue";
 import { OutputLibraryItem } from "@/output/output.libraryItem";
 import { StageLibraryItem } from "@/stage/stage.libraryItem";
+import { LibraryItemType, LibraryItem } from "./libraryItem";
 
-const emit = defineEmits(["itemSelected"]);
+import LibraryCategory from "./LibraryCategory.vue";
+import ItemSettings from "./LibraryItemSettings.vue";
 
 const settingsOpen = ref(false);
-const activeItem = ref<LibraryItem | null>(null) as Ref<LibraryItem | null>;
 const fileinput = ref<HTMLInputElement | null>(null);
-
-const expandedKeys = ref(["_folder_af", "_folder_graphs", "_folder_ac", "_folder_np", "_folder_op", "_folder_stages"]);
-const selectedKeys = computed<string[]>({
-    get() {
-        return activeItem.value ? [activeItem.value.id] : [];
-    },
-    set(v) {
-        if (v.length > 0) {
-            activeItem.value = globalState.library.getItemById(v[0]) ?? null;
-        } else {
-            activeItem.value = null;
-        }
-        emit("itemSelected", activeItem.value);
-    },
-});
 
 const addItemOptions: DropdownOption[] = [
     { label: "Audio", key: LibraryItemType.AUDIO },
@@ -57,62 +51,6 @@ const addItemOptions: DropdownOption[] = [
     { label: "Stage", key: LibraryItemType.STAGE },
 ];
 
-const items = computed(() => {
-    const audioFiles: TreeOption = {
-        key: "_folder_af",
-        label: "Audio Files",
-        children: [],
-        type: LibraryItemType.AUDIO,
-    };
-    const graphs: TreeOption = {
-        key: "_folder_graphs",
-        label: "Graphs",
-        children: [],
-        type: LibraryItemType.GRAPH,
-    };
-    const automationClips: TreeOption = {
-        key: "_folder_ac",
-        label: "Automation Clips",
-        children: [],
-        type: LibraryItemType.AUTOMATION,
-    };
-    const notePatterns: TreeOption = {
-        key: "_folder_np",
-        label: "Note Patterns",
-        children: [],
-        type: LibraryItemType.PATTERN,
-    };
-    const outputs: TreeOption = {
-        key: "_folder_op",
-        label: "Outputs",
-        children: [],
-        type: LibraryItemType.OUTPUT,
-    };
-    const stages: TreeOption = {
-        key: "_folder_stages",
-        label: "Stages",
-        children: [],
-        type: LibraryItemType.STAGE,
-    };
-    const rootItems = [audioFiles, graphs, automationClips, notePatterns, outputs, stages];
-    globalState.library.items.forEach((item) => {
-        const itemData: TreeOption = {
-            key: item.id,
-            label: item.name,
-            type: item.type,
-            loading: item.loading,
-            error: item.error,
-        };
-        const rootItem = rootItems.find((ri) => ri.type === item.type);
-        if (rootItem) {
-            rootItem.children!.push(itemData);
-        } else {
-            console.warn("No root item for type", item.type);
-        }
-    });
-    return rootItems;
-});
-
 function openFileDialog() {
     fileinput.value!.click();
 }
@@ -122,15 +60,11 @@ async function loadAudio() {
     if (!f || f.length === 0) {
         return;
     }
-    const item = new AudioLibraryItem();
+    const item = reactive(new AudioLibraryItem());
     item.name = f[0].name;
     item.path = f[0].path;
     globalState.library.addItem(item);
     await item.load();
-}
-
-function dragstart(ev: DragEvent, itemId: string) {
-    ev.dataTransfer!.setData("id", itemId);
 }
 
 function getIcon(type: LibraryItemType) {
@@ -176,7 +110,7 @@ function addItem(key: LibraryItemType) {
         default:
             return;
     }
-    globalState.library.addItem(new item());
+    globalState.library.addItem(reactive(new item()));
 }
 
 function deleteItem(id: string) {

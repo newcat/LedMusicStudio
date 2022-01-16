@@ -1,5 +1,5 @@
 <template>
-    <div class="fill-height">
+    <div class="h-full">
         <toolbar>
             <n-button @click="() => editor.addDefaultTrack()">Add Track</n-button>
             <n-divider class="mx-4" vertical></n-divider>

@@ -1,6 +1,6 @@
 <template>
     <div class="color-option">
-        <div class="__name">{{ name }}</div>
+        <div class="__name">{{ intf.name }}</div>
         <div class="__color">
             <color-picker :model-value="color" @update:model-value="setColor"></color-picker>
         </div>
@@ -9,11 +9,12 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { NodeInterface } from "@baklavajs/core";
 import ColorPicker from "./ColorPicker.vue";
 import { fromChroma, Color, chroma, toChroma } from "../colors";
 
 const props = defineProps({
-    name: { type: String, required: true },
+    intf: { type: Object as () => NodeInterface, required: true },
     modelValue: { type: Array as unknown as () => Color, required: true },
 });
 

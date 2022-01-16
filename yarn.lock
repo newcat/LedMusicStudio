@@ -62,15 +62,15 @@
   resolved "https://registry.yarnpkg.com/@baklavajs/events/-/events-2.0.2-alpha.1.tgz#9fa1a7e322cf20ed223f5e258628fbaa61f03ef7"
   integrity sha512-G1v360N9ur85hQujkGFtg7a0rdtgjXVVlg41kW+HTQo2bqBxQfD2MmlIQivvtC8+GMn0EVOEM0XYNpO4msXE0Q==
 
-"@baklavajs/interface-types@^2.0.2-alpha.1":
-  version "2.0.2-alpha.1"
-  resolved "https://registry.yarnpkg.com/@baklavajs/interface-types/-/interface-types-2.0.2-alpha.1.tgz#9e4809d772627c52fceb5b217070fedd37436a8b"
-  integrity sha512-4Feu8ICajFbT+24mlgwTE3LxDpTGfORA94xCRrMFZSE8LbgbcGUM7sebaAnmj1LG23bPBpFDgxTjy7ViLOI+aw==
+"@baklavajs/interface-types@^2.0.2-alpha.2":
+  version "2.0.2-alpha.2"
+  resolved "https://registry.yarnpkg.com/@baklavajs/interface-types/-/interface-types-2.0.2-alpha.2.tgz#223a10c10939f565364c9db7714b7eae170c34ba"
+  integrity sha512-MBECOu7wwN7J+iyLOlBABmYB9l4pgBByk8dhFC9NtpdsnYrIgmuhumsDLOUgXiVa65fOsCT4CkO0jmR392hFaA==
 
-"@baklavajs/renderer-vue@^2.0.2-alpha.1":
-  version "2.0.2-alpha.1"
-  resolved "https://registry.yarnpkg.com/@baklavajs/renderer-vue/-/renderer-vue-2.0.2-alpha.1.tgz#e40be55316baea5defd86627f2f60208ce3f5ae4"
-  integrity sha512-AbZtVtDp7dE3wunQKOs01Phgp7th37Ivy3lbpXmSqfMDErpcNXwJLa052xC8As9BlxsMly31IEDfjMMypNv6cQ==
+"@baklavajs/renderer-vue@^2.0.2-alpha.2":
+  version "2.0.2-alpha.2"
+  resolved "https://registry.yarnpkg.com/@baklavajs/renderer-vue/-/renderer-vue-2.0.2-alpha.2.tgz#ec41b71a38e116339ed6f4b1a7ff7938c9bbc972"
+  integrity sha512-iMjX+Pj+HFaqmCm3eeToGInKjmoDeEawyRdoRz5vHXPUFyAZDNs67aBMqWYAOrjMvLGnzjXqsZhUzJZ66epGZA==
 
 "@baklavajs/themes@^2.0.2-alpha.1":
   version "2.0.2-alpha.1"

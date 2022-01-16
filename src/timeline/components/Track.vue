@@ -33,7 +33,7 @@
                 :key="item.id"
                 :item="item"
                 :unitWidth="unitWidth"
-                @drag-start="$emit('dragStart')"
+                @drag-start="$emit('dragStart', item, $event)"
             ></timeline-item>
         </div>
         <track-settings v-model="settingsOpen" :track="track"></track-settings>

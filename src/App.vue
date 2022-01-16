@@ -9,9 +9,10 @@
                     @saveAs="saveAs"
                     @showSettings="showSettings = true"
                 ></c-toolbar>
+                <div class="content">
                 <splitpanes>
                     <pane min-size="10" size="15">
-                        <c-library class="fill-height" @item-selected="onItemSelected"></c-library>
+                        <c-library class="fill-height"></c-library>
                     </pane>
                     <pane>
                         <splitpanes horizontal>
@@ -24,6 +25,7 @@
                         </splitpanes>
                     </pane>
                 </splitpanes>
+                </div>
             </div>
             <c-settings v-model="showSettings"></c-settings>
             <c-loading-dialog v-model="showLoadingDialog"></c-loading-dialog>
@@ -33,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { provide, ref } from "vue";
 import { NConfigProvider, darkTheme, NGlobalStyle } from "naive-ui";
 
 // @ts-ignore
@@ -48,7 +50,6 @@ import CUnifiedEditor from "@/components/UnifiedEditor.vue";
 import CTimeline from "@/timeline/Timeline.vue";
 
 import { globalState } from "@/globalState";
-import { LibraryItem } from "@/library";
 import { TimelineProcessor } from "@/timeline";
 import { dialog, readFile, writeFile } from "@/native";
 
@@ -64,13 +65,7 @@ async function newProject(): Promise<void> {
     await globalState.reset();
 }
 
-function onItemSelected(item: LibraryItem | undefined) {
-    if (item) {
-        selectedLibraryItemId.value = item.id;
-    } else {
-        selectedLibraryItemId.value = "";
-    }
-}
+provide("selectedLibraryItemId", selectedLibraryItemId);
 
 async function load(): Promise<void> {
     const p = await openLoadDialog();
@@ -125,7 +120,11 @@ async function openSaveDialog(): Promise<boolean> {
 }
 </script>
 
-<style>
+<style scoped>
+main {
+    height: 100vh;
+}
+
 #app-container {
     height: 100%;
     width: 100%;
@@ -133,22 +132,9 @@ async function openSaveDialog(): Promise<boolean> {
     flex-direction: column;
 }
 
-.content-container {
-    margin: 5px;
-}
-
-html,
-body {
-    margin: 0;
-    padding: 0;
-    width: calc(100vw - (100vw - 100%));
-    height: 100vh;
-}
-</style>
-
-<style scoped>
-main {
-    height: 100vh;
+.content {
+    padding: 1rem;
+    height: 100%;
 }
 
 .n-config-provider {

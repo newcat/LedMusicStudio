@@ -50,7 +50,7 @@ import PositionMarker from "./PositionMarker.vue";
 import TrackView from "./Track.vue";
 
 import "../styles/all.scss";
-import { computed, Ref, ref, watch } from "vue";
+import { computed, reactive, Ref, ref, watch } from "vue";
 
 const el = ref<HTMLElement | null>(null);
 const lastItemEnd = ref(0);
@@ -283,7 +283,7 @@ function drop(track: Track, ev: DragEvent) {
         }
 
         item.trackId = chosenTrack.id;
-        editor.value.addItem(item);
+        editor.value.addItem(reactive(item) as Item);
     }
 }
 
