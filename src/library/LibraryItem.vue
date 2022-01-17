@@ -31,7 +31,6 @@ function onClick() {
 }
 
 function dragstart(ev: DragEvent) {
-    console.log("DAAAAG");
     ev.dataTransfer!.setData("id", props.item.id);
 }
 </script>

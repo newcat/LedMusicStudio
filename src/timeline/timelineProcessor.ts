@@ -162,17 +162,16 @@ export class TimelineProcessor {
     private async processGraph(item: Item, calculationData: ICalculationData, outputMap: Map<BaseOutput, any>): Promise<void> {
         const graph = item.libraryItem as GraphLibraryItem;
         const results = (await graph.editor.enginePlugin.runOnce(calculationData))!;
-        // TODO:
-        /*results.forEach((v) => {
-            if (!v) {
+        results.forEach((intfValues) => {
+            if (!intfValues.has("outputId")) {
                 return;
             }
-            const { id, data } = v as { id: string; data: any };
-            const outputInstance = globalState.library.getItemById<OutputLibraryItem>(id)?.outputInstance;
-            if (outputInstance) {
-                outputMap.set(outputInstance, data);
+            const output = globalState.library.getItemById<OutputLibraryItem>(intfValues.get("outputId"))?.outputInstance;
+            if (output) {
+                const data = intfValues.get("data");
+                outputMap.set(output, data);
             }
-        });*/
+        });
     }
 
     private processAutomation(unit: number, item: Item): void {

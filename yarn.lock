@@ -41,20 +41,20 @@
     "@babel/helper-validator-identifier" "^7.16.7"
     to-fast-properties "^2.0.0"
 
-"@baklavajs/core@^2.0.2-alpha.1":
-  version "2.0.2-alpha.1"
-  resolved "https://registry.yarnpkg.com/@baklavajs/core/-/core-2.0.2-alpha.1.tgz#bb110e1e824f8bceedd60c43127dd0c4d3115114"
-  integrity sha512-vXIhn/KwovvJzOCxGX6nP3gtJWMfsn7yVVf51qdGHxRaXj0sPKymV1nlmKFlYk4VJWniK9bpP/P5kVzumZ9+Sw==
+"@baklavajs/core@^2.0.2-alpha.3":
+  version "2.0.2-alpha.3"
+  resolved "https://registry.yarnpkg.com/@baklavajs/core/-/core-2.0.2-alpha.3.tgz#1a8300675ddca93c92bb872d7fbbbc71064f8c28"
+  integrity sha512-gEcKi85669UYyZ0fdwIBHhTT7dsexHbMVcScmIiP/yKtMNJ7/Op6h/I9HvfhomSeQyEb3pHBbVkQF6JRTeDmhQ==
   dependencies:
     "@baklavajs/events" "^2.0.2-alpha.1"
     uuid "^8.3.2"
 
-"@baklavajs/engine@^2.0.2-alpha.1":
-  version "2.0.2-alpha.1"
-  resolved "https://registry.yarnpkg.com/@baklavajs/engine/-/engine-2.0.2-alpha.1.tgz#5d9ab91c5a2b173a3c9be5bee93c24c949999019"
-  integrity sha512-ntX+UQuimP0kfsOKfoIN98GJ+DO2ig/0gMSZT7a45cG+4yGV9ReMaBxSu6+0ncLbm9JF3Lai5a9qLXqTrVkTRw==
+"@baklavajs/engine@^2.0.2-alpha.3":
+  version "2.0.2-alpha.3"
+  resolved "https://registry.yarnpkg.com/@baklavajs/engine/-/engine-2.0.2-alpha.3.tgz#320799d27c0ca6bf268997cd67c1f0045f137d7c"
+  integrity sha512-0pMwzGZipjk4Byg0Xfey4EoGNEf8cYVbpyxRnoqWr8UJGqQeTmvYCeGal0QJ8spdYTfMl9bcQnVD+i3s+l6z8A==
   dependencies:
-    "@baklavajs/core" "^2.0.2-alpha.1"
+    "@baklavajs/core" "^2.0.2-alpha.3"
     "@baklavajs/events" "^2.0.2-alpha.1"
 
 "@baklavajs/events@^2.0.2-alpha.1":
@@ -62,15 +62,15 @@
   resolved "https://registry.yarnpkg.com/@baklavajs/events/-/events-2.0.2-alpha.1.tgz#9fa1a7e322cf20ed223f5e258628fbaa61f03ef7"
   integrity sha512-G1v360N9ur85hQujkGFtg7a0rdtgjXVVlg41kW+HTQo2bqBxQfD2MmlIQivvtC8+GMn0EVOEM0XYNpO4msXE0Q==
 
-"@baklavajs/interface-types@^2.0.2-alpha.2":
-  version "2.0.2-alpha.2"
-  resolved "https://registry.yarnpkg.com/@baklavajs/interface-types/-/interface-types-2.0.2-alpha.2.tgz#223a10c10939f565364c9db7714b7eae170c34ba"
-  integrity sha512-MBECOu7wwN7J+iyLOlBABmYB9l4pgBByk8dhFC9NtpdsnYrIgmuhumsDLOUgXiVa65fOsCT4CkO0jmR392hFaA==
+"@baklavajs/interface-types@^2.0.2-alpha.3":
+  version "2.0.2-alpha.3"
+  resolved "https://registry.yarnpkg.com/@baklavajs/interface-types/-/interface-types-2.0.2-alpha.3.tgz#adc55e9c252cada4b3596669a500a0bd6093000c"
+  integrity sha512-4yn/rW5oI2J5ShLcCv/6VKzXT/wJeVZAIv47Iv7ftGdmAj7G6UIAtbwD2+s4xpQcUzjp9KssxHNJ5buzh6IoLA==
 
-"@baklavajs/renderer-vue@^2.0.2-alpha.2":
-  version "2.0.2-alpha.2"
-  resolved "https://registry.yarnpkg.com/@baklavajs/renderer-vue/-/renderer-vue-2.0.2-alpha.2.tgz#ec41b71a38e116339ed6f4b1a7ff7938c9bbc972"
-  integrity sha512-iMjX+Pj+HFaqmCm3eeToGInKjmoDeEawyRdoRz5vHXPUFyAZDNs67aBMqWYAOrjMvLGnzjXqsZhUzJZ66epGZA==
+"@baklavajs/renderer-vue@^2.0.2-alpha.3":
+  version "2.0.2-alpha.3"
+  resolved "https://registry.yarnpkg.com/@baklavajs/renderer-vue/-/renderer-vue-2.0.2-alpha.3.tgz#e0e12d256ee9d2cc8d87f1dc4b2121508308a8bc"
+  integrity sha512-WV7x96DiG7rE+X5er0Tni8HAtpP8sGKA3gSZGGXk62WV+0HpyJFohYfzsMur25W6UPIwoxp8MqqkapEkVRan9Q==
 
 "@baklavajs/themes@^2.0.2-alpha.1":
   version "2.0.2-alpha.1"
