@@ -5,3 +5,4 @@ dist-ssr
 *.local
 src/rust/target
 src/rust/pkg
+electron-dist

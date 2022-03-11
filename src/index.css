@@ -8,3 +8,9 @@
 .splitpanes--horizontal > .splitpanes__splitter {
     min-height: 0.5rem;
 }
+
+.n-card.n-modal {
+    width: fit-content;
+    min-width: 400px;
+    max-width: calc(100vw - 6rem);
+}

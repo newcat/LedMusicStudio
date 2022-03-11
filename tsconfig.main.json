@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "target": "ES5",
+        "useDefineForClassFields": true,
+        "module": "CommonJS",
+        "moduleResolution": "node",
+        "strict": true,
+        "jsx": "preserve",
+        "sourceMap": true,
+        "resolveJsonModule": true,
+        "esModuleInterop": true,
+        "outDir": "electron-dist"
+    },
+    "include": ["electron/**/*.ts"]
+}

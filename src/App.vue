@@ -51,7 +51,7 @@ import CTimeline from "@/timeline/Timeline.vue";
 
 import { globalState } from "@/globalState";
 import { TimelineProcessor } from "@/timeline";
-import { dialog, readFile, writeFile } from "@/native";
+import { showOpenDialog, showSaveDialog, readFile, writeFile } from "@/native";
 
 const showSettings = ref(false);
 const showLoadingDialog = ref(false);
@@ -97,7 +97,7 @@ async function saveAs(): Promise<void> {
 }
 
 async function openLoadDialog(): Promise<string> {
-    const dialogResult = await dialog.showOpenDialog({
+    const dialogResult = await showOpenDialog({
         title: "Open Project",
         filters: [{ name: "LedMusic Project", extensions: ["lmp"] }],
     });
@@ -108,7 +108,7 @@ async function openLoadDialog(): Promise<string> {
 }
 
 async function openSaveDialog(): Promise<boolean> {
-    const dialogResult = await dialog.showSaveDialog({
+    const dialogResult = await showSaveDialog({
         title: "Save Project",
         filters: [{ name: "LedMusic Project", extensions: ["lmp"] }],
     });

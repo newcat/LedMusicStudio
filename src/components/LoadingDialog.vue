@@ -35,7 +35,7 @@ import { computed, watch } from "vue";
 import { NModal, NButton, NSpin, NIcon } from "naive-ui";
 import { CloseFilled } from "@vicons/material";
 
-import { dialog } from "@/native";
+import { showOpenDialog } from "@/native";
 import { AudioLibraryItem } from "@/audio";
 import { globalState } from "@/globalState";
 import { LibraryItem, LibraryItemType } from "@/library";
@@ -57,7 +57,7 @@ function isAudioItem(item: LibraryItem) {
 }
 
 async function replaceAudioFile(item: AudioLibraryItem) {
-    const dialogResult = await dialog.showOpenDialog({
+    const dialogResult = await showOpenDialog({
         title: "Select Audio File",
         filters: [
             { name: "Audio Files", extensions: ["mp3", "wav", "flac", "ogg"] },

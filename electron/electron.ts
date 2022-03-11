@@ -1,17 +1,27 @@
-const path = require("path");
-const { app, BrowserWindow } = require("electron");
+import * as path from "path";
+import { app, BrowserWindow, dialog, ipcMain, OpenDialogOptions, SaveDialogOptions } from "electron";
 
+let mainWindow: BrowserWindow;
 const isDev = process.env.IS_DEV == "true" ? true : false;
+
+async function showOpenDialog(options: OpenDialogOptions) {
+    return await dialog.showOpenDialog(mainWindow, options);
+}
+
+async function showSaveDialog(options: SaveDialogOptions) {
+    return await dialog.showSaveDialog(mainWindow, options);
+}
 
 function createWindow() {
     // Create the browser window.
-    const mainWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
+    mainWindow = new BrowserWindow({
+        width: 1280,
+        height: 720,
         webPreferences: {
             preload: path.join(__dirname, "preload.js"),
             nodeIntegration: true,
         },
+        autoHideMenuBar: true
     });
 
     // and load the index.html of the app.
@@ -27,6 +37,8 @@ function createWindow() {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+    ipcMain.handle("dialog:showOpenDialog", (ev, args) => showOpenDialog(args));
+    ipcMain.handle("dialog:showSaveDialog", (ev, args) => showSaveDialog(args));
     createWindow();
     app.on("activate", function () {
         // On macOS it's common to re-create a window in the app when the

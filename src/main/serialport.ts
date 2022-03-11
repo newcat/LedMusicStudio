@@ -1,4 +1,4 @@
-import SerialPort from "serialport";
+import { SerialPort } from "serialport";
 import { ipcMain } from "electron";
 
 const openPorts = new Map<string, SerialPort>();
@@ -25,7 +25,8 @@ ipcMain.handle("SERIALPORT_CLOSE", (ev, id: string) => {
 async function open(id: string, port: string) {
     await close(id);
 
-    const sp = new SerialPort(port, {
+    const sp = new SerialPort({
+        path: port,
         baudRate: 115200,
         parity: "none",
         dataBits: 8,
