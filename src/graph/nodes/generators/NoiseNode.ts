@@ -2,7 +2,7 @@ import { ColorArrayInterface, NumberInterface, SliderInterface } from "@/graph/i
 import { CalculateFunction, Node } from "@baklavajs/core";
 import { makeNoise2D } from "open-simplex-noise";
 import { Color, fromChroma, chroma } from "../../colors";
-import { ICalculationData } from "../../types";
+import { LmsCalculationContext } from "../../types";
 
 interface Inputs {
     spaceFreq: number;
@@ -39,8 +39,8 @@ export class NoiseNode extends Node<Inputs, Outputs> {
         this.initializeIo();
     }
 
-    public calculate: CalculateFunction<Inputs, Outputs> = (inputs, data: ICalculationData) => {
-        const { resolution } = data;
+    public calculate: CalculateFunction<Inputs, Outputs> = (inputs, data: LmsCalculationContext) => {
+        const { resolution } = data.globalValues;
 
         const spaceFreq = Math.max(inputs.spaceFreq, 0);
         const timeFreq = Math.max(inputs.timeFreq, 0);

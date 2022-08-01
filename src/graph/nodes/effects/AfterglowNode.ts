@@ -1,7 +1,7 @@
 import { ColorArrayInterface, NumberInterface } from "@/graph/interfaces";
 import { CalculateFunction, Node } from "@baklavajs/core";
 import { Color, mix, blend } from "../../colors";
-import { ICalculationData } from "../../types";
+import { LmsCalculationContext } from "../../types";
 
 const THRESHOLD = 4;
 
@@ -34,8 +34,8 @@ export class AfterglowNode extends Node<Inputs, Outputs> {
         this.initializeIo();
     }
 
-    public calculate: CalculateFunction<Inputs, Outputs> = ({ input, strength }, data: ICalculationData) => {
-        const { resolution } = data;
+    public calculate: CalculateFunction<Inputs, Outputs, LmsCalculationContext> = ({ input, strength }, { globalValues }) => {
+        const { resolution } = globalValues;
         if (resolution !== this.buffer.length) {
             this.initializeBuffer(resolution);
         }

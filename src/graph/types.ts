@@ -1,3 +1,5 @@
+import { CalculationContext } from "@baklavajs/core";
+import { DependencyEngine } from "@baklavajs/engine";
 import { INote } from "@/pattern";
 
 export interface ICalculationData {
@@ -9,3 +11,5 @@ export interface ICalculationData {
     frequencyData: Float32Array;
     trackValues: Map<string, number | INote[]>;
 }
+
+export type LmsCalculationContext = CalculationContext<ICalculationData, DependencyEngine>;

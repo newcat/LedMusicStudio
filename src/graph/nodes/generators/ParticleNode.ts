@@ -1,5 +1,5 @@
 import { CalculateFunction, Node } from "@baklavajs/core";
-import { ICalculationData } from "../../types";
+import { LmsCalculationContext } from "../../types";
 import { wasmInterop } from "@/wasmInterop";
 import { Color } from "@/graph/colors";
 import { CheckboxInterface, ColorArrayInterface, ColorSingleInterface, NumberInterface, SliderInterface } from "@/graph/interfaces";
@@ -52,8 +52,8 @@ export class ParticleNode extends Node<Inputs, Outputs> {
     }
 
     // ~4ms JS, ~0.17ms Rust with opt-level=3 and lto=true
-    public calculate: CalculateFunction<Inputs, Outputs> = (inputs, data: ICalculationData) => {
-        const { fps, resolution } = data;
+    public calculate: CalculateFunction<Inputs, Outputs, LmsCalculationContext> = (inputs, { globalValues }) => {
+        const { fps, resolution } = globalValues;
         const calculationData = new wasmInterop.wasmModule.CalculationData(
             fps,
             resolution,

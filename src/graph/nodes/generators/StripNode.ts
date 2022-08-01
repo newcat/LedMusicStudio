@@ -1,7 +1,7 @@
 import { ColorArrayInterface, ColorSingleInterface, SliderInterface } from "@/graph/interfaces";
 import { defineNode } from "@baklavajs/core";
 import { Color } from "../../colors";
-import { ICalculationData } from "../../types";
+import { LmsCalculationContext } from "../../types";
 
 export const StripNode = defineNode({
     type: "Strip",
@@ -13,7 +13,8 @@ export const StripNode = defineNode({
     outputs: {
         output: () => new ColorArrayInterface("Output"),
     },
-    calculate({ start, end, color }, { resolution }: ICalculationData) {
+    calculate({ start, end, color }, context: LmsCalculationContext) {
+        const { resolution } = context.globalValues;
         const result: Color[] = new Array(resolution);
         for (let i = 0; i < resolution; i++) {
             const position = i / resolution;

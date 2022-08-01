@@ -2,7 +2,7 @@ import { NumberInterface } from "@/graph/interfaces";
 import PeakOptionVue from "@/graph/options/PeakOption.vue";
 import { defineNode, NodeInterface } from "@baklavajs/core";
 import { markRaw } from "vue";
-import { ICalculationData } from "../../types";
+import { LmsCalculationContext } from "../../types";
 
 export const PeakNode = defineNode({
     type: "Peak",
@@ -14,7 +14,8 @@ export const PeakNode = defineNode({
         preview: () => new NodeInterface("Peak", 0).setComponent(markRaw(PeakOptionVue)).setPort(false),
         peak: () => new NumberInterface("Peak", 0),
     },
-    calculate({ minDb, maxDb }, { timeDomainData, sampleRate }: ICalculationData) {
+    calculate({ minDb, maxDb }, context: LmsCalculationContext) {
+        const { timeDomainData, sampleRate } = context.globalValues;
         const sampleSize = Math.max(timeDomainData.length, (sampleRate / 1000) * 30);
         let sum = 0;
         for (let i = timeDomainData.length - sampleSize; i < timeDomainData.length; i++) {

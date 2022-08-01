@@ -1,7 +1,7 @@
 import { NumberInterface } from "@/graph/interfaces";
 import { CalculateFunction } from "@baklavajs/core";
 import { SelectInterface } from "@baklavajs/renderer-vue";
-import { ICalculationData } from "../../types";
+import { LmsCalculationContext } from "../../types";
 import { TrackInputNode, TrackInputNodeInputs } from "./TrackInputNode";
 
 interface Inputs extends TrackInputNodeInputs {
@@ -32,9 +32,9 @@ export class AutomationNode extends TrackInputNode<Inputs, Outputs> {
         this.initializeIo();
     }
 
-    public calculate: CalculateFunction<Inputs, Outputs> = (inputs, data: ICalculationData) => {
+    public calculate: CalculateFunction<Inputs, Outputs, LmsCalculationContext> = (inputs, { globalValues }) => {
         const { min, max } = inputs;
-        const trackValue = this.getTrackValue(inputs, data);
+        const trackValue = this.getTrackValue(inputs, globalValues);
         let value = 0;
         if (typeof trackValue === "number") {
             value = trackValue;

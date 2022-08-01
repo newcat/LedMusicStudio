@@ -1,5 +1,5 @@
 import { CheckboxInterface, NumberInterface } from "@/graph/interfaces";
-import { ICalculationData } from "@/graph/types";
+import { LmsCalculationContext } from "@/graph/types";
 import { CalculateFunction, Node } from "@baklavajs/core";
 
 type Phase = "Attack" | "Decay" | "Sustain" | "Release" | "None";
@@ -42,20 +42,20 @@ export class AdsrNode extends Node<Inputs, Outputs> {
         this.initializeIo();
     }
 
-    public override calculate: CalculateFunction<Inputs, Outputs> = (inputs, data: ICalculationData) => {
+    public override calculate: CalculateFunction<Inputs, Outputs, LmsCalculationContext> = (inputs, { globalValues }) => {
         const { trigger, attack, decay, sustain, release } = inputs;
 
-        let offsetFromStartInSeconds = Math.max(0, (data.position - this.startFrame) / data.fps);
+        let offsetFromStartInSeconds = Math.max(0, (globalValues.position - this.startFrame) / globalValues.fps);
 
         // Handle phase transitions
         if (trigger && (this.phase === "None" || this.phase === "Release")) {
             this.phase = "Attack";
-            this.startFrame = data.position;
+            this.startFrame = globalValues.position;
             this.startValue = this.value;
         } else if (!trigger && this.phase !== "Release" && this.phase !== "None") {
             this.phase = "Release";
             this.startValue = this.value;
-            this.startFrame = data.position;
+            this.startFrame = globalValues.position;
         } else if (!trigger && this.phase === "Release" && offsetFromStartInSeconds > release) {
             this.phase = "None";
         } else if (this.phase === "Attack" && offsetFromStartInSeconds > attack) {
@@ -65,7 +65,7 @@ export class AdsrNode extends Node<Inputs, Outputs> {
         }
 
         // as the phase transition could have changed the start frame, recalculate
-        offsetFromStartInSeconds = Math.max(0, (data.position - this.startFrame) / data.fps);
+        offsetFromStartInSeconds = Math.max(0, (globalValues.position - this.startFrame) / globalValues.fps);
 
         let value = 0;
         if (this.phase === "Attack") {

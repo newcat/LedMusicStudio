@@ -2,7 +2,7 @@ import { NumberInterface } from "@/graph/interfaces";
 import SpectrumOptionVue from "@/graph/options/SpectrumOption.vue";
 import { defineNode, NodeInterface } from "@baklavajs/core";
 import { markRaw } from "vue";
-import { ICalculationData } from "../../types";
+import { LmsCalculationContext } from "../../types";
 
 function getBinIndexByFrequency(f: number, sampleRate: number, fftSize: number) {
     return Math.round((f * fftSize) / sampleRate);
@@ -26,7 +26,8 @@ export const SpectrumNode = defineNode({
         average: () => new NumberInterface("Average", 0),
         peak: () => new NumberInterface("Peak", 0),
     },
-    calculate(inputs, { frequencyData, sampleRate }: ICalculationData) {
+    calculate(inputs, context: LmsCalculationContext) {
+        const { frequencyData, sampleRate } = context.globalValues;
         const fftSize = frequencyData.length;
         const minIndex = clamp(getBinIndexByFrequency(inputs.minFreq, sampleRate, fftSize), 1, frequencyData.length - 1);
         const maxIndex = clamp(getBinIndexByFrequency(inputs.maxFreq, sampleRate, fftSize), 1, frequencyData.length - 1);

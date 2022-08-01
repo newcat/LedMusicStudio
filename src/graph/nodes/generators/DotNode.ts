@@ -2,7 +2,7 @@ import { ColorArrayInterface, ColorSingleInterface, NumberInterface, SliderInter
 import { defineNode } from "@baklavajs/core";
 import { SelectInterface } from "@baklavajs/renderer-vue";
 import { Color, toChroma, fromChroma } from "../../colors";
-import { ICalculationData } from "../../types";
+import { LmsCalculationContext } from "../../types";
 
 function clamp(v: number, min: number, max: number) {
     if (!Number.isFinite(v)) {
@@ -42,8 +42,8 @@ export const DotNode = defineNode({
     outputs: {
         colors: () => new ColorArrayInterface("Colors"),
     },
-    calculate(inputs, data: ICalculationData) {
-        const { resolution } = data;
+    calculate(inputs, context: LmsCalculationContext) {
+        const { resolution } = context.globalValues;
         const { color, glowType } = inputs;
 
         const centerPosition = clamp(inputs.centerPosition, 0, 1);

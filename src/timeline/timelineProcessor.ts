@@ -3,6 +3,7 @@ import type { BaseOutput, OutputLibraryItem } from "@/output";
 
 import { watchEffect } from "vue";
 import { BaklavaEvent } from "@baklavajs/events";
+import { applyResult } from "@baklavajs/engine";
 
 import { AudioLibraryItem, AudioProcessor } from "@/audio";
 import { GraphLibraryItem } from "@/graph";
@@ -161,7 +162,11 @@ export class TimelineProcessor {
 
     private async processGraph(item: Item, calculationData: ICalculationData, outputMap: Map<BaseOutput, any>): Promise<void> {
         const graph = item.libraryItem as GraphLibraryItem;
+        console.log(graph.editor.enginePlugin["recalculateOrder"]);
         const results = (await graph.editor.enginePlugin.runOnce(calculationData))!;
+        graph.editor.enginePlugin.pause();
+        applyResult(results, graph.editor.editor);
+        graph.editor.enginePlugin.resume();
         results.forEach((intfValues) => {
             if (!intfValues.has("outputId")) {
                 return;

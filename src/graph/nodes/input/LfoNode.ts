@@ -1,6 +1,6 @@
 import { defineNode } from "@baklavajs/core";
 import { TICKS_PER_BEAT } from "@/constants";
-import { ICalculationData } from "../../types";
+import { LmsCalculationContext } from "../../types";
 import { CheckboxInterface, NumberInterface, SliderInterface } from "@/graph/interfaces";
 import { SelectInterface } from "@baklavajs/renderer-vue";
 
@@ -36,10 +36,10 @@ export const LfoNode = defineNode({
     outputs: {
         value: () => new NumberInterface("Value", 0),
     },
-    calculate(inputs, data: ICalculationData) {
+    calculate(inputs, context: LmsCalculationContext) {
         const { min, max, phaseOffset, invert, rate, shape } = inputs;
         const f = functions[shape] ?? ((v: number) => v);
-        const x = (data.position % rate) / rate + phaseOffset;
+        const x = (context.globalValues.position % rate) / rate + phaseOffset;
         const rawValue = invert ? -f(x) : f(x);
         const value = min + (rawValue + 1) * 0.5 * (max - min);
         return { value };
