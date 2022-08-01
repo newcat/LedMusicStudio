@@ -50,7 +50,7 @@ export class Item {
     }
 
     public move(start: number, end: number) {
-        if (!this.events.beforeMoved.emit({ start, end })) {
+        if (!this.events.beforeMoved.emit({ start, end }).prevented) {
             this._start = start;
             this._end = end;
             this.events.moved.emit({ start, end });

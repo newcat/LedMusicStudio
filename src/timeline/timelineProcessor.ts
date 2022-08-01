@@ -137,11 +137,11 @@ export class TimelineProcessor {
                 this.audioProcessor!.unregisterBuffer(af.audioBuffer!);
                 this.audioProcessor!.registerBuffer(af.audioBuffer!, item.start);
             });
-            item.events.beforeMoved.subscribe(this, () => {
+            item.events.beforeMoved.subscribe(this, (item, prevent) => {
                 // TODO: moving an audio item while playing causes continuos stuttering during playback for whatever reason.
                 // As a workaround, prevent items from being moved while playing
                 if (globalState.isPlaying) {
-                    return false;
+                    prevent();
                 }
             });
         }
@@ -162,7 +162,6 @@ export class TimelineProcessor {
 
     private async processGraph(item: Item, calculationData: ICalculationData, outputMap: Map<BaseOutput, any>): Promise<void> {
         const graph = item.libraryItem as GraphLibraryItem;
-        console.log(graph.editor.enginePlugin["recalculateOrder"]);
         const results = (await graph.editor.enginePlugin.runOnce(calculationData))!;
         graph.editor.enginePlugin.pause();
         applyResult(results, graph.editor.editor);

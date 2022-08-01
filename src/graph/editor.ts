@@ -15,7 +15,6 @@ export class BaklavaEditor {
     }
 
     public constructor() {
-        debugger;
         registerNodes(this.editor);
         registerTypes(this.intfTypes);
 
