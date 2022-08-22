@@ -153,6 +153,8 @@ export class TimelineProcessor {
             item.events.moved.unsubscribe(this);
             item.events.beforeMoved.unsubscribe(this);
             this.audioProcessor!.unregisterBuffer(af.audioBuffer!);
+        } else if (item.libraryItem.type === LibraryItemType.PATTERN) {
+            this.trackValues.set(item.trackId, []);
         }
     }
 
