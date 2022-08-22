@@ -288,7 +288,13 @@ function drop(track: Track, ev: DragEvent) {
 }
 
 function onHeaderClick(ev: MouseEvent): void {
-    const tick = pixelToUnit(ev.offsetX);
+    let x = ev.offsetX;
+    if ((ev.target as HTMLElement).classList.contains("__header-row")) {
+        // clicked on the padding area on top of the track headers
+        x = 0;
+    }
+
+    const tick = pixelToUnit(x);
     globalState.setPositionByUser(tick);
 }
 
