@@ -9,7 +9,7 @@ interface Outputs {
 }
 
 export class PatternNode extends TrackInputNode<TrackInputNodeInputs, Outputs> {
-    public type = "Automation";
+    public type = "Pattern";
     public title = this.type;
 
     public inputs = {
