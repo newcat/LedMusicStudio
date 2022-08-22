@@ -80,6 +80,7 @@ watch(
                     ((i as any).events.loaded as BaklavaEvent<void, unknown>).subscribe(token, () => checkIfLoadingDone());
                 }
             });
+            checkIfLoadingDone();
         }
     }
 );
