@@ -7,7 +7,7 @@ import { readFile } from "@/native";
 export interface IWaveformPart {
     start: number;
     end: number;
-    url: string;
+    canvas: HTMLCanvasElement;
 }
 
 export interface IWaveform {
@@ -53,6 +53,7 @@ export class AudioLibraryItem extends LibraryItem {
 
             console.log("Creating waveform");
             this.waveform = await this.generateWaveform();
+            console.log("Done");
         } catch (err) {
             console.warn(err);
             this.error = true;
@@ -89,8 +90,7 @@ export class AudioLibraryItem extends LibraryItem {
             cv.height = part.image.height;
             const ctx = cv.getContext("2d")!;
             ctx.drawImage(part.image, 0, 0);
-            const url = cv.toDataURL();
-            parts.push({ start: part.start, end: part.end, url });
+            parts.push({ start: part.start, end: part.end, canvas: cv });
         }
 
         return {

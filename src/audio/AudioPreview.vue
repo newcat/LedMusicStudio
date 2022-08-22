@@ -1,12 +1,12 @@
 <template>
     <div class="audio-file">
         <template v-if="libraryItem.waveform">
-            <img
+            <WaveformPart
                 class="waveform-part"
                 v-for="p in libraryItem.waveform.parts"
                 :key="`${p.start}-${p.end}`"
-                :style="getImageStyles(p)"
-                :src="p.url"
+                :total-parts="libraryItem.waveform.count"
+                :part="p"
             />
         </template>
     </div>
@@ -14,7 +14,8 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { AudioLibraryItem, IWaveformPart } from "./audio.libraryItem";
+import { AudioLibraryItem } from "./audio.libraryItem";
+import WaveformPart from "./WaveformPart.vue";
 
 const props = defineProps({
     item: { type: Object, required: true },
@@ -22,13 +23,6 @@ const props = defineProps({
 });
 
 const libraryItem = computed(() => props.item.libraryItem as AudioLibraryItem);
-
-function getImageStyles(part: IWaveformPart) {
-    return {
-        left: `${100 * (part.start / libraryItem.value.waveform!.count)}%`,
-        width: `${100 * ((part.end - part.start) / libraryItem.value.waveform!.count)}%`,
-    };
-}
 </script>
 
 <style scoped>
