@@ -1,5 +1,5 @@
 <template>
-    <div class="prop" :class="classes" :style="style">
+    <div class="prop" :class="classes" :style="style" @click="emit('select')">
         <template v-for="v in verticalHandles">
             <template v-for="h in horizontalHandles">
                 <div class="handle" :class="[v, h]" @pointerdown="onPointerDown($event, v, h)"></div>
@@ -29,6 +29,10 @@ const props = defineProps({
     selected: { type: Boolean, required: true },
     prop: { type: Object as () => PropModel, required: true },
 });
+
+const emit = defineEmits<{
+    (e: "select"): void;
+}>();
 
 const verticalHandles: VerticalHandle[] = ["t", "m", "b"];
 const horizontalHandles: HorizontalHandle[] = ["l", "c", "r"];
@@ -130,7 +134,7 @@ function onPointerMove(ev: PointerEvent) {
     border-style: solid;
     border-color: transparent;
 
-    transition: border-color 0.3s linear;
+    transition: border-color 0.15s linear;
 
     &:hover:not(.--selected) {
         border-color: scale-color($color-primary, $alpha: -50%);
@@ -148,7 +152,7 @@ function onPointerMove(ev: PointerEvent) {
         opacity: 0;
         background-color: $color-primary;
 
-        transition: opacity 0.3s linear, background-color 0.1s linear;
+        transition: opacity 0.15s linear, background-color 0.1s linear;
 
         &:hover {
             background-color: lighten($color-primary, 10%);
