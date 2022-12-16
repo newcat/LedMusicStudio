@@ -51,13 +51,13 @@ export class NoiseNode extends Node<Inputs, Outputs> {
 
         for (let i = 0; i < resolution; i++) {
             const x = (i / resolution) * spaceFreq;
-            const y = this.timer * timeFreq;
+            const y = this.timer;
             const h = this.hueNoise(x, y) * 360;
             const v = this.valueNoise(x, y) * magnitude;
             result[i] = fromChroma(chroma(h, coloring, v, "hsv"));
         }
 
-        this.timer++;
+        this.timer += timeFreq;
         return { colors: result };
     };
 

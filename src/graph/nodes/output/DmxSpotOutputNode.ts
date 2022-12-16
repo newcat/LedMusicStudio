@@ -31,12 +31,13 @@ export class DmxSpotOutputNode extends BaseOutputNode<IDmxOutputData, Inputs, Ou
 
     public outputs = {
         preview: new PreviewInterface("Preview"),
-        outputId: new NodeInterface<string | undefined>("OutputId", undefined).setPort(false),
-        data: new NodeInterface<IDmxOutputData | undefined>("Data", undefined).setPort(false),
+        outputId: new NodeInterface<string | undefined>("OutputId", undefined).setHidden(true),
+        data: new NodeInterface<IDmxOutputData | undefined>("Data", undefined).setHidden(true),
     };
 
     public constructor() {
         super([OutputType.DMX]);
+        this.initializeIo();
     }
 
     public calculate: CalculateFunction<Inputs, Outputs> = (inputs) => {

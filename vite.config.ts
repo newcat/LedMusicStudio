@@ -5,6 +5,9 @@ import path from "path";
 // https://vitejs.dev/config/
 export default defineConfig({
     base: process.env.ELECTRON == "true" ? "./" : "",
+    server: {
+        port: 3000
+    },
     resolve: {
         alias: {
             "@": path.resolve(__dirname, "./src"),

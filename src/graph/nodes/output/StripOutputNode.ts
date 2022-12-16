@@ -34,6 +34,7 @@ export class StripOutputNode extends BaseOutputNode<IStripOutputData, Inputs, Ou
 
     public constructor() {
         super([OutputType.DUMMY, OutputType.WLED, OutputType.RAZER_CHROMA]);
+        this.initializeIo();
     }
 
     public calculate: CalculateFunction<Inputs, Outputs> = (inputs) => {
