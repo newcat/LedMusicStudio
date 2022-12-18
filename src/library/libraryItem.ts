@@ -9,6 +9,33 @@ export enum LibraryItemType {
     STAGE = 6,
 }
 
+export const LibraryItemTypeList = [
+    LibraryItemType.AUDIO,
+    LibraryItemType.GRAPH,
+    LibraryItemType.AUTOMATION,
+    LibraryItemType.PATTERN,
+    LibraryItemType.OUTPUT,
+    LibraryItemType.STAGE,
+] as const;
+
+export const LibraryItemTypeLabels: Record<LibraryItemType, string> = {
+    [LibraryItemType.AUDIO]: "Audio",
+    [LibraryItemType.GRAPH]: "Graph",
+    [LibraryItemType.AUTOMATION]: "Automation Clip",
+    [LibraryItemType.PATTERN]: "Note Pattern",
+    [LibraryItemType.OUTPUT]: "Output",
+    [LibraryItemType.STAGE]: "Stage",
+} as const;
+
+export const LibraryItemTypeIcons: Record<LibraryItemType, string> = {
+    [LibraryItemType.AUDIO]: "music-box-outline",
+    [LibraryItemType.GRAPH]: "graph-outline",
+    [LibraryItemType.AUTOMATION]: "chart-bell-curve",
+    [LibraryItemType.PATTERN]: "music",
+    [LibraryItemType.OUTPUT]: "export",
+    [LibraryItemType.STAGE]: "cast-variant",
+} as const;
+
 export abstract class LibraryItem {
     public id: string = uuidv4();
 

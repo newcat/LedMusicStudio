@@ -1,34 +1,27 @@
 <template>
     <div class="h-full">
-        <toolbar>
-            <n-button @click="() => editor.addDefaultTrack()">Add Track</n-button>
-            <n-divider class="mx-4" vertical></n-divider>
-            <n-icon class="mr-2" size="1.5em">
-                <volume-up-filled />
-            </n-icon>
-            <n-slider
-                :value="volume * 100"
-                @update:value="setVolume"
-                :min="0"
-                :max="100"
-                :tooltip="false"
-                style="max-width: 10em"
-            ></n-slider>
-            <n-divider class="mx-4" vertical></n-divider>
-            <n-icon class="mr-2" size="1.5em">
-                <straighten-filled />
-            </n-icon>
-            <n-select
-                :value="snapUnits"
-                @update:value="setSnap"
-                :options="snapItems"
-                style="max-width: 12em"
-                prepend-icon="straighten"
-            ></n-select>
-            <n-divider class="mx-4" vertical></n-divider>
-            <div class="mr-2">BPM</div>
-            <n-input :value="bpm" @update:value="setBpm" style="max-width: 6em"></n-input>
-        </toolbar>
+        <Toolbar>
+            <template #start>
+                <Button class="p-button-outlined p-button-sm" @click="() => editor.addDefaultTrack()">Add Track</Button>
+                <Divider layout="vertical" />
+                <span class="mr-4 mdi mdi-ruler" style="font-size: 1.5em"></span>
+                <Dropdown
+                    :model-value="snapUnits"
+                    @update:model-value="setSnap"
+                    :options="snapItems"
+                    option-label="label"
+                    option-value="value"
+                    style="width: 9em"
+                ></Dropdown>
+                <Divider layout="vertical" />
+                <div class="mr-4">BPM</div>
+                <InputText :model-value="bpm" @update:model-value="setBpm" style="max-width: 4em"></InputText>
+            </template>
+            <template #end>
+                <span class="mr-4 mdi mdi-volume-high" style="font-size: 1.5em"></span>
+                <Slider :model-value="volume * 100" @update:model-value="setVolume" :min="0" :max="100" style="width: 7em"></Slider>
+            </template>
+        </Toolbar>
         <div id="wrapper">
             <timeline-base></timeline-base>
         </div>
@@ -37,15 +30,18 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { NDivider, NButton, NIcon, NSlider, NSelect, SelectOption, NInput } from "naive-ui";
-import { VolumeUpFilled, StraightenFilled } from "@vicons/material";
+import Toolbar from "primevue/toolbar";
+import Button from "primevue/button";
+import Divider from "primevue/divider";
+import Slider from "primevue/slider";
+import Dropdown, { DropdownProps } from "primevue/dropdown";
+import InputText from "primevue/inputtext";
 
 import { TICKS_PER_BEAT } from "@/constants";
 import { globalState } from "@/globalState";
 import TimelineBase from "./components/Timeline.vue";
-import Toolbar from "@/components/Toolbar.vue";
 
-const snapItems: SelectOption[] = [
+const snapItems: DropdownProps["options"] = [
     { label: "Disabled", value: "1" },
     { label: "1/8 Beat", value: (TICKS_PER_BEAT / 8).toString() },
     { label: "1/6 Beat", value: (TICKS_PER_BEAT / 6).toString() },

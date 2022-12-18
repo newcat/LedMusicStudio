@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@ckpack/vue-color": "^1.3.0",
+    "@mdi/font": "^7.1.96",
     "@vueuse/core": "^9.6.0",
     "axios": "^1.2.1",
     "baklavajs": "^2.0.2-beta.1",
@@ -25,10 +26,13 @@
     "chroma-js": "^2.4.2",
     "comlink": "^4.3.1",
     "open-simplex-noise": "^2.5.0",
+    "primeicons": "^6.0.1",
+    "primevue": "^3",
     "serialport": "^10.5.0",
     "splitpanes": "^3.1.5",
     "uuid": "^9.0.0",
-    "vue": "^3.2.45"
+    "vue": "^3.2.45",
+    "vue-router": "4"
   },
   "devDependencies": {
     "@types/bson": "^4.2.0",

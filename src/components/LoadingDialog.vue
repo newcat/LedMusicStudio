@@ -1,39 +1,38 @@
 <template>
-    <n-modal :show="modelValue" @update:show="emit('update:modelValue', $event)" preset="card" title="Loading">
+    <Dialog :visible="modelValue" @update:visible="emit('update:modelValue', $event)" header="Loading" modal>
         <template v-for="item in items">
             <div class="my-3" v-if="item.loading || item.error" :key="item.id">
                 <div class="d-flex align-items-center">
                     <div class="mr-2">
-                        <n-spin v-if="item.loading" size="small" />
-                        <n-icon v-else-if="item.error" color="red">
-                            <close-filled />
-                        </n-icon>
+                        <ProgressSpinner v-if="item.loading" />
+                        <i v-else-if="item.error" class="pi pi-times error-icon"></i>
                     </div>
                     <div>
                         <div>{{ item.name }}</div>
-                        <n-button
+                        <Button
                             v-if="isAudioItem(item) && item.error"
                             @click="item instanceof AudioLibraryItem ? replaceAudioFile(item) : undefined"
                             size="small"
                         >
                             Choose File
-                        </n-button>
+                        </Button>
                     </div>
                 </div>
             </div>
         </template>
 
-        <template #action>
-            <n-button @click="close">Close</n-button>
+        <template #footer>
+            <Button @click="close">Close</Button>
         </template>
-    </n-modal>
+    </Dialog>
 </template>
 
 <script setup lang="ts">
 import { BaklavaEvent } from "@baklavajs/events";
 import { computed, watch } from "vue";
-import { NModal, NButton, NSpin, NIcon } from "naive-ui";
-import { CloseFilled } from "@vicons/material";
+import Dialog from "primevue/dialog";
+import Button from "primevue/button";
+import ProgressSpinner from "primevue/progressspinner";
 
 import { showOpenDialog } from "@/native";
 import { AudioLibraryItem } from "@/audio";
@@ -100,3 +99,9 @@ function close() {
     emit("update:modelValue", false);
 }
 </script>
+
+<style scoped>
+.error-icon {
+    color: red;
+}
+</style>

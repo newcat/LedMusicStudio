@@ -1,18 +1,11 @@
 <template>
     <main>
-        <n-config-provider :theme="darkTheme">
-            <div id="app-container">
-                <c-toolbar
-                    @newProject="newProject"
-                    @load="load"
-                    @save="save"
-                    @saveAs="saveAs"
-                    @showSettings="showSettings = true"
-                ></c-toolbar>
-                <div class="content">
+        <div id="app-container">
+            <c-toolbar @newProject="newProject" @load="load" @save="save" @saveAs="saveAs" @showSettings="showSettings = true"></c-toolbar>
+            <div class="content">
                 <splitpanes>
                     <pane min-size="10" size="15">
-                        <c-library class="fill-height"></c-library>
+                        <c-library></c-library>
                     </pane>
                     <pane>
                         <splitpanes horizontal>
@@ -25,18 +18,15 @@
                         </splitpanes>
                     </pane>
                 </splitpanes>
-                </div>
             </div>
-            <c-settings v-model="showSettings"></c-settings>
-            <c-loading-dialog v-model="showLoadingDialog"></c-loading-dialog>
-            <n-global-style />
-        </n-config-provider>
+        </div>
+        <c-settings v-model="showSettings"></c-settings>
+        <c-loading-dialog v-model="showLoadingDialog"></c-loading-dialog>
     </main>
 </template>
 
 <script setup lang="ts">
 import { provide, ref } from "vue";
-import { NConfigProvider, darkTheme, NGlobalStyle } from "naive-ui";
 
 // @ts-ignore
 import { Splitpanes, Pane } from "splitpanes";

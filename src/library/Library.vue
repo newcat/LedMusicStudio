@@ -1,31 +1,37 @@
 <template>
-    <n-card class="full-height" title="Library">
-        <div class="mb-5">
-            <n-dropdown trigger="click" @select="addItem" :options="addItemOptions">
-                <n-button>Add Item</n-button>
-            </n-dropdown>
-        </div>
+    <div class="library">
+        <Toolbar>
+            <template #start>Library</template>
+            <template #end>
+                <Button class="p-button-outlined p-button-sm" type="button" @click="toggleAddItemMenu">Add Item</Button>
+                <Menu ref="menu" id="overlay_menu" :model="addItemOptions" :popup="true">
+                    <!--<template #item="{ item }">
+                    <a @click="item.command">
+                        <Icon></Icon>
+                        {{ item.label }}
+                    </a>
+                </template>-->
+                </Menu>
+            </template>
+        </Toolbar>
+        <Card class="menu-container">
+            <template #content>
+                <PanelMenu :model="libraryItems" />
 
-        <library-category :type="LibraryItemType.AUDIO" name="Audio" />
-        <n-divider class="my-1" />
-        <library-category :type="LibraryItemType.GRAPH" name="Graph" />
-        <n-divider class="my-1" />
-        <library-category :type="LibraryItemType.AUTOMATION" name="Automation Clip" />
-        <n-divider class="my-1" />
-        <library-category :type="LibraryItemType.PATTERN" name="Note Pattern" />
-        <n-divider class="my-1" />
-        <library-category :type="LibraryItemType.OUTPUT" name="Output" />
-        <n-divider class="my-1" />
-        <library-category :type="LibraryItemType.STAGE" name="Stage" />
-
-        <input ref="fileinput" type="file" @change="loadAudio" style="display: none" />
-        <!-- TODO <item-settings v-if="activeItem" v-model="settingsOpen" :item="activeItem"></item-settings> -->
-    </n-card>
+                <input ref="fileinput" type="file" @change="loadAudio" style="display: none" />
+                <!-- TODO <item-settings v-if="activeItem" v-model="settingsOpen" :item="activeItem"></item-settings> -->
+            </template>
+        </Card>
+    </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, Ref } from "vue";
-import { NCard, NDropdown, DropdownOption, NButton, NDivider } from "naive-ui";
+import { computed, onMounted, reactive, ref, Ref, watch } from "vue";
+import Toolbar from "primevue/toolbar";
+import Button from "primevue/button";
+import Menu, { MenuProps } from "primevue/menu";
+import Card from "primevue/card";
+import PanelMenu, { PanelMenuProps } from "primevue/panelmenu";
 
 import { AudioLibraryItem } from "@/audio/audio.libraryItem";
 import { AutomationLibraryItem } from "@/automation/automation.libraryItem";
@@ -34,25 +40,50 @@ import { PatternLibraryItem } from "@/pattern/pattern.libraryItem";
 import { globalState } from "@/globalState";
 import { OutputLibraryItem } from "@/output/output.libraryItem";
 import { StageLibraryItem } from "@/stage/stage.libraryItem";
-import { LibraryItemType, LibraryItem } from "./libraryItem";
+import { LibraryItemType, LibraryItem, LibraryItemTypeIcons, LibraryItemTypeLabels, LibraryItemTypeList } from "./libraryItem";
 
 import LibraryCategory from "./LibraryCategory.vue";
 import ItemSettings from "./LibraryItemSettings.vue";
 
 const settingsOpen = ref(false);
 const fileinput = ref<HTMLInputElement | null>(null);
+const menu = ref<Menu | null>(null);
 
-const addItemOptions: DropdownOption[] = [
-    { label: "Audio", key: LibraryItemType.AUDIO },
-    { label: "Graph", key: LibraryItemType.GRAPH },
-    { label: "Automation Clip", key: LibraryItemType.AUTOMATION },
-    { label: "Note Pattern", key: LibraryItemType.PATTERN },
-    { label: "Output", key: LibraryItemType.OUTPUT },
-    { label: "Stage", key: LibraryItemType.STAGE },
-];
+const getMenuItem = (type: LibraryItemType) => ({
+    label: LibraryItemTypeLabels[type],
+    icon: `mdi mdi-${LibraryItemTypeIcons[type]}`,
+    command: () => addItem(type),
+});
+const addItemOptions: MenuProps["model"] = LibraryItemTypeList.map((type) => getMenuItem(type));
+
+// TODO: Why doesn't reactivity work here?
+const libraryItems = computed<PanelMenuProps["model"]>(() =>
+    LibraryItemTypeList.map((type) => ({
+        label: LibraryItemTypeLabels[type],
+        icon: LibraryItemTypeIcons[type],
+        items: globalState.library.items
+            .filter((it) => it.type === type)
+            .map((it) => ({
+                label: it.name,
+                icon: it.loading ? "pi pi-spinner" : `mdi mdi-${LibraryItemTypeIcons[it.type]}`,
+                disabled: it.loading,
+            })),
+    }))
+);
+
+watch(
+    () => globalState.library.items,
+    () => {
+        console.log("W", libraryItems);
+    }
+);
 
 function openFileDialog() {
     fileinput.value!.click();
+}
+
+function toggleAddItemMenu(ev: Event) {
+    menu.value!.toggle(ev);
 }
 
 async function loadAudio() {
@@ -65,25 +96,6 @@ async function loadAudio() {
     item.path = f[0].path;
     globalState.library.addItem(item);
     await item.load();
-}
-
-function getIcon(type: LibraryItemType) {
-    switch (type) {
-        case LibraryItemType.AUDIO:
-            return "library_music";
-        case LibraryItemType.GRAPH:
-            return "device_hub";
-        case LibraryItemType.AUTOMATION:
-            return "timeline";
-        case LibraryItemType.PATTERN:
-            return "queue_music";
-        case LibraryItemType.OUTPUT:
-            return "mediation";
-        case LibraryItemType.STAGE:
-            return "airplay";
-        default:
-            return "note";
-    }
 }
 
 function addItem(key: LibraryItemType) {
@@ -111,9 +123,33 @@ function addItem(key: LibraryItemType) {
             return;
     }
     globalState.library.addItem(reactive(new item()));
+    console.log(globalState.library.items);
 }
 
 function deleteItem(id: string) {
     globalState.library.removeItem(globalState.library.getItemById(id)!);
 }
 </script>
+
+<style scoped>
+.library {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.menu-container {
+    width: 100%;
+    flex-grow: 1;
+}
+
+.menu-container :deep(.p-card-body) {
+    padding: 0;
+}
+
+.menu-container :deep(.p-card-content) {
+    padding: 0;
+}
+</style>

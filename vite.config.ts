@@ -6,7 +6,7 @@ import path from "path";
 export default defineConfig({
     base: process.env.ELECTRON == "true" ? "./" : "",
     server: {
-        port: 3000
+        port: 3000,
     },
     resolve: {
         alias: {

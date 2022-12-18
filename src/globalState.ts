@@ -64,7 +64,7 @@ export class State implements IState {
             this.library.events.itemRemoved.unsubscribe(this);
         }
 
-        this.library = new LibraryModel();
+        this.library = reactive(new LibraryModel()) as LibraryModel;
         this.library.events.itemRemoved.subscribe(this, (item) => {
             const itemsToRemove = this.timeline.items.filter((i) => i.libraryItem === item);
             for (const i of itemsToRemove) {
