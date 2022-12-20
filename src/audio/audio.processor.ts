@@ -1,4 +1,4 @@
-import type { State } from "@/globalState";
+import { useGlobalState } from "@/globalState";
 import { watch } from "vue";
 
 // inspired by: https://github.com/katspaugh/wavesurfer.js/blob/master/src/webaudio.js
@@ -24,15 +24,14 @@ export class AudioProcessor {
     private gainNode = this.audioContext.createGain();
 
     // State
-    private state: State;
+    private state = useGlobalState();
     private tracks: IAudioTrack[] = [];
     private startTime = 0;
     private startPosition = 0;
 
     private unwatch: () => void;
 
-    public constructor(state: State) {
-        this.state = state;
+    public constructor() {
         this.gainNode.connect(this.audioContext.destination);
         this.analyserNode.connect(this.gainNode);
         this.analyserNode.fftSize = 8192;

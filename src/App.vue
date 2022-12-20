@@ -39,9 +39,11 @@ import CLoadingDialog from "@/components/LoadingDialog.vue";
 import CUnifiedEditor from "@/components/UnifiedEditor.vue";
 import CTimeline from "@/timeline/Timeline.vue";
 
-import { globalState } from "@/globalState";
+import { useGlobalState } from "@/globalState";
 import { TimelineProcessor } from "@/timeline";
 import { showOpenDialog, showSaveDialog, readFile, writeFile } from "@/native";
+
+const globalState = useGlobalState();
 
 const showSettings = ref(false);
 const showLoadingDialog = ref(false);

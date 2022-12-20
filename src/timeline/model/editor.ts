@@ -1,9 +1,8 @@
-import { watchEffect } from "vue";
+import { Ref, watch } from "vue";
 import { Track, ITrackState } from "./track";
 import { Item, IItemState } from "./item";
 import { BaklavaEvent } from "@baklavajs/events";
 import { LibraryItemType, LibraryModel } from "@/library";
-import { globalState } from "@/globalState";
 import { AudioLibraryItem } from "@/audio";
 import { TICKS_PER_BEAT } from "@/constants";
 
@@ -34,12 +33,12 @@ export class TimelineEditor {
         return this._items as ReadonlyArray<Item>;
     }
 
-    public constructor() {
+    public constructor(bpm: Ref<number>) {
         this.addDefaultTrack();
         this.labelFunction = (u) => (u / (TICKS_PER_BEAT * 4)).toString();
         // TODO: Check whether this works
-        watchEffect(() => {
-            this.updateAudioItemLengths();
+        watch(bpm, (newBpm) => {
+            this.updateAudioItemLengths(newBpm);
         });
     }
 
@@ -129,15 +128,14 @@ export class TimelineEditor {
     }
 
     /** This function is called whenever the BPM is changed */
-    private updateAudioItemLengths() {
-        const bpm = globalState.bpm;
+    private updateAudioItemLengths(newBpm: number) {
         this.items.forEach((i) => {
             if (i.libraryItem.type === LibraryItemType.AUDIO) {
                 const af = i.libraryItem as AudioLibraryItem;
                 if (!af.audioBuffer) {
                     return;
                 }
-                const length = af.audioBuffer.duration * (bpm / 60) * TICKS_PER_BEAT;
+                const length = af.audioBuffer.duration * (newBpm / 60) * TICKS_PER_BEAT;
                 i.move(i.start, i.start + length);
             }
         });

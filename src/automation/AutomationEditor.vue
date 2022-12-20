@@ -92,11 +92,13 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { TICKS_PER_BEAT } from "@/constants";
 import { clamp, normalizeMouseWheel, snap } from "@/utils";
 import { AutomationLibraryItem, IAutomationPoint } from "./automation.libraryItem";
-import { globalState } from "@/globalState";
+import { useGlobalState } from "@/globalState";
 
 const props = defineProps({
     automationClip: { type: Object as () => AutomationLibraryItem, required: true },
 });
+
+const globalState = useGlobalState();
 
 const el = ref<HTMLElement | null>(null);
 const svgEl = ref<SVGElement | null>(null);

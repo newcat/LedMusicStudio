@@ -1,31 +1,12 @@
 import { serialize, deserialize } from "bson";
-import { reactive } from "vue";
+import { Ref, ref } from "vue";
+import { defineStore } from "pinia";
 import { BaklavaEvent } from "@baklavajs/events";
 
 import { TimelineEditor } from "@/timeline";
 import { ipcRenderer } from "@/native";
 import { LibraryModel } from "./library/libraryModel";
 import { TICKS_PER_BEAT } from "./constants";
-
-interface IProp {
-    type: string;
-    x: number;
-    y: number;
-    angle: number;
-}
-
-interface IScene {
-    props: IProp[];
-}
-
-export interface IState {
-    scene: IScene;
-    library: LibraryModel;
-    timeline: TimelineEditor;
-    bpm: number;
-    fps: number;
-    snapUnits: number;
-}
 
 const defaults = {
     bpm: 130,
@@ -35,91 +16,104 @@ const defaults = {
     snapUnits: TICKS_PER_BEAT,
 };
 
-export class State implements IState {
-    public scene: IScene = { props: [] };
-    public library!: LibraryModel;
-    public timeline!: TimelineEditor;
+export const useGlobalState = defineStore("globalState", () => {
+    const eventToken = Symbol();
 
-    public projectFilePath = "";
-    public bpm = defaults.bpm;
-    public fps = defaults.fps;
-    public volume = defaults.volume;
-    public position = 0;
-    public isPlaying = false;
-    public resolution = defaults.resolution;
-    public snapUnits = defaults.snapUnits;
+    const projectFilePath = ref("");
+    const bpm = ref(defaults.bpm);
+    const fps = ref(defaults.fps);
+    const volume = ref(defaults.volume);
+    const position = ref(0);
+    const isPlaying = ref(false);
+    const resolution = ref(defaults.resolution);
+    const snapUnits = ref(defaults.snapUnits);
 
-    public events = {
-        initialized: new BaklavaEvent<void, this>(this),
-        positionSetByUser: new BaklavaEvent<void, this>(this),
+    const library = ref(new LibraryModel()) as Ref<LibraryModel>;
+    const timeline = ref(new TimelineEditor(bpm)) as Ref<TimelineEditor>;
+
+    const events = {
+        initialized: new BaklavaEvent<void, undefined>(undefined),
+        positionSetByUser: new BaklavaEvent<void, undefined>(undefined),
     };
 
-    constructor() {
-        (window as any).globalState = this;
-    }
-
-    public async initialize() {
-        if (this.library) {
-            await this.library.destroy();
-            this.library.events.itemRemoved.unsubscribe(this);
-        }
-
-        this.library = reactive(new LibraryModel()) as LibraryModel;
-        this.library.events.itemRemoved.subscribe(this, (item) => {
-            const itemsToRemove = this.timeline.items.filter((i) => i.libraryItem === item);
+    async function initialize() {
+        library.value.events.itemRemoved.subscribe(eventToken, (item) => {
+            const itemsToRemove = timeline.value.items.filter((i) => i.libraryItem === item);
             for (const i of itemsToRemove) {
-                this.timeline.removeItem(i);
+                timeline.value.removeItem(i);
             }
         });
-
-        this.timeline = new TimelineEditor();
-        this.events.initialized.emit();
     }
 
-    public async reset() {
+    async function reset() {
         ipcRenderer.send("RESET");
-        this.projectFilePath = "";
-        this.bpm = defaults.bpm;
-        this.fps = defaults.fps;
-        this.volume = defaults.volume;
-        this.position = 0;
-        this.isPlaying = false;
-        this.resolution = defaults.resolution;
-        this.snapUnits = defaults.snapUnits;
-        await this.initialize();
+
+        projectFilePath.value = "";
+        bpm.value = defaults.bpm;
+        fps.value = defaults.fps;
+        volume.value = defaults.volume;
+        position.value = 0;
+        isPlaying.value = false;
+        resolution.value = defaults.resolution;
+        snapUnits.value = defaults.snapUnits;
+
+        if (library.value) {
+            await library.value.destroy();
+            library.value.events.itemRemoved.unsubscribe(eventToken);
+        }
+
+        library.value = new LibraryModel();
+        timeline.value = new TimelineEditor(bpm);
+
+        await initialize();
     }
 
-    public save(): Buffer {
+    function save(): Buffer {
         return serialize({
-            scene: this.scene,
-            timeline: this.timeline.save(),
-            library: this.library.save(),
-            bpm: this.bpm,
-            fps: this.fps,
-            volume: this.volume,
-            position: this.position,
-            resolution: this.resolution,
-            snapUnits: this.snapUnits,
+            timeline: timeline.value.save(),
+            library: library.value.save(),
+            bpm: bpm.value,
+            fps: fps.value,
+            volume: volume.value,
+            position: position.value,
+            resolution: resolution.value,
+            snapUnits: snapUnits.value,
         });
     }
 
-    public async load(serialized: Buffer) {
+    async function load(serialized: Buffer) {
         const data = deserialize(serialized);
-        this.scene = data.scene;
-        await this.library.load(data.library);
-        this.timeline.load(data.timeline, this.library);
-        this.bpm = data.bpm ?? defaults.bpm;
-        this.fps = data.fps ?? defaults.fps;
-        this.volume = data.volume ?? defaults.volume;
-        this.position = data.position ?? 0;
-        this.resolution = data.resolution ?? defaults.resolution;
-        this.snapUnits = data.snapUnits ?? defaults.snapUnits;
+        await library.value.load(data.library);
+        timeline.value.load(data.timeline, library.value);
+        bpm.value = data.bpm ?? defaults.bpm;
+        fps.value = data.fps ?? defaults.fps;
+        volume.value = data.volume ?? defaults.volume;
+        position.value = data.position ?? 0;
+        resolution.value = data.resolution ?? defaults.resolution;
+        snapUnits.value = data.snapUnits ?? defaults.snapUnits;
     }
 
-    public setPositionByUser(newPosition: number) {
-        this.position = newPosition;
-        this.events.positionSetByUser.emit();
+    function setPositionByUser(newPosition: number) {
+        position.value = newPosition;
+        events.positionSetByUser.emit();
     }
-}
 
-export const globalState = reactive(new State()) as State;
+    return {
+        projectFilePath,
+        bpm,
+        fps,
+        volume,
+        position,
+        isPlaying,
+        resolution,
+        snapUnits,
+        library,
+        timeline,
+        events,
+        initialize,
+        reset,
+        save,
+        load,
+        setPositionByUser,
+    };
+});

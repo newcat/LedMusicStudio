@@ -26,6 +26,7 @@
     "chroma-js": "^2.4.2",
     "comlink": "^4.3.1",
     "open-simplex-noise": "^2.5.0",
+    "pinia": "^2.0.28",
     "primeicons": "^6.0.1",
     "primevue": "^3",
     "serialport": "^10.5.0",
