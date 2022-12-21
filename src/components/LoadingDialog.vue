@@ -28,7 +28,6 @@
 </template>
 
 <script setup lang="ts">
-import { BaklavaEvent } from "@baklavajs/events";
 import { computed, watch } from "vue";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
@@ -36,19 +35,18 @@ import ProgressSpinner from "primevue/progressspinner";
 
 import { showOpenDialog } from "@/native";
 import { AudioLibraryItem } from "@/audio";
-import { globalState } from "@/globalState";
-import { LibraryItem, LibraryItemType } from "@/library";
+import { LibraryItem, LibraryItemType, useLibrary } from "@/library";
 
-const token = Symbol();
-
-const props = defineProps({
+defineProps({
     modelValue: { type: Boolean },
 });
 
 const emit = defineEmits(["update:modelValue"]);
 
+const library = useLibrary();
+
 const items = computed<LibraryItem[]>(() => {
-    return globalState.library.items.slice().sort((a) => (a.loading ? 0 : 1));
+    return library.items.slice().sort((a) => (a.loading ? 0 : 1));
 });
 
 function isAudioItem(item: LibraryItem) {
@@ -71,31 +69,16 @@ async function replaceAudioFile(item: AudioLibraryItem) {
 }
 
 watch(
-    () => props.modelValue,
+    () => items.value,
     () => {
-        if (props.modelValue) {
-            items.value.forEach((i) => {
-                if ((i as any).events?.loaded) {
-                    ((i as any).events.loaded as BaklavaEvent<void, unknown>).subscribe(token, () => checkIfLoadingDone());
-                }
-            });
-            checkIfLoadingDone();
+        if (items.value.every((i) => !i.loading && !i.error)) {
+            close();
         }
-    }
+    },
+    { deep: true, immediate: true }
 );
 
-function checkIfLoadingDone() {
-    if (items.value.every((i) => !i.loading && !i.error)) {
-        close();
-    }
-}
-
 function close() {
-    items.value.forEach((i) => {
-        if ((i as any).events?.loaded) {
-            ((i as any).events.loaded as BaklavaEvent<void, unknown>).unsubscribe(token);
-        }
-    });
     emit("update:modelValue", false);
 }
 </script>

@@ -1,13 +1,19 @@
 <template>
     <div class="output-editor">
-        <n-select :value="output.outputInstance.type" :options="outputTypes" @update:value="onOutputTypeChanged" />
+        <Dropdown
+            :model-value="output.outputInstance.type"
+            :options="outputTypes"
+            option-label="label"
+            option-value="value"
+            @update:model-value="onOutputTypeChanged"
+        />
         <component v-if="outputSettingsComponent" :is="outputSettingsComponent" :output="output.outputInstance" />
     </div>
 </template>
 
 <script setup lang="ts">
 import { ComponentOptions, computed } from "vue";
-import { NSelect } from "naive-ui";
+import Dropdown from "primevue/dropdown";
 
 import { OutputType } from "./outputTypes";
 import { OutputLibraryItem } from "./output.libraryItem";

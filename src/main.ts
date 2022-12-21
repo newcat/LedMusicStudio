@@ -14,13 +14,16 @@ import "./styles/all.scss";
 
 import "@baklavajs/themes/dist/syrup-dark.css";
 
+const pinia = createPinia();
+
 import { wasmInterop } from "./wasmInterop";
 wasmInterop.init();
 
 import * as VueRouter from "vue-router";
+import { createPinia } from "pinia";
 const router = VueRouter.createRouter({
     history: VueRouter.createWebHashHistory(),
     routes: [{ path: "/", component: App }],
 });
 
-createApp(App).use(PrimeVue).use(router).mount("#app");
+createApp(App).use(PrimeVue).use(pinia).use(router).mount("#app");

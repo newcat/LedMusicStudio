@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { PreventableBaklavaEvent, BaklavaEvent } from "@baklavajs/events";
-import { LibraryItem, LibraryModel } from "@/library";
+import { LibraryItem, useLibrary } from "@/library";
 
 export interface IItemState {
     id: string;
@@ -12,7 +12,8 @@ export interface IItemState {
 }
 
 export class Item {
-    public static load(state: IItemState, library: LibraryModel): Item {
+    public static load(state: IItemState): Item {
+        const library = useLibrary();
         const libraryItem = library.getItemById(state.libraryItemId || (state as any).data?.libraryItemId)!;
         const i = new Item(libraryItem, state.trackId, state.start, state.end);
         i.id = state.id;

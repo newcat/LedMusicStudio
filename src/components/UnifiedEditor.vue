@@ -1,20 +1,22 @@
 <template>
     <Card class="h-full unified-editor">
-        <template #header>{{ title }}</template>
+        <template #header>
+            <h2>{{ title }}</h2>
+        </template>
         <template #content>
             <baklava-editor
                 v-if="isGraph(selectedItem)"
                 :view-model="selectedItem.editor.viewModel"
-                :key="'g' + selectedItemId"
+                :key="'g' + selectedItem.id"
             ></baklava-editor>
-            <note-editor v-else-if="isPattern(selectedItem)" :notePattern="selectedItem" :key="'p' + selectedItemId"></note-editor>
+            <note-editor v-else-if="isPattern(selectedItem)" :notePattern="selectedItem" :key="'p' + selectedItem.id"></note-editor>
             <automation-editor
                 v-else-if="isAutomation(selectedItem)"
                 :automationClip="selectedItem"
-                :key="'a' + selectedItemId"
+                :key="'a' + selectedItem.id"
             ></automation-editor>
-            <output-editor v-else-if="isOutput(selectedItem)" :output="selectedItem" :key="'o' + selectedItemId"></output-editor>
-            <stage-editor v-else-if="isStage(selectedItem)" :output="selectedItem" :key="'s' + selectedItemId"></stage-editor>
+            <output-editor v-else-if="isOutput(selectedItem)" :output="selectedItem" :key="'o' + selectedItem.id"></output-editor>
+            <stage-editor v-else-if="isStage(selectedItem)" :output="selectedItem" :key="'s' + selectedItem.id"></stage-editor>
         </template>
     </Card>
 </template>
@@ -24,20 +26,17 @@ import { computed } from "vue";
 import Card from "primevue/card";
 import { EditorComponent as BaklavaEditor } from "@baklavajs/renderer-vue";
 
-import { globalState } from "@/globalState";
-import { LibraryItem, LibraryItemType } from "@/library";
+import { LibraryItem, LibraryItemType, useLibrary } from "@/library";
 import { NoteEditor, PatternLibraryItem } from "@/pattern";
 import { AutomationEditor, AutomationLibraryItem } from "@/automation";
 import { OutputEditor, OutputLibraryItem } from "@/output";
 import { StageEditor, StageLibraryItem } from "@/stage";
 import { GraphLibraryItem } from "@/graph";
 
-const props = defineProps({
-    selectedItemId: { type: String, default: "" },
-});
+const library = useLibrary();
 
 const selectedItem = computed(() => {
-    return globalState.library.getItemById(props.selectedItemId);
+    return library.selectedItemId ? library.getItemById(library.selectedItemId) : undefined;
 });
 
 const title = computed(() => {
@@ -69,8 +68,16 @@ function isStage(item?: LibraryItem): item is StageLibraryItem {
 }
 </script>
 
-<style scoped>
-.unified-editor > :deep(.p-card-content) {
+<style>
+.unified-editor {
+    display: flex;
+    flex-direction: column;
+}
+
+.unified-editor > .p-card-body,
+.unified-editor > .p-card-body > .p-card-content {
     padding: 0;
+    width: 100%;
+    height: 100%;
 }
 </style>

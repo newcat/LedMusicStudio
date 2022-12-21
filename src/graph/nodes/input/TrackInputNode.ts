@@ -1,6 +1,6 @@
 import { watch } from "vue";
 import { Node } from "@baklavajs/core";
-import { globalState } from "@/globalState";
+import { useGlobalState } from "@/globalState";
 import { ICalculationData } from "../../types";
 import { INote } from "@/pattern";
 import { SelectInterface } from "@baklavajs/renderer-vue";
@@ -10,6 +10,7 @@ export interface TrackInputNodeInputs {
 }
 
 export abstract class TrackInputNode<I extends TrackInputNodeInputs, O> extends Node<I, O> {
+    private readonly globalState = useGlobalState();
     private unwatch?: () => void;
 
     public constructor() {
@@ -20,7 +21,7 @@ export abstract class TrackInputNode<I extends TrackInputNodeInputs, O> extends 
         super.initializeIo();
 
         this.unwatch = watch(
-            () => globalState.timeline.tracks.map((t) => t.name),
+            () => this.globalState.timeline.tracks.map((t) => t.name),
             () => {
                 this.updateAvailableTracks();
             },
@@ -42,7 +43,7 @@ export abstract class TrackInputNode<I extends TrackInputNodeInputs, O> extends 
 
     private updateAvailableTracks() {
         const optionItems: Array<{ text: string; value: string }> = [];
-        for (const track of globalState.timeline.tracks) {
+        for (const track of this.globalState.timeline.tracks) {
             optionItems.push({ text: track.name, value: track.id });
         }
         const trackIntf = this.inputs.track as SelectInterface;

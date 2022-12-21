@@ -50,7 +50,6 @@ const showLoadingDialog = ref(false);
 const selectedLibraryItemId = ref("");
 const processor = ref(new TimelineProcessor());
 
-processor.value.initialize();
 newProject();
 
 async function newProject(): Promise<void> {

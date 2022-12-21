@@ -1,18 +1,21 @@
 <template>
-    <n-modal :show="modelValue" @update:show="emit('update:modelValue', $event)" preset="card" title="Loading">
-        <n-form-item label="Name">
-            <n-input v-model="vName"></n-input>
-        </n-form-item>
-        <template #action>
-            <n-button @click="cancel">Cancel</n-button>
-            <n-button @click="save">Save</n-button>
+    <Dialog :visible="modelValue" @update:visible="emit('update:modelValue', $event)" header="Track Settings">
+        <div class="field">
+            <label for="name">Name</label>
+            <InputText v-model="vName" id="name" type="text" />
+        </div>
+        <template #footer>
+            <Button @click="cancel">Cancel</Button>
+            <Button @click="save">Save</Button>
         </template>
-    </n-modal>
+    </Dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { NModal, NFormItem, NInput, NButton } from "naive-ui";
+import Dialog from "primevue/dialog";
+import InputText from "primevue/inputtext";
+import Button from "primevue/button";
 
 import { Track } from "../model";
 

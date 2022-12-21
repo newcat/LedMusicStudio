@@ -6,11 +6,11 @@
     pointer-events: none;
 
     &.--major {
-        color: darken(#fff, 30%);
+        color: var(--text-color)
     }
 
     &.--minor {
-        color: darken(#fff, 60%)
+        color: var(--text-color-secondary)
     }
 
 }

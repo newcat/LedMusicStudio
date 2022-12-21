@@ -1,11 +1,11 @@
 import { serialize, deserialize } from "bson";
-import { Ref, ref } from "vue";
+import { ref } from "vue";
 import { defineStore } from "pinia";
 import { BaklavaEvent } from "@baklavajs/events";
 
-import { TimelineEditor } from "@/timeline";
+import { useTimeline } from "@/timeline";
 import { ipcRenderer } from "@/native";
-import { LibraryModel } from "./library/libraryModel";
+import { useLibrary } from "./library";
 import { TICKS_PER_BEAT } from "./constants";
 
 const defaults = {
@@ -17,8 +17,6 @@ const defaults = {
 };
 
 export const useGlobalState = defineStore("globalState", () => {
-    const eventToken = Symbol();
-
     const projectFilePath = ref("");
     const bpm = ref(defaults.bpm);
     const fps = ref(defaults.fps);
@@ -28,22 +26,12 @@ export const useGlobalState = defineStore("globalState", () => {
     const resolution = ref(defaults.resolution);
     const snapUnits = ref(defaults.snapUnits);
 
-    const library = ref(new LibraryModel()) as Ref<LibraryModel>;
-    const timeline = ref(new TimelineEditor(bpm)) as Ref<TimelineEditor>;
+    const library = useLibrary();
+    const timeline = useTimeline();
 
     const events = {
-        initialized: new BaklavaEvent<void, undefined>(undefined),
         positionSetByUser: new BaklavaEvent<void, undefined>(undefined),
     };
-
-    async function initialize() {
-        library.value.events.itemRemoved.subscribe(eventToken, (item) => {
-            const itemsToRemove = timeline.value.items.filter((i) => i.libraryItem === item);
-            for (const i of itemsToRemove) {
-                timeline.value.removeItem(i);
-            }
-        });
-    }
 
     async function reset() {
         ipcRenderer.send("RESET");
@@ -57,21 +45,14 @@ export const useGlobalState = defineStore("globalState", () => {
         resolution.value = defaults.resolution;
         snapUnits.value = defaults.snapUnits;
 
-        if (library.value) {
-            await library.value.destroy();
-            library.value.events.itemRemoved.unsubscribe(eventToken);
-        }
-
-        library.value = new LibraryModel();
-        timeline.value = new TimelineEditor(bpm);
-
-        await initialize();
+        await library.reset();
+        timeline.reset();
     }
 
     function save(): Buffer {
         return serialize({
-            timeline: timeline.value.save(),
-            library: library.value.save(),
+            timeline: timeline.save(),
+            library: library.save(),
             bpm: bpm.value,
             fps: fps.value,
             volume: volume.value,
@@ -83,8 +64,8 @@ export const useGlobalState = defineStore("globalState", () => {
 
     async function load(serialized: Buffer) {
         const data = deserialize(serialized);
-        await library.value.load(data.library);
-        timeline.value.load(data.timeline, library.value);
+        await library.load(data.library);
+        timeline.load(data.timeline);
         bpm.value = data.bpm ?? defaults.bpm;
         fps.value = data.fps ?? defaults.fps;
         volume.value = data.volume ?? defaults.volume;
@@ -107,10 +88,8 @@ export const useGlobalState = defineStore("globalState", () => {
         isPlaying,
         resolution,
         snapUnits,
-        library,
         timeline,
         events,
-        initialize,
         reset,
         save,
         load,

@@ -1,20 +1,20 @@
 <template>
     <div class="stage-editor">
-        <n-menu mode="horizontal" :options="menuOptions" />
-        <n-divider class="my-1"></n-divider>
+        <!-- TODO -->
+        <!--<n-menu mode="horizontal" :options="menuOptions" />-->
+        <!--<n-divider class="my-1"></n-divider>-->
         <splitpanes>
             <pane class="prop-area" @click.self="selectedProp = null">
                 <prop-wrapper :selected="selectedProp === testProp" :prop="testProp" @select="selectedProp = testProp"></prop-wrapper>
             </pane>
             <pane class="properties" size="20">
-                <n-h2>Properties</n-h2>
+                <!--<n-h2>Properties</n-h2>-->
             </pane>
         </splitpanes>
     </div>
 </template>
 
 <script setup lang="ts">
-import { MenuOption, NMenu, NDivider, NH2 } from "naive-ui";
 import { ref } from "vue";
 import { PropWrapper } from "./components";
 import { StripProp } from "./props/strip/strip";
@@ -27,7 +27,7 @@ const editMode = ref(true);
 const testProp = ref(new StripProp());
 const selectedProp = ref<Prop | null>(null);
 
-const menuOptions: MenuOption[] = [
+const menuOptions = [
     {
         label: "Add",
         key: "add",

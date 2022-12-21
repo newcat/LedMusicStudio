@@ -1,7 +1,6 @@
 import { Node } from "@baklavajs/core";
-import { globalState } from "@/globalState";
 import { OutputLibraryItem, OutputType } from "@/output";
-import { LibraryItemType } from "@/library";
+import { LibraryItemType, useLibrary } from "@/library";
 import { watchEffect } from "vue";
 import { SelectInterface } from "@baklavajs/renderer-vue";
 
@@ -15,6 +14,7 @@ export interface BaseOutputNodeOutputs<T> {
 }
 
 export abstract class BaseOutputNode<T, I extends BaseOutputNodeInputs, O extends BaseOutputNodeOutputs<T>> extends Node<I, O> {
+    private readonly library = useLibrary();
     private unwatch?: () => void;
 
     public constructor(private compatibleOutputTypes: OutputType[]) {
@@ -40,7 +40,7 @@ export abstract class BaseOutputNode<T, I extends BaseOutputNodeInputs, O extend
 
     private updateOutputs() {
         const optionItems: Array<{ text: string; value: string }> = [];
-        for (const item of globalState.library.items) {
+        for (const item of this.library.items) {
             if (
                 item?.type === LibraryItemType.OUTPUT &&
                 this.compatibleOutputTypes.includes((item as OutputLibraryItem).outputInstance?.type)

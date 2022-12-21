@@ -8,10 +8,10 @@ import { applyResult } from "@baklavajs/engine";
 import { AudioLibraryItem, AudioProcessor } from "@/audio";
 import { GraphLibraryItem } from "@/graph";
 import { AutomationLibraryItem } from "@/automation";
-import { LibraryItemType } from "@/library";
+import { LibraryItemType, useLibrary } from "@/library";
 import { INote, PatternLibraryItem } from "@/pattern";
 import { ICalculationData } from "@/graph";
-import { globalState } from "@/globalState";
+import { useGlobalState } from "@/globalState";
 
 export class TimelineProcessor {
     public trackValues = new Map<string, number | INote[]>(); // maps trackId -> value
@@ -20,6 +20,9 @@ export class TimelineProcessor {
         tick: new BaklavaEvent<void, this>(this),
         globalPreviewUpdated: new BaklavaEvent<void, this>(this),
     };
+
+    private readonly globalState = useGlobalState();
+    private readonly library = useLibrary();
 
     private timer?: ReturnType<typeof setInterval>;
     private observers: Array<() => void> = [];
@@ -33,10 +36,6 @@ export class TimelineProcessor {
 
     public constructor() {
         (window as any).processor = this; // for debugging purposes; can now be accessed in dev tools console
-        globalState.events.initialized.subscribe(this, () => this.initialize());
-    }
-
-    public initialize() {
         console.log("Timeline initializing");
         if (this.audioProcessor) {
             this.audioProcessor.destroy();
@@ -45,15 +44,15 @@ export class TimelineProcessor {
         this.observers = [];
         this.observers.push(watchEffect(() => this.setTimer()));
         this.observers.push(watchEffect(() => this.onIsPlayingChanged()));
-        this.audioProcessor = new AudioProcessor(globalState);
+        this.audioProcessor = new AudioProcessor();
         console.log("Timeline initialized");
     }
 
     public onIsPlayingChanged() {
-        if (globalState.isPlaying && !this.internalPlayState) {
+        if (this.globalState.isPlaying && !this.internalPlayState) {
             this.audioProcessor?.play();
             this.internalPlayState = true;
-        } else if (!globalState.isPlaying && this.internalPlayState) {
+        } else if (!this.globalState.isPlaying && this.internalPlayState) {
             this.audioProcessor?.pause();
             this.internalPlayState = false;
         }
@@ -63,20 +62,20 @@ export class TimelineProcessor {
         if (this.timer) {
             clearInterval(this.timer);
         }
-        this.timer = setInterval(() => this.tick(), 1000 / globalState.fps);
+        this.timer = setInterval(() => this.tick(), 1000 / this.globalState.fps);
     }
 
     private tick() {
-        if (!globalState.isPlaying || !this.audioProcessor) {
+        if (!this.globalState.isPlaying || !this.audioProcessor) {
             return;
         }
-        globalState.position = this.audioProcessor.updatePosition();
-        this.process(globalState.position);
+        this.globalState.position = this.audioProcessor.updatePosition();
+        this.process(this.globalState.position);
         this.events.tick.emit();
     }
 
     public async process(unit: number) {
-        const currentActiveItems = globalState.timeline.items.filter((i) => i.start <= unit && i.end >= unit);
+        const currentActiveItems = this.globalState.timeline.items.filter((i) => i.start <= unit && i.end >= unit) as Item[];
 
         const newActiveItems = currentActiveItems.filter((i) => !this.activeItems.includes(i));
         newActiveItems.forEach((i) => this.activate(i));
@@ -92,8 +91,8 @@ export class TimelineProcessor {
         const audioData = this.audioProcessor!.getAudioData();
 
         const calculationData: ICalculationData = {
-            resolution: globalState.resolution,
-            fps: globalState.fps,
+            resolution: this.globalState.resolution,
+            fps: this.globalState.fps,
             position: unit,
             sampleRate: audioData.sampleRate,
             timeDomainData: audioData.timeDomainData,
@@ -114,7 +113,7 @@ export class TimelineProcessor {
             }
         }
 
-        const outputs = globalState.library.items.filter((i) => i.type === LibraryItemType.OUTPUT) as OutputLibraryItem[];
+        const outputs = this.library.items.filter((i) => i.type === LibraryItemType.OUTPUT) as OutputLibraryItem[];
         for (const o of outputs) {
             await o.outputInstance.onData(outputMap.get(o.outputInstance));
         }
@@ -140,7 +139,7 @@ export class TimelineProcessor {
             item.events.beforeMoved.subscribe(this, (item, prevent) => {
                 // TODO: moving an audio item while playing causes continuos stuttering during playback for whatever reason.
                 // As a workaround, prevent items from being moved while playing
-                if (globalState.isPlaying) {
+                if (this.globalState.isPlaying) {
                     prevent();
                 }
             });
@@ -172,7 +171,7 @@ export class TimelineProcessor {
             if (!intfValues.has("outputId")) {
                 return;
             }
-            const output = globalState.library.getItemById<OutputLibraryItem>(intfValues.get("outputId"))?.outputInstance;
+            const output = this.library.getItemById<OutputLibraryItem>(intfValues.get("outputId"))?.outputInstance;
             if (output) {
                 const data = intfValues.get("data");
                 outputMap.set(output, data);

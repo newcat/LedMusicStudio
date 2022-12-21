@@ -11,7 +11,7 @@
         @wheel="wheel"
     >
         <div class="__content" :style="contentStyles">
-            <position-marker :editor="editor"></position-marker>
+            <position-marker></position-marker>
             <div class="__header-row" @click="onHeaderClick">
                 <div class="__container">
                     <marker-label v-for="m in markers" :key="m.unit" :marker="m"></marker-label>
@@ -20,7 +20,6 @@
             <track-view
                 v-for="t in tracks"
                 :key="t.id"
-                :editor="editor"
                 :track="t"
                 @mouseenter="onTrackMouseenter(t)"
                 @mouseleave="onTrackMouseleave()"
@@ -35,10 +34,10 @@
 
 <script setup lang="ts">
 import { ItemArea, IMarker } from "../types";
-import { TimelineEditor, Item, Track, IItemState } from "../model";
-import { globalState } from "@/globalState";
+import { Item, Track, IItemState, useTimeline } from "../model";
+import { useGlobalState } from "@/globalState";
 import { TICKS_PER_BEAT } from "@/constants";
-import { LibraryItem, LibraryItemType } from "@/library";
+import { LibraryItem, LibraryItemType, useLibrary } from "@/library";
 import { AudioLibraryItem } from "@/audio";
 import { GraphLibraryItem } from "@/graph";
 import { AutomationLibraryItem } from "@/automation";
@@ -52,6 +51,10 @@ import TrackView from "./Track.vue";
 import "../styles/all.scss";
 import { computed, reactive, Ref, ref, watch } from "vue";
 
+const globalState = useGlobalState();
+const library = useLibrary();
+const timeline = useTimeline();
+
 const el = ref<HTMLElement | null>(null);
 const lastItemEnd = ref(0);
 const ctrlPressed = ref(false);
@@ -63,14 +66,10 @@ const dragStartTrack = ref<Track | null>(null) as Ref<Track | null>;
 const dragStartStates = ref<Array<{ item: IItemState; trackIndex: number }>>([]);
 const hoveredTrack = ref<Track | null>(null) as Ref<Track | null>;
 
-const editor = computed(() => {
-    return globalState.timeline as TimelineEditor;
-});
-
 const contentStyles = computed(() => {
-    const baseBgSize = markerSpacing.value.space * editor.value.unitWidth;
+    const baseBgSize = markerSpacing.value.space * timeline.unitWidth;
     return {
-        width: `${(lastItemEnd.value + globalState.snapUnits) * editor.value.unitWidth + editor.value.headerWidth}px`,
+        width: `${(lastItemEnd.value + globalState.snapUnits) * timeline.unitWidth + timeline.headerWidth}px`,
         backgroundSize: `${4 * baseBgSize}px ${4 * baseBgSize}px, ${baseBgSize}px ${baseBgSize}px`,
     };
 });
@@ -80,13 +79,13 @@ const disableItemPointerEvents = computed(() => {
 });
 
 const tracks = computed(() => {
-    return editor.value?.tracks ?? [];
+    return timeline.tracks as Track[];
 });
 
 const markerSpacing = computed(() => {
-    if (editor.value.unitWidth < 0.25) {
+    if (timeline.unitWidth < 0.25) {
         return { space: TICKS_PER_BEAT * 16, majorMultiplier: 1 };
-    } else if (editor.value.unitWidth > 2) {
+    } else if (timeline.unitWidth > 2) {
         return { space: TICKS_PER_BEAT, majorMultiplier: 4 };
     } else {
         return { space: TICKS_PER_BEAT * 4, majorMultiplier: 4 };
@@ -94,7 +93,7 @@ const markerSpacing = computed(() => {
 });
 
 const markers = computed(() => {
-    if (editor.value.unitWidth <= 0) {
+    if (timeline.unitWidth <= 0) {
         return [];
     }
     const markers: IMarker[] = [];
@@ -111,13 +110,13 @@ const markers = computed(() => {
 });
 
 function unselectAllItems() {
-    editor.value.items.forEach((i) => {
+    timeline.items.forEach((i) => {
         i.selected = false;
     });
 }
 
 function updateLastNoteEnd() {
-    const newLastItemEnd = editor.value.items.reduce((p, i) => Math.max(p, i.end), 0);
+    const newLastItemEnd = timeline.items.reduce((p, i) => Math.max(p, i.end), 0);
     if (dragItem.value && newLastItemEnd < lastItemEnd.value) {
         // do nothing because shrinking the content while dragging results in strange behaviour
         return;
@@ -125,7 +124,7 @@ function updateLastNoteEnd() {
     lastItemEnd.value = newLastItemEnd;
 }
 watch(dragItem, updateLastNoteEnd);
-watch(() => editor.value.items.map((i) => i.end), updateLastNoteEnd);
+watch(() => timeline.items.map((i) => i.end), updateLastNoteEnd);
 
 function mousedown(ev: MouseEvent) {
     const target = ev.target as HTMLElement | null;
@@ -144,8 +143,8 @@ function mouseup() {
 function keydown(ev: KeyboardEvent) {
     ev.preventDefault();
     if (ev.key === "Delete") {
-        const itemsToDelete = editor.value.items.filter((i) => i.selected);
-        itemsToDelete.forEach((i) => editor.value.removeItem(i));
+        const itemsToDelete = timeline.items.filter((i) => i.selected);
+        itemsToDelete.forEach((i) => timeline.removeItem(i as Item));
     } else if (ev.key === " ") {
         globalState.isPlaying = !globalState.isPlaying;
     } else if (ev.key === "Control") {
@@ -162,13 +161,13 @@ function keyup(ev: KeyboardEvent) {
 
 function onTrackMouseMove(ev: MouseEvent) {
     const x = ev.clientX;
-    const diffUnits = Math.floor((x - dragStartPosition.value.x) / editor.value.unitWidth);
+    const diffUnits = Math.floor((x - dragStartPosition.value.x) / timeline.unitWidth);
     if (isDragging.value && dragItem.value) {
         if (dragArea.value === "leftHandle" || dragArea.value === "rightHandle") {
             dragStartStates.value.forEach((state) => {
                 const newStart = dragArea.value === "leftHandle" ? snap(state.item.start + diffUnits) : state.item.start;
                 const newEnd = dragArea.value === "rightHandle" ? snap(state.item.end + diffUnits) : state.item.end;
-                const item = editor.value.items.find((i) => i.id === state.item.id);
+                const item = timeline.items.find((i) => i.id === state.item.id);
                 if (item) {
                     item.move(newStart, newEnd);
                 }
@@ -176,8 +175,8 @@ function onTrackMouseMove(ev: MouseEvent) {
         } else if (dragArea.value === "center") {
             let diffTracks = 0;
             if (dragStartTrack.value && hoveredTrack.value) {
-                const startTrackIndex = editor.value.tracks.indexOf(dragStartTrack.value);
-                const endTrackIndex = editor.value.tracks.indexOf(hoveredTrack.value);
+                const startTrackIndex = timeline.tracks.indexOf(dragStartTrack.value);
+                const endTrackIndex = timeline.tracks.indexOf(hoveredTrack.value);
                 if (startTrackIndex >= 0 && endTrackIndex >= 0) {
                     diffTracks = endTrackIndex - startTrackIndex;
                 }
@@ -189,15 +188,15 @@ function onTrackMouseMove(ev: MouseEvent) {
                 const newTrackIndex = trackIndex + diffTracks;
                 if (newTrackIndex < 0) {
                     diffTracks = -trackIndex;
-                } else if (newTrackIndex >= editor.value.tracks.length) {
-                    diffTracks = editor.value.tracks.length - trackIndex;
+                } else if (newTrackIndex >= timeline.tracks.length) {
+                    diffTracks = timeline.tracks.length - trackIndex;
                 }
             });
 
             dragStartStates.value.forEach((state) => {
-                const item = editor.value.items.find((j) => j.id === state.item.id)!;
+                const item = timeline.items.find((j) => j.id === state.item.id)!;
                 const newTrackIndex = state.trackIndex + diffTracks;
-                const newTrack = editor.value.tracks[newTrackIndex];
+                const newTrack = timeline.tracks[newTrackIndex];
                 const newStart = snap(state.item.start + diffUnits);
                 const newEnd = newStart + (state.item.end - state.item.start);
                 item.trackId = newTrack.id;
@@ -216,11 +215,11 @@ function onDragStart(item: Item, area: ItemArea) {
     dragArea.value = area;
     dragStartTrack.value = hoveredTrack.value;
     isDragging.value = true;
-    dragStartStates.value = editor.value.items
+    dragStartStates.value = timeline.items
         .filter((i) => i.selected)
         .map((i) => ({
             item: i.save(),
-            trackIndex: editor.value.tracks.findIndex((t) => t.id === i.trackId),
+            trackIndex: timeline.tracks.findIndex((t) => t.id === i.trackId),
         }));
 }
 
@@ -234,7 +233,7 @@ function onTrackMouseleave(): void {
 
 function drop(track: Track, ev: DragEvent) {
     const id = ev.dataTransfer!.getData("id");
-    const libraryItem = globalState.library.getItemById(id);
+    const libraryItem = library.getItemById(id);
     if (!libraryItem) {
         return;
     }
@@ -264,26 +263,26 @@ function drop(track: Track, ev: DragEvent) {
 
         // check, whether the track is free
         let chosenTrack: Track | undefined;
-        const trackItems = editor.value.items.filter((i) => i.trackId === track.id);
-        if (!trackItems.some((i) => isOverlapping(i, item!))) {
+        const trackItems = timeline.items.filter((i) => i.trackId === track.id);
+        if (!trackItems.some((i) => isOverlapping(i as Item, item!))) {
             chosenTrack = track;
         }
 
         // if unsuccessful, find a free track
         if (!chosenTrack) {
-            chosenTrack = editor.value.tracks.find((t) => {
-                const trackItems = editor.value.items.filter((i) => i.trackId === t.id);
-                return !trackItems.some((i) => isOverlapping(i, item!));
-            });
+            chosenTrack = timeline.tracks.find((t) => {
+                const trackItems = timeline.items.filter((i) => i.trackId === t.id);
+                return !trackItems.some((i) => isOverlapping(i as Item, item!));
+            }) as Track;
         }
 
         // if no free track was found, create a new one
         if (!chosenTrack) {
-            chosenTrack = editor.value.addDefaultTrack();
+            chosenTrack = timeline.addDefaultTrack();
         }
 
         item.trackId = chosenTrack.id;
-        editor.value.addItem(reactive(item) as Item);
+        timeline.addItem(reactive(item) as Item);
     }
 }
 
@@ -302,17 +301,17 @@ function wheel(ev: WheelEvent) {
     ev.preventDefault();
     const amount = normalizeMouseWheel(ev);
     const unit = pixelToUnit(ev.offsetX); // the unit which is currently hovered
-    editor.value.unitWidth *= 1 - amount / 1500;
+    timeline.unitWidth *= 1 - amount / 1500;
     // scroll so that the unit stays at the same place visually
     el.value!.scrollBy(unitToPixel(unit) - ev.offsetX, 0);
 }
 
 function unitToPixel(unit: number): number {
-    return unit * editor.value.unitWidth;
+    return unit * timeline.unitWidth;
 }
 
 function pixelToUnit(pixel: number): number {
-    return Math.floor(pixel / editor.value.unitWidth);
+    return Math.floor(pixel / timeline.unitWidth);
 }
 
 function isSelfOrIsChildOf(el: HTMLElement, selector: string) {

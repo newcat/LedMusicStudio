@@ -4,7 +4,7 @@
     width: 100%;
     height: 100%;
 
-    background-color: #373740;
+    background-color: var(--surface-ground);
 
     $rowHeight: 100px;
     $headerWidth: 200px;
@@ -19,7 +19,7 @@
 
     .__content {
         position: relative;
-        background-image: linear-gradient(90deg, #bbbbbb 1px, transparent 1px), linear-gradient(90deg, #504f5c 1px, transparent 1px);
+        background-image: linear-gradient(90deg, var(--surface-border) 1px, transparent 1px), linear-gradient(90deg, var(--surface-overlay) 1px, transparent 1px);
         background-position: ($headerWidth - 1px) -1px;
         background-repeat: repeat;
         min-width: 100%;
@@ -32,7 +32,7 @@
     .__header-row {
         height: 40px;
         padding-left: $headerWidth;
-        background-color: #33333d;
+        background-color: var(--surface-card);
         position: sticky;
         top: 0;
         z-index: 4;
@@ -45,7 +45,7 @@
 
     .__track {
         height: $rowHeight;
-        border-bottom: 1px solid #504f5c;
+        border-bottom: 1px solid var(--surface-border);
         display: flex;
         z-index: 3;
 
@@ -55,8 +55,8 @@
             min-width: $headerWidth;
             max-width: $headerWidth;
             height: 100%;
-            background-color: #33333d;
-            color: #bbb;
+            background-color: var(--surface-card);
+            color: var(--text-color);
             display: flex;
             flex-direction: column;
             justify-content: center;

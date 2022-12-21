@@ -1,35 +1,34 @@
-import { LibraryItem, LibraryItemType } from "./libraryItem";
+import { Ref, ref } from "vue";
 import { serialize, deserialize, Binary } from "bson";
+import { defineStore } from "pinia";
 import { AudioLibraryItem } from "@/audio";
 import { AutomationLibraryItem } from "@/automation";
 import { GraphLibraryItem } from "@/graph";
 import { BaklavaEvent } from "@baklavajs/events";
 import { PatternLibraryItem } from "@/pattern";
 import { OutputLibraryItem } from "@/output";
+import { LibraryItem, LibraryItemType } from "./libraryItem";
 
-export class LibraryModel {
-    public events = {
-        loaded: new BaklavaEvent<void, this>(this),
-        itemAdded: new BaklavaEvent<LibraryItem, this>(this),
-        itemRemoved: new BaklavaEvent<LibraryItem, this>(this),
+export const useLibrary = defineStore("library", () => {
+    const events = {
+        loaded: new BaklavaEvent<void, undefined>(undefined),
+        itemAdded: new BaklavaEvent<LibraryItem, undefined>(undefined),
+        itemRemoved: new BaklavaEvent<LibraryItem, undefined>(undefined),
     };
 
-    private _items: LibraryItem[] = [];
+    const items = ref<LibraryItem[]>([]);
+    const selectedItemId = ref<string | null>(null);
 
-    public get items() {
-        return this._items as ReadonlyArray<LibraryItem>;
-    }
-
-    public save(): Buffer {
+    function save(): Buffer {
         return serialize(
-            this.items.map((i) => ({
+            items.value.map((i) => ({
                 type: i.type,
                 data: i.serialize(),
             }))
         );
     }
 
-    public async load(serialized: Binary) {
+    async function load(serialized: Binary) {
         const newItemStates: Record<number, { type: number; data: Buffer }> = deserialize(serialized.buffer);
         const newItems: LibraryItem[] = [];
 
@@ -69,35 +68,43 @@ export class LibraryModel {
             }
         }
 
-        for (const item of this._items.slice()) {
-            await this.removeItem(item);
-        }
-
-        this._items = newItems;
-        this.events.loaded.emit();
+        items.value = newItems;
+        events.loaded.emit();
     }
 
-    public getItemById<T extends LibraryItem = LibraryItem>(id: string): T | undefined {
-        return this.items.find((i) => i.id === id) as T | undefined;
+    function getItemById<T extends LibraryItem = LibraryItem>(id: string): T | undefined {
+        return items.value.find((i) => i.id === id) as T | undefined;
     }
 
-    public addItem(item: LibraryItem) {
-        this._items.push(item);
-        this.events.itemAdded.emit(item);
+    function addItem(item: LibraryItem) {
+        items.value.push(item);
+        events.itemAdded.emit(item);
     }
 
-    public async removeItem(item: LibraryItem) {
-        const i = this._items.indexOf(item);
+    async function removeItem(item: LibraryItem) {
+        const i = items.value.indexOf(item);
         if (i >= 0) {
-            await this._items[i].destroy();
-            this._items.splice(i, 1);
-            this.events.itemRemoved.emit(item);
+            await items.value[i].destroy();
+            items.value.splice(i, 1);
+            events.itemRemoved.emit(item);
         }
     }
 
-    public async destroy() {
-        for (const item of this._items.slice()) {
-            await this.removeItem(item);
+    async function reset() {
+        for (const item of items.value.slice()) {
+            await removeItem(item);
         }
     }
-}
+
+    return {
+        events,
+        items: items as Readonly<Ref<ReadonlyArray<LibraryItem>>>,
+        selectedItemId,
+        save,
+        load,
+        getItemById,
+        addItem,
+        removeItem,
+        reset,
+    };
+});

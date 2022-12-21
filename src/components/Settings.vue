@@ -21,7 +21,9 @@ import InputText from "primevue/inputtext";
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 
-import { globalState } from "@/globalState";
+import { useGlobalState } from "@/globalState";
+
+const globalState = useGlobalState();
 
 const props = defineProps({
     modelValue: { type: Boolean, required: true },

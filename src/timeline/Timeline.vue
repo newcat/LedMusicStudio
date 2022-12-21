@@ -1,27 +1,24 @@
 <template>
     <div class="h-full">
-        <Toolbar>
-            <template #start>
-                <Button class="p-button-outlined p-button-sm" @click="() => editor.addDefaultTrack()">Add Track</Button>
-                <Divider layout="vertical" />
-                <span class="mr-4 mdi mdi-ruler" style="font-size: 1.5em"></span>
-                <Dropdown
-                    :model-value="snapUnits"
-                    @update:model-value="setSnap"
-                    :options="snapItems"
-                    option-label="label"
-                    option-value="value"
-                    style="width: 9em"
-                ></Dropdown>
-                <Divider layout="vertical" />
-                <div class="mr-4">BPM</div>
-                <InputText :model-value="bpm" @update:model-value="setBpm" style="max-width: 4em"></InputText>
-            </template>
-            <template #end>
-                <span class="mr-4 mdi mdi-volume-high" style="font-size: 1.5em"></span>
-                <Slider :model-value="volume * 100" @update:model-value="setVolume" :min="0" :max="100" style="width: 7em"></Slider>
-            </template>
-        </Toolbar>
+        <div class="timeline-toolbar">
+            <Button class="p-button-outlined p-button-sm" @click="() => editor.addDefaultTrack()">Add Track</Button>
+            <Divider layout="vertical" />
+            <span class="mr-4 mdi mdi-ruler" style="font-size: 1.5em"></span>
+            <Dropdown
+                :model-value="snapUnits"
+                @update:model-value="setSnap"
+                :options="snapItems"
+                option-label="label"
+                option-value="value"
+                style="width: 9em"
+            ></Dropdown>
+            <Divider layout="vertical" />
+            <div class="mr-4">BPM</div>
+            <InputText :model-value="bpm" @update:model-value="setBpm" style="max-width: 4em"></InputText>
+            <div class="__spacer"></div>
+            <span class="mr-4 mdi mdi-volume-high" style="font-size: 1.5em"></span>
+            <Slider :model-value="volume * 100" @update:model-value="setVolume" :min="0" :max="100" style="width: 7em"></Slider>
+        </div>
         <div id="wrapper">
             <timeline-base></timeline-base>
         </div>
@@ -38,8 +35,10 @@ import Dropdown, { DropdownProps } from "primevue/dropdown";
 import InputText from "primevue/inputtext";
 
 import { TICKS_PER_BEAT } from "@/constants";
-import { globalState } from "@/globalState";
+import { useGlobalState } from "@/globalState";
 import TimelineBase from "./components/Timeline.vue";
+
+const globalState = useGlobalState();
 
 const snapItems: DropdownProps["options"] = [
     { label: "Disabled", value: "1" },
@@ -87,5 +86,18 @@ function setSnap(value: string) {
 #wrapper {
     height: calc(100% - 48px);
     overflow: hidden;
+}
+
+.timeline-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background-color: var(--surface-card);
+    border-bottom: 1px solid var(--surface-border)
+}
+
+.timeline-toolbar .__spacer {
+    flex-grow: 1;
 }
 </style>

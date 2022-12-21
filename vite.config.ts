@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
+import { visualizer } from "rollup-plugin-visualizer";
 import path from "path";
 
 // https://vitejs.dev/config/
@@ -13,5 +14,11 @@ export default defineConfig({
             "@": path.resolve(__dirname, "./src"),
         },
     },
-    plugins: [vue()],
+    plugins: [
+        vue(),
+        visualizer({
+            open: false,
+            filename: "dist/stats.html",
+        }),
+    ],
 });

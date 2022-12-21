@@ -41,10 +41,12 @@ import type { PatternLibraryItem } from "./pattern.libraryItem";
 import { v4 as uuidv4 } from "uuid";
 import { computed, ref, watch } from "vue";
 
-import { globalState } from "@/globalState";
+import { useGlobalState } from "@/globalState";
 import { normalizeMouseWheel } from "@/utils";
 import { INote } from "./types";
 import CNote from "./Note.vue";
+
+const globalState = useGlobalState();
 
 const el = ref<HTMLElement | null>(null);
 const tickWidth = ref(1.5);

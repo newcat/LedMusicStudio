@@ -2,7 +2,7 @@
     position: absolute;
     height: 100%;
     width: 2px;
-    background-color: #1eb980;
+    background-color: var(--primary-color);
     z-index: 5;
 
     &::before {
@@ -16,7 +16,7 @@
         transform: translateX(calc(-50% + 1px));
         border-left: $arrowSize solid transparent;
         border-right: $arrowSize solid transparent;
-        border-top: $arrowSize solid #1eb980;
+        border-top: $arrowSize solid var(--primary-color);
     }
 
 }

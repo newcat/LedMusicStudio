@@ -4,14 +4,13 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { globalState } from "@/globalState";
-import { TimelineEditor } from "../model";
+import { useGlobalState } from "@/globalState";
+import { useTimeline } from "../model";
 
-const props = defineProps({
-    editor: { type: Object as () => TimelineEditor, required: true },
-});
+const globalState = useGlobalState();
+const timeline = useTimeline();
 
 const styles = computed(() => ({
-    transform: `translateX(${globalState.position * props.editor.unitWidth + props.editor.headerWidth}px)`,
+    transform: `translateX(${globalState.position * timeline.unitWidth + timeline.headerWidth}px)`,
 }));
 </script>

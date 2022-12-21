@@ -15,7 +15,7 @@
 import { ref, watch } from "vue";
 import { NModal, NFormItem, NInput, NButton } from "naive-ui";
 
-import { globalState } from "@/globalState";
+import { useGlobalState } from "@/globalState";
 import { LibraryItem } from "./libraryItem";
 
 const props = defineProps({
@@ -24,6 +24,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:modelValue"]);
+
+const globalState = useGlobalState();
 
 const vName = ref("");
 
