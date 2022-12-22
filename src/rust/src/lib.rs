@@ -14,7 +14,7 @@ macro_rules! console_log {
 }
 
 #[wasm_bindgen]
-pub fn init() {
+pub fn initialize() {
     utils::set_panic_hook();
     console_log!("WASM Initialized");
 }

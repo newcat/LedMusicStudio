@@ -9,8 +9,8 @@
             <InputText v-model="vFps" id="resolution" type="text" />
         </div>
         <template #footer>
-            <Button @click="cancel">Cancel</Button>
-            <Button @click="save">Save</Button>
+            <Button label="Cancel" @click="cancel"></Button>
+            <Button label="Save" @click="save"></Button>
         </template>
     </Dialog>
 </template>

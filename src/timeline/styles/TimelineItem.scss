@@ -4,18 +4,18 @@
     position: absolute;
     height: calc(100% - 10px);
     top: 5px;
-    background-color: #888;
+    background-color: var(--surface-hover);
     border-radius: 3px;
     border: 2px solid transparent;
     transition: border-color 0.1s;
     z-index: 0;
 
     &:hover:not(.--selected) {
-        border-color: lighten(#888, 20%);
+        border-color: var(--surface-border);
     }
 
     &.--selected {
-        border-color: #1eb980;
+        border-color: var(--primary-color);
         z-index: 1;
     }
 
@@ -24,7 +24,7 @@
         height: 50%;
         width: 6px;
         top: 25%;
-        background-color: #1eb980;
+        background-color: var(--primary-color);
         cursor: col-resize;
 
         &.--left {
@@ -44,7 +44,7 @@
     }
 
     .timeline-item__header-text {
-        color: white;
+        color: var(--text-color);
         font-size: 0.75rem;
         padding: 0.1rem;
         margin-left: 5px;

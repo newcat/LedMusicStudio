@@ -23,8 +23,9 @@ class WasmInterop {
 
     public async init() {
         const module = await import("./rust/pkg/rust");
-        module.init();
-        this._wasmModule = module as any;
+        await module.default();
+        module.initialize();
+        this._wasmModule = module;
     }
 }
 

@@ -1,5 +1,5 @@
 <template>
-    <div class="h-full">
+    <div class="timeline-container">
         <div class="timeline-toolbar">
             <Button class="p-button-outlined p-button-sm" @click="() => editor.addDefaultTrack()">Add Track</Button>
             <Divider layout="vertical" />
@@ -83,8 +83,14 @@ function setSnap(value: string) {
 </script>
 
 <style scoped>
+.timeline-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
 #wrapper {
-    height: calc(100% - 48px);
+    flex-grow: 1;
     overflow: hidden;
 }
 
@@ -94,7 +100,7 @@ function setSnap(value: string) {
     justify-content: space-between;
     padding: 1rem;
     background-color: var(--surface-card);
-    border-bottom: 1px solid var(--surface-border)
+    border-bottom: 1px solid var(--surface-border);
 }
 
 .timeline-toolbar .__spacer {

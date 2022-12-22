@@ -4,22 +4,14 @@
             <div class="__title">{{ track.name }}</div>
             <div class="__actions" v-if="confirmRemove">
                 <div class="text-caption">Remove?</div>
-                <Button size="tiny" @click="remove">Yes</Button>
-                <Button size="tiny" @click="confirmRemove = false">No</Button>
+                <Button class="p-button-text p-button-sm" @click="remove">Yes</Button>
+                <Button class="p-button-text p-button-sm" @click="confirmRemove = false">No</Button>
             </div>
             <div class="__actions" v-else>
-                <Button text size="tiny" @click="settingsOpen = true">
-                    <span class="mdi mdi-create-filled"></span>
-                </Button>
-                <Button text size="tiny" @click="moveUp">
-                    <span class="mdi mdi-keyboard-arrow-up-filled"></span>
-                </Button>
-                <Button text size="tiny" @click="moveDown">
-                    <span class="mdi mdi-keyboard-arrow-down-filled"></span>
-                </Button>
-                <Button text size="tiny" @click="confirmRemove = true">
-                    <span class="mdi mdi-close-filled"></span>
-                </Button>
+                <Button class="p-button-text p-button-sm" icon="mdi mdi-pencil" @click="settingsOpen = true"> </Button>
+                <Button class="p-button-text p-button-sm" icon="mdi mdi-chevron-up" @click="moveUp"> </Button>
+                <Button class="p-button-text p-button-sm" icon="mdi mdi-chevron-down" @click="moveDown"> </Button>
+                <Button class="p-button-text p-button-sm" icon="mdi mdi-close" @click="confirmRemove = true"> </Button>
             </div>
         </div>
         <div

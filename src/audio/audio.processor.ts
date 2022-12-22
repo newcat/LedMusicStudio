@@ -39,7 +39,8 @@ export class AudioProcessor {
 
         this.unwatch = watch(
             () => this.state.volume,
-            () => this.gainNode.gain.setValueAtTime(this.state.volume, this.audioContext.currentTime)
+            () => this.gainNode.gain.setValueAtTime(this.state.volume, this.audioContext.currentTime),
+            { immediate: true }
         );
         this.state.events.positionSetByUser.subscribe(this, () => {
             if (this.state.isPlaying) {

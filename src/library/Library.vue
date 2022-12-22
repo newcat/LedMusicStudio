@@ -16,19 +16,21 @@
         </Toolbar>
         <Card class="menu-container">
             <template #content>
-                <PanelMenu :model="libraryItems" v-model:expanded-keys="expandedKeys">
-                    <!--<template #item="{ item }">
-                        <a class="p-menuitem-link" :tabindex="-1">
-                            <span
-                                v-if="item.items && item.key"
-                                class="p-submenu-icon"
-                                :class="[expandedKeys[item.key] ? 'pi pi-chevron-down' : 'pi pi-chevron-right']"
-                            ></span>
-                            <span class="p-menuitem-icon" :class="item.icon"></span>
-                            <span class="p-menuitem-text">{{ item.label }}</span>
-                        </a>
-                    </template>-->
-                </PanelMenu>
+                <Listbox
+                    :options="libraryItems"
+                    v-model="library.selectedItemId"
+                    optionLabel="label"
+                    optionValue="key"
+                    optionDisabled="loading"
+                    optionGroupLabel="label"
+                    optionGroupChildren="items"
+                >
+                    <template #optiongroup="{ option }">
+                        <i :class="option.icon"></i>
+                        {{ option.label }}
+                    </template>
+                    <template #option="{ option }"> <LibraryItemView :item-id="option.key" /></template>
+                </Listbox>
 
                 <input ref="fileinput" type="file" @change="loadAudio" style="display: none" />
                 <!-- TODO <item-settings v-if="activeItem" v-model="settingsOpen" :item="activeItem"></item-settings> -->
@@ -43,7 +45,7 @@ import Toolbar from "primevue/toolbar";
 import Button from "primevue/button";
 import Menu, { MenuProps } from "primevue/menu";
 import Card from "primevue/card";
-import PanelMenu, { PanelMenuProps } from "primevue/panelmenu";
+import Listbox, { ListboxProps } from "primevue/listbox";
 
 import { AudioLibraryItem } from "@/audio/audio.libraryItem";
 import { AutomationLibraryItem } from "@/automation/automation.libraryItem";
@@ -53,6 +55,8 @@ import { OutputLibraryItem } from "@/output/output.libraryItem";
 import { StageLibraryItem } from "@/stage/stage.libraryItem";
 import { LibraryItemType, LibraryItem, LibraryItemTypeIcons, LibraryItemTypeLabels, LibraryItemTypeList } from "./libraryItem";
 import { useLibrary } from "./libraryModel";
+
+import LibraryItemView from "./LibraryItem.vue";
 
 // import ItemSettings from "./LibraryItemSettings.vue";
 
@@ -70,22 +74,16 @@ const getMenuItem = (type: LibraryItemType) => ({
 });
 const addItemOptions: MenuProps["model"] = LibraryItemTypeList.map((type) => getMenuItem(type));
 
-// TODO: Why doesn't reactivity work here?
-const libraryItems = computed<PanelMenuProps["model"]>(() => {
+const libraryItems = computed<ListboxProps["options"]>(() => {
     return LibraryItemTypeList.map((type) => ({
         key: `LIT_${type}`,
         label: LibraryItemTypeLabels[type],
-        icon: LibraryItemTypeIcons[type],
+        icon: `mdi mdi-${LibraryItemTypeIcons[type]}`,
         items: library.items
             .filter((it) => it.type === type)
             .map((it) => ({
                 key: it.id,
-                label: it.name,
-                icon: it.loading ? "pi pi-spinner" : `mdi mdi-${LibraryItemTypeIcons[it.type]}`,
-                disabled: it.loading,
-                command: () => {
-                    library.selectedItemId = it.id;
-                },
+                loading: it.loading,
             })),
     }));
 });

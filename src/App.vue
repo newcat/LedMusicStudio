@@ -56,8 +56,6 @@ async function newProject(): Promise<void> {
     await globalState.reset();
 }
 
-provide("selectedLibraryItemId", selectedLibraryItemId);
-
 async function load(): Promise<void> {
     const p = await openLoadDialog();
     if (!p) {
