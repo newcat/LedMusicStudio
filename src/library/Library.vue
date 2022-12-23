@@ -1,17 +1,12 @@
 <template>
     <div class="library">
         <Toolbar>
-            <template #start>Library</template>
+            <template #start>
+                <div class="font-bold text-xl">Library</div>
+            </template>
             <template #end>
                 <Button class="p-button-outlined p-button-sm" type="button" @click="toggleAddItemMenu">Add Item</Button>
-                <Menu ref="menu" id="overlay_menu" :model="addItemOptions" :popup="true">
-                    <!--<template #item="{ item }">
-                    <a @click="item.command">
-                        <Icon></Icon>
-                        {{ item.label }}
-                    </a>
-                </template>-->
-                </Menu>
+                <Menu ref="menu" id="overlay_menu" :model="addItemOptions" :popup="true"></Menu>
             </template>
         </Toolbar>
         <Card class="menu-container">

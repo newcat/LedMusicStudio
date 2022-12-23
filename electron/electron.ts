@@ -1,6 +1,8 @@
 import * as path from "path";
 import { app, BrowserWindow, dialog, ipcMain, OpenDialogOptions, SaveDialogOptions } from "electron";
 
+import "./serialport";
+
 let mainWindow: BrowserWindow;
 const isDev = process.env.IS_DEV == "true" ? true : false;
 
@@ -21,7 +23,7 @@ function createWindow() {
             preload: path.join(__dirname, "preload.js"),
             nodeIntegration: true,
         },
-        autoHideMenuBar: true
+        autoHideMenuBar: true,
     });
 
     // and load the index.html of the app.

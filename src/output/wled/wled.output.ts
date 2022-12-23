@@ -1,7 +1,8 @@
-import * as dgram from "dgram";
+import type { Socket } from "dgram";
 import { Buffer } from "buffer";
 import { Color } from "@/graph/colors";
 import { scaleColorArray } from "@/utils";
+import { dgramCreateSocket } from "@/native";
 import { BaseOutput } from "../base.output";
 import { OutputType } from "../outputTypes";
 
@@ -26,7 +27,7 @@ export class WledOutput extends BaseOutput<IWledOutputState, IWledOutputData> {
         numLeds: 60,
     };
 
-    private socket?: dgram.Socket;
+    private socket?: Socket;
     private buff?: Buffer;
 
     public constructor() {
@@ -38,7 +39,7 @@ export class WledOutput extends BaseOutput<IWledOutputState, IWledOutputData> {
         this.error = "";
         super.applyState(newState);
         this.socket?.close();
-        this.socket = dgram.createSocket("udp4");
+        this.socket = dgramCreateSocket("udp4");
     }
 
     public onData(data?: IWledOutputData): void {

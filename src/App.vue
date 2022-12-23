@@ -30,7 +30,6 @@ import { provide, ref } from "vue";
 
 // @ts-ignore
 import { Splitpanes, Pane } from "splitpanes";
-import "splitpanes/dist/splitpanes.css";
 
 import CLibrary from "@/library/Library.vue";
 import CSettings from "@/components/Settings.vue";

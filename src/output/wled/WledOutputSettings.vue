@@ -1,31 +1,21 @@
 <template>
-    <div>
-        <div class="field">
-            <label for="host">Host</label>
-            <InputText v-model="host" id="host" type="text" />
+    <div class="settings">
+        <LabelledInputText v-model="host">Host</LabelledInputText>
+        <LabelledInputText v-model="port">Port</LabelledInputText>
+        <LabelledInputText v-model="timeout">Timeout</LabelledInputText>
+        <LabelledInputText v-model="numLeds">Led Count</LabelledInputText>
+        <div class="flex gap-4">
+            <Button @click="apply">Apply</Button>
+            <Button @click="updateValues">Cancel</Button>
         </div>
-        <div class="field">
-            <label for="port">Port</label>
-            <InputText v-model="port" id="port" type="text" />
-        </div>
-        <div class="field">
-            <label for="timeout">Timeout</label>
-            <InputText v-model="timeout" id="timeout" type="text" />
-        </div>
-        <div class="field">
-            <label for="ledCount">Led Count</label>
-            <InputText v-model="numLeds" id="ledCount" type="text" />
-        </div>
-        <Button @click="apply">Apply</Button>
-        <Button @click="updateValues">Cancel</Button>
     </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import InputText from "primevue/inputtext";
 import Button from "primevue/button";
 
+import LabelledInputText from "@/components/LabelledInputText.vue";
 import { WledOutput } from "./wled.output";
 
 const props = defineProps({
@@ -58,7 +48,10 @@ onMounted(updateValues);
 </script>
 
 <style lang="css" scoped>
-.settings-container {
-    max-width: 30em;
+.settings {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
 }
 </style>

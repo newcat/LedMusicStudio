@@ -1,7 +1,7 @@
 <template>
     <Card class="h-full unified-editor">
         <template #header>
-            <h2>{{ title }}</h2>
+            <h2 class="m-4 font-bold text-xl">{{ title }}</h2>
         </template>
         <template #content>
             <baklava-editor

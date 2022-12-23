@@ -33,23 +33,27 @@
 </template>
 
 <script setup lang="ts">
-import { ItemArea, IMarker } from "../types";
-import { Item, Track, IItemState, useTimeline } from "../model";
+import { computed, reactive, Ref, ref, watch } from "vue";
+import { useElementBounding } from "@vueuse/core";
+
 import { useGlobalState } from "@/globalState";
 import { TICKS_PER_BEAT } from "@/constants";
+import { normalizeMouseWheel, snap } from "@/utils";
+
+import { ItemArea, IMarker } from "../types";
+import { Item, Track, IItemState, useTimeline } from "../model";
+
 import { LibraryItem, LibraryItemType, useLibrary } from "@/library";
 import { AudioLibraryItem } from "@/audio";
 import { GraphLibraryItem } from "@/graph";
 import { AutomationLibraryItem } from "@/automation";
 import { PatternLibraryItem } from "@/pattern";
-import { normalizeMouseWheel, snap } from "@/utils";
 
 import MarkerLabel from "./MarkerLabel.vue";
 import PositionMarker from "./PositionMarker.vue";
 import TrackView from "./Track.vue";
 
 import "../styles/all.scss";
-import { computed, reactive, Ref, ref, watch } from "vue";
 
 const globalState = useGlobalState();
 const library = useLibrary();
@@ -65,6 +69,8 @@ const dragStartPosition = ref({ x: 0, y: 0 });
 const dragStartTrack = ref<Track | null>(null) as Ref<Track | null>;
 const dragStartStates = ref<Array<{ item: IItemState; trackIndex: number }>>([]);
 const hoveredTrack = ref<Track | null>(null) as Ref<Track | null>;
+
+const timelineElBounds = useElementBounding(el);
 
 const contentStyles = computed(() => {
     const baseBgSize = markerSpacing.value.space * timeline.unitWidth;
@@ -97,7 +103,9 @@ const markers = computed(() => {
         return [];
     }
     const markers: IMarker[] = [];
-    for (let unit = 0; unit < lastItemEnd.value + globalState.snapUnits; unit += markerSpacing.value.space) {
+    const maxUnit = Math.max(pixelToUnit(timelineElBounds.width.value - timeline.headerWidth - 10), lastItemEnd.value + globalState.snapUnits);
+
+    for (let unit = 0; unit < maxUnit; unit += markerSpacing.value.space) {
         const x = unitToPixel(unit);
         const nthMarker = Math.floor(unit / markerSpacing.value.space);
         if (nthMarker % markerSpacing.value.majorMultiplier === 0) {

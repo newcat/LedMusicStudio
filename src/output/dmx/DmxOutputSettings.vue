@@ -1,20 +1,18 @@
 <template>
-    <div>
-        <div class="field">
-            <label for="port">Port</label>
-            <InputText v-model="port" id="port" type="text" />
+    <div class="flex flex-col mt-4 gap-4">
+        <LabelledInputText v-model="port">Port</LabelledInputText>
+        <div class="flex gap-4">
+            <Button @click="apply">Apply</Button>
+            <Button @click="updateValues">Cancel</Button>
         </div>
-        <Button @click="apply">Apply</Button>
-        <Button @click="updateValues">Cancel</Button>
     </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-
-import InputText from "primevue/inputtext";
 import Button from "primevue/button";
 
+import LabelledInputText from "@/components/LabelledInputText.vue";
 import { DmxOutput } from "./dmx.output";
 
 const props = defineProps({

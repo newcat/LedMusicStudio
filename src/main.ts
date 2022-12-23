@@ -3,6 +3,7 @@ import * as VueRouter from "vue-router";
 import { createPinia } from "pinia";
 import { wasmInterop } from "./wasmInterop";
 
+import "splitpanes/dist/splitpanes.css";
 import "./index.css";
 import "./styles/all.scss";
 import "primevue/resources/themes/vela-blue/theme.css";
