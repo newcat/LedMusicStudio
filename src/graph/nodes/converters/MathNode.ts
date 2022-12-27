@@ -25,9 +25,9 @@ const operations = [
 export const MathNode = defineNode({
     type: "Math",
     inputs: {
+        operation: () => new SelectInterface("Operation", "Add", operations).setPort(false),
         val1: () => new NumberInterface("Value 1", 0),
         val2: () => new NumberInterface("Value 2", 0),
-        operation: () => new SelectInterface("Operation", "Add", operations),
     },
     outputs: {
         result: () => new NumberInterface("Result", 0),

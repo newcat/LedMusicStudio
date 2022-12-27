@@ -48,7 +48,7 @@ async function open(id: string, port: string) {
 async function send(id: string, data: Buffer) {
     const sp = openPorts.get(id);
     if (!sp) {
-        return { success: false, err: new Error("Unknown id: " + id) };
+        return { success: true };
     }
     return new Promise((res) => {
         sp.write(data, (err) => {
