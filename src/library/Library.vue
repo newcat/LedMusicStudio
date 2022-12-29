@@ -24,18 +24,20 @@
                         <i :class="option.icon"></i>
                         {{ option.label }}
                     </template>
-                    <template #option="{ option }"> <LibraryItemView :item-id="option.key" /></template>
+                    <template #option="{ option }">
+                        <LibraryItemView :item-id="option.key" />
+                    </template>
                 </Listbox>
 
                 <input ref="fileinput" type="file" @change="loadAudio" style="display: none" />
-                <!-- TODO <item-settings v-if="activeItem" v-model="settingsOpen" :item="activeItem"></item-settings> -->
             </template>
         </Card>
+        <SelectOutputTypeDialog v-model="showSelectOutputTypeDialog" @create-output="addOutput" />
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, Ref, toRef, watch } from "vue";
+import { computed, reactive, ref } from "vue";
 import Toolbar from "primevue/toolbar";
 import Button from "primevue/button";
 import Menu, { MenuProps } from "primevue/menu";
@@ -46,21 +48,18 @@ import { AudioLibraryItem } from "@/audio/audio.libraryItem";
 import { AutomationLibraryItem } from "@/automation/automation.libraryItem";
 import { GraphLibraryItem } from "@/graph/graph.libraryItem";
 import { PatternLibraryItem } from "@/pattern/pattern.libraryItem";
-import { OutputLibraryItem } from "@/output/output.libraryItem";
 import { StageLibraryItem } from "@/stage/stage.libraryItem";
 import { LibraryItemType, LibraryItem, LibraryItemTypeIcons, LibraryItemTypeLabels, LibraryItemTypeList } from "./libraryItem";
 import { useLibrary } from "./libraryModel";
 
 import LibraryItemView from "./LibraryItem.vue";
-
-// import ItemSettings from "./LibraryItemSettings.vue";
+import SelectOutputTypeDialog from "@/output/SelectOutputTypeDialog.vue";
 
 const library = useLibrary();
 
-const settingsOpen = ref(false);
 const fileinput = ref<HTMLInputElement | null>(null);
 const menu = ref<Menu | null>(null);
-const expandedKeys = ref<Record<string, unknown>>({});
+const showSelectOutputTypeDialog = ref(false);
 
 const getMenuItem = (type: LibraryItemType) => ({
     label: LibraryItemTypeLabels[type],
@@ -116,8 +115,8 @@ function addItem(key: LibraryItemType) {
             item = GraphLibraryItem;
             break;
         case LibraryItemType.OUTPUT:
-            item = OutputLibraryItem;
-            break;
+            showSelectOutputTypeDialog.value = true;
+            return;
         case LibraryItemType.PATTERN:
             item = PatternLibraryItem;
             break;
@@ -130,8 +129,8 @@ function addItem(key: LibraryItemType) {
     library.addItem(reactive(new item()));
 }
 
-function deleteItem(id: string) {
-    library.removeItem(library.getItemById(id)!);
+function addOutput(output: LibraryItem) {
+    library.addItem(reactive(output));
 }
 </script>
 

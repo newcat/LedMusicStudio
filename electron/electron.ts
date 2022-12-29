@@ -33,6 +33,21 @@ function createWindow() {
     if (isDev) {
         mainWindow.webContents.openDevTools();
     }
+
+    const filter = {
+        urls: ["https://open-fixture-library.org/download.ofl"],
+    };
+    mainWindow.webContents.session.webRequest.onBeforeSendHeaders(filter, (details, callback) => {
+        delete details.requestHeaders["Origin"];
+        callback({ requestHeaders: details.requestHeaders });
+    });
+    mainWindow.webContents.session.webRequest.onHeadersReceived(filter, (details, callback) => {
+        details.responseHeaders = {
+            ...details.responseHeaders,
+            "Access-Control-Allow-Origin": [isDev ? "http://localhost:3000" : "capacitor-electron://-"],
+        };
+        callback({ responseHeaders: details.responseHeaders });
+    });
 }
 
 // This method will be called when Electron has finished

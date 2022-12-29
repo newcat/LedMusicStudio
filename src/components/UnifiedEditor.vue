@@ -78,6 +78,8 @@ function isStage(item?: LibraryItem): item is StageLibraryItem {
 .unified-editor > .p-card-body > .p-card-content {
     padding: 0;
     width: 100%;
-    height: 100%;
+    flex-grow: 1;
+    min-height: 0;
+    display: flex;
 }
 </style>

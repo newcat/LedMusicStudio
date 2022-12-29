@@ -1,26 +1,20 @@
 <template>
     <div class="output-editor">
-        <Dropdown
-            :model-value="output.outputInstance.type"
-            :options="outputTypes"
-            option-label="label"
-            option-value="value"
-            @update:model-value="onOutputTypeChanged"
-        />
         <component v-if="outputSettingsComponent" :is="outputSettingsComponent" :output="output.outputInstance" />
+        <div v-else class="empty">
+            <div>This output has no configuration</div>
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ComponentOptions, computed } from "vue";
-import Dropdown from "primevue/dropdown";
 
 import { OutputType } from "./outputTypes";
 import { OutputLibraryItem } from "./output.libraryItem";
 
 import WledOutputSettings from "./wled/WledOutputSettings.vue";
 import DmxOutputSettings from "./dmx/DmxOutputSettings.vue";
-import { createOutput } from "./outputFactory";
 
 const outputSettingsComponentMapping: Record<OutputType, ComponentOptions<any> | undefined> = {
     [OutputType.DUMMY]: undefined,
@@ -33,25 +27,25 @@ const props = defineProps({
     output: { type: Object as () => OutputLibraryItem, required: true },
 });
 
-const outputTypes = [
-    { label: "Dummy", value: OutputType.DUMMY },
-    { label: "WLED", value: OutputType.WLED },
-    { label: "DMX", value: OutputType.DMX },
-    { label: "Razer Chroma", value: OutputType.RAZER_CHROMA },
-];
-
 const outputSettingsComponent = computed(() => {
     return outputSettingsComponentMapping[props.output.outputInstance.type];
 });
-
-async function onOutputTypeChanged(newOutputType: OutputType) {
-    await props.output.outputInstance.destroy();
-    props.output.outputInstance = createOutput(newOutputType);
-}
 </script>
 
 <style lang="scss" scoped>
 .output-editor {
-    margin: 1em;
+    margin: 1rem;
+    margin-bottom: 0;
+    width: calc(100% - 2rem);
+    height: calc(100% - 1rem);
+}
+
+.empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
 }
 </style>

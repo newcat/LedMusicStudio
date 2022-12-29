@@ -25,6 +25,7 @@
     "bson": "^4.7.0",
     "chroma-js": "^2.4.2",
     "comlink": "^4.3.1",
+    "jszip": "^3.10.1",
     "open-simplex-noise": "^2.5.0",
     "pinia": "^2.0.28",
     "primeicons": "^6.0.1",

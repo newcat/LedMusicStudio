@@ -3,9 +3,11 @@ import { v4 as uuidv4 } from "uuid";
 import { ipcRenderer } from "@/native";
 import { BaseOutput } from "../base.output";
 import { OutputType } from "../outputTypes";
+import { DmxFixture } from "./fixture";
 
 export interface IDmxOutputState {
     port: string;
+    fixtures: DmxFixture[];
 }
 
 export interface IDmxOutputData {
@@ -17,6 +19,7 @@ export class DmxOutput extends BaseOutput<IDmxOutputState, IDmxOutputData> {
 
     protected _state: IDmxOutputState = {
         port: "",
+        fixtures: [],
     };
 
     private id = uuidv4();

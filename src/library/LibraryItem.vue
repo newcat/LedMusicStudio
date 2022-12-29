@@ -31,11 +31,18 @@ const menu = ref<Menu | null>(null);
 const popupMenu: MenuProps["model"] = [
     {
         label: "Rename",
+        icon: "mdi mdi-pencil",
         command: () => {
             showItemSettings.value = true;
         },
     },
-    { label: "Delete" },
+    {
+        label: "Delete",
+        icon: "mdi mdi-delete",
+        command: () => {
+            library.removeItem(item.value!);
+        },
+    },
 ];
 const showItemSettings = ref(false);
 
@@ -57,8 +64,5 @@ function dragstart(ev: DragEvent) {
 
 .library-item > .__title {
     flex-grow: 1;
-}
-
-.library-item > .__menu {
 }
 </style>

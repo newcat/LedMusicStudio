@@ -14,3 +14,7 @@
     min-width: 400px;
     max-width: calc(100vw - 6rem);
 }
+
+html {
+    font-size: 15px;
+}
