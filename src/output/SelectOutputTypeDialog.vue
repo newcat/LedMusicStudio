@@ -39,6 +39,7 @@ function cancel() {
 function add() {
     emit("update:modelValue", false);
     const item = new OutputLibraryItem(createOutput(selectedType.value!.type));
+    item.name = selectedType.value!.name;
     emit("createOutput", item);
 }
 </script>
