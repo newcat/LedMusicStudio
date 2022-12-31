@@ -20,24 +20,16 @@ export interface IWledOutputData {
 export class WledOutput extends BaseOutput<IWledOutputState, IWledOutputData> {
     public type = OutputType.WLED;
 
-    protected _state: IWledOutputState = {
-        host: "127.0.0.1",
-        port: 21324,
-        timeout: 255,
-        numLeds: 60,
-    };
+    public host = "127.0.0.1";
+    public port = 21324;
+    public timeout = 255;
+    public numLeds = 60;
 
     private socket?: Socket;
     private buff?: Buffer;
 
-    public constructor() {
-        super();
-        this.applyState(this._state);
-    }
-
-    public applyState(newState: IWledOutputState) {
+    public update() {
         this.error = "";
-        super.applyState(newState);
         this.socket?.close();
         this.socket = dgramCreateSocket("udp4");
     }
@@ -48,13 +40,13 @@ export class WledOutput extends BaseOutput<IWledOutputState, IWledOutputData> {
             colors = data.colors;
         }
 
-        this.buff = Buffer.allocUnsafe(3 * this.state.numLeds + 2);
-        colors = scaleColorArray(colors, this.state.numLeds);
+        this.buff = Buffer.allocUnsafe(3 * this.numLeds + 2);
+        colors = scaleColorArray(colors, this.numLeds);
 
         this.buff[0] = 2; // Use DRGB protocol
-        this.buff[1] = this.state.timeout;
+        this.buff[1] = this.timeout;
 
-        for (let i = 0; i < this.state.numLeds; i++) {
+        for (let i = 0; i < this.numLeds; i++) {
             this.buff[i * 3 + 2] = colors[i][0];
             this.buff[i * 3 + 3] = colors[i][1];
             this.buff[i * 3 + 4] = colors[i][2];
@@ -65,11 +57,34 @@ export class WledOutput extends BaseOutput<IWledOutputState, IWledOutputData> {
         if (!this.socket || !this.buff) {
             return;
         }
-        this.socket.send(this.buff, this.state.port, this.state.host, (err) => {
+        this.socket.send(this.buff, this.port, this.host, (err) => {
             if (err) {
                 this.error = "Failed to send WLED data";
-                console.warn(`Failed to send WLED data to ${this.state.host}:${this.state.port}`, err);
+                console.warn(`Failed to send WLED data to ${this.host}:${this.port}`, err);
             }
         });
+    }
+
+    public toObject(): IWledOutputState {
+        return {
+            host: this.host,
+            port: this.port,
+            timeout: this.timeout,
+            numLeds: this.numLeds,
+        };
+    }
+
+    public async fromObject(state: IWledOutputState): Promise<void> {
+        this.host = state.host;
+        this.port = state.port;
+        this.timeout = state.timeout;
+        this.numLeds = state.numLeds;
+        this.update();
+        return Promise.resolve();
+    }
+
+    public destroy(): Promise<void> {
+        this.socket?.close();
+        return Promise.resolve();
     }
 }

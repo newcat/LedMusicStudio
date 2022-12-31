@@ -8,10 +8,8 @@ export interface IChromaOutputData {
     colors: Color[];
 }
 
-export class ChromaOutput extends BaseOutput<unknown, IChromaOutputData> {
+export class ChromaOutput extends BaseOutput<{}, IChromaOutputData> {
     public type = OutputType.RAZER_CHROMA;
-
-    protected _state = {};
 
     private api = new ChromaApi();
     private data: number[][] = [];
@@ -45,6 +43,14 @@ export class ChromaOutput extends BaseOutput<unknown, IChromaOutputData> {
         this.isSending = true;
         await this.api.send(this.data);
         this.isSending = false;
+    }
+
+    public toObject(): {} {
+        return {};
+    }
+
+    public fromObject(state: {}): Promise<void> {
+        return Promise.resolve();
     }
 
     public async destroy(): Promise<void> {

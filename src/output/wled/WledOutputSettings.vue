@@ -28,19 +28,18 @@ const timeout = ref("");
 const numLeds = ref("");
 
 function updateValues() {
-    host.value = props.output.state.host;
-    port.value = props.output.state.port.toString();
-    timeout.value = props.output.state.timeout.toString();
-    numLeds.value = props.output.state.numLeds.toString();
+    host.value = props.output.host;
+    port.value = props.output.port.toString();
+    timeout.value = props.output.timeout.toString();
+    numLeds.value = props.output.numLeds.toString();
 }
 
 function apply() {
-    props.output.applyState({
-        host: host.value,
-        port: parseInt(port.value, 10),
-        timeout: parseInt(timeout.value, 10),
-        numLeds: parseInt(numLeds.value, 10),
-    });
+    props.output.host = host.value;
+    props.output.port = parseInt(port.value, 10);
+    props.output.timeout = parseInt(timeout.value, 10);
+    props.output.numLeds = parseInt(numLeds.value, 10);
+    props.output.update();
     updateValues();
 }
 

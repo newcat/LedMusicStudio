@@ -1,57 +1,98 @@
-import { Color } from "@/graph/colors";
-import { ColorSingleInterface, IntegerInterface, PreviewInterface } from "@/graph/interfaces";
-import { OutputType } from "@/output";
-import type { IDmxOutputData } from "@/output/dmx/dmx.output";
-import { CalculateFunction, NodeInterface } from "@baklavajs/core";
-import { SelectInterface } from "@baklavajs/renderer-vue";
-import { BaseOutputNode, BaseOutputNodeInputs, BaseOutputNodeOutputs } from "./BaseOutputNode";
+import { watch } from "vue";
+import { NodeInterface, SelectInterface, defineDynamicNode, DynamicNodeDefinition, IAdvancedSelectInterfaceItem } from "baklavajs";
+import { IntegerInterface } from "@/graph/interfaces";
+import { SelectOutputInterface } from "@/graph/interfaces/SelectOutputInterface";
+import { useLibrary } from "@/library";
+import { OutputLibraryItem, OutputType } from "@/output";
+import type { DmxOutput, IDmxOutputData } from "@/output/dmx/dmx.output";
 
-interface Inputs extends BaseOutputNodeInputs {
-    color: Color;
-    redAddress: number;
-    greenAddress: number;
-    blueAddress: number;
-}
+class SelectFixtureInterface extends SelectInterface {
+    private output: DmxOutput | undefined;
+    private unwatch?: () => void;
 
-interface Outputs extends BaseOutputNodeOutputs<IDmxOutputData> {
-    preview: Color[];
-}
+    public get selectedFixture() {
+        if (!this.output || !this.value) {
+            return;
+        }
 
-export class DmxSpotOutputNode extends BaseOutputNode<IDmxOutputData, Inputs, Outputs> {
-    public type = "DMX Spot Output";
-    public title = this.type;
-
-    public inputs = {
-        output: new SelectInterface("Output", "", []).setPort(false),
-        color: new ColorSingleInterface("Color"),
-        redAddress: new IntegerInterface("Red address", 1, 1, 512),
-        greenAddress: new IntegerInterface("Green address", 2, 1, 512),
-        blueAddress: new IntegerInterface("Blue address", 3, 1, 512),
-    };
-
-    public outputs = {
-        preview: new PreviewInterface("Preview"),
-        outputId: new NodeInterface<string | undefined>("OutputId", undefined).setHidden(true),
-        data: new NodeInterface<IDmxOutputData | undefined>("Data", undefined).setHidden(true),
-    };
-
-    public constructor() {
-        super([OutputType.DMX]);
-        this.initializeIo();
+        return this.output.fixtures.find((f) => f.id === this.value);
     }
 
-    public calculate: CalculateFunction<Inputs, Outputs> = (inputs) => {
-        const { color } = inputs;
-        const redAddress = Math.floor(inputs.redAddress) ?? -1;
-        const greenAddress = Math.floor(inputs.greenAddress) ?? -1;
-        const blueAddress = Math.floor(inputs.blueAddress) ?? -1;
+    public updateOutput(output: DmxOutput | undefined) {
+        this.output = output;
+        this.unwatch?.();
 
-        const channels = new Map<number, number>();
-        if (redAddress > 0 && greenAddress > 0 && blueAddress > 0) {
-            channels.set(redAddress, color[0]);
-            channels.set(greenAddress, color[1]);
-            channels.set(blueAddress, color[2]);
+        if (!output) {
+            this.setItems([]);
+            return;
         }
-        return { preview: [color], ...this.afterCalculate(inputs, { channels }) };
-    };
+
+        watch(
+            output,
+            () => {
+                this.updateFixtures();
+            },
+            { deep: true, immediate: true }
+        );
+    }
+
+    private updateFixtures() {
+        if (this.output) {
+            this.setItems(this.output.fixtures.map((f) => ({ text: `${f.name} (${f.startChannel})`, value: f.id })));
+        } else {
+            this.setItems([]);
+        }
+        this.events.setValue.emit(this.value);
+    }
+
+    private setItems(items: Array<IAdvancedSelectInterfaceItem<string>>) {
+        this.items = items;
+        if (!items.find((it) => it.value === this.value)) {
+            this.value = "";
+        }
+    }
 }
+
+export const DmxOutputNode = defineDynamicNode({
+    type: "Dmx Output",
+    inputs: {
+        output: () => new SelectOutputInterface("Output", [OutputType.DMX]),
+        fixture: () => new SelectFixtureInterface("Fixture", "", []).setPort(false),
+    },
+    outputs: {
+        outputId: () => new NodeInterface<string | undefined>("OutputId", undefined).setHidden(true),
+        data: () => new NodeInterface<IDmxOutputData | undefined>("Data", undefined).setHidden(true),
+    },
+    onPlaced() {
+        // can't use `this` here as it is already used by the node internally
+        (this as any).token = Symbol();
+        this.inputs.output.events.setValue.subscribe((this as any).token, () => {
+            (this.inputs.fixture as SelectFixtureInterface).updateOutput(
+                (this.inputs.output as SelectOutputInterface).selectedOutput?.outputInstance as DmxOutput
+            );
+        });
+    },
+    onUpdate({ output, fixture }) {
+        if (!output || !fixture) {
+            return {};
+        }
+
+        const library = useLibrary();
+        const outputItem = library.items.find((it) => it.id === output)! as OutputLibraryItem;
+        const dmxOutput = outputItem.outputInstance as DmxOutput;
+        const fixtureInstance = dmxOutput.fixtures.find((f) => f.id === fixture)!;
+
+        const inputs: DynamicNodeDefinition = {};
+        for (const channel of fixtureInstance.mode.channels) {
+            if (typeof channel === "string") {
+                inputs[channel] = () => new IntegerInterface(channel, 0, 0, 255);
+            }
+        }
+
+        return { inputs };
+    },
+    onDestroy() {
+        this.inputs.output.events.updated.unsubscribe((this as any).token);
+        (this.inputs.output as SelectOutputInterface).destroy();
+    },
+});

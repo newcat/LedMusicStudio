@@ -7,7 +7,7 @@ export class OutputLibraryItem extends LibraryItem {
     public type = LibraryItemType.OUTPUT;
     public name = "Output";
 
-    public constructor(public outputInstance: BaseOutput<unknown, unknown>) {
+    public constructor(public outputInstance: BaseOutput) {
         super();
     }
 
@@ -15,15 +15,15 @@ export class OutputLibraryItem extends LibraryItem {
         return serialize({
             id: this.id,
             type: this.outputInstance.type,
-            state: this.outputInstance.state,
+            state: this.outputInstance.toObject(),
         });
     }
 
-    public deserialize(buffer: Buffer): void {
+    public async deserialize(buffer: Buffer): Promise<void> {
         const { id, type, state } = deserialize(buffer);
         this.id = id;
         this.outputInstance = createOutput(type);
-        this.outputInstance.applyState(state);
+        this.outputInstance.fromObject(state);
     }
 
     public async destroy() {

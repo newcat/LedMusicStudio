@@ -21,7 +21,7 @@
     "@mdi/font": "^7.1.96",
     "@vueuse/core": "^9.6.0",
     "axios": "^1.2.1",
-    "baklavajs": "^2.0.2-beta.1",
+    "baklavajs": "^2.0.2-beta.3",
     "bson": "^4.7.0",
     "chroma-js": "^2.4.2",
     "comlink": "^4.3.1",

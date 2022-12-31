@@ -5,7 +5,7 @@ import { DmxOutput } from "./dmx/dmx.output";
 import { WledOutput } from "./wled/wled.output";
 import { ChromaOutput } from "./razerchroma/chroma.output";
 
-export function createOutput(type: OutputType): BaseOutput<unknown, unknown> {
+export function createOutput(type: OutputType): BaseOutput {
     switch (type) {
         case OutputType.DUMMY:
             return new DummyOutput();

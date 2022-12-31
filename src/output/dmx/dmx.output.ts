@@ -17,23 +17,14 @@ export interface IDmxOutputData {
 export class DmxOutput extends BaseOutput<IDmxOutputState, IDmxOutputData> {
     public type = OutputType.DMX;
 
-    protected _state: IDmxOutputState = {
-        port: "",
-        fixtures: [],
-    };
+    public port = "";
+    public fixtures: DmxFixture[] = [];
 
     private id = uuidv4();
     private currentChannelValues: Map<number, number> = new Map();
 
-    public constructor() {
-        super();
-        this.applyState(this._state);
-    }
-
-    public applyState(newState: IDmxOutputState) {
-        this.error = "";
-        super.applyState(newState);
-        this.open();
+    public async update() {
+        await this.open();
     }
 
     public onData(data?: IDmxOutputData) {
@@ -70,6 +61,19 @@ export class DmxOutput extends BaseOutput<IDmxOutputState, IDmxOutputData> {
         }
     }
 
+    public toObject(): IDmxOutputState {
+        return {
+            port: this.port,
+            fixtures: this.fixtures,
+        };
+    }
+
+    public async fromObject(state: IDmxOutputState): Promise<void> {
+        this.port = state.port;
+        this.fixtures = state.fixtures;
+        await this.update();
+    }
+
     public async destroy(): Promise<void> {
         const result = await ipcRenderer.invoke("SERIALPORT_CLOSE", this.id);
         if (!result || !result.success) {
@@ -78,10 +82,10 @@ export class DmxOutput extends BaseOutput<IDmxOutputState, IDmxOutputData> {
     }
 
     private async open() {
-        if (!this.state.port) {
+        if (!this.port) {
             return;
         }
-        const result = await ipcRenderer.invoke("SERIALPORT_OPEN", this.id, this.state.port);
+        const result = await ipcRenderer.invoke("SERIALPORT_OPEN", this.id, this.port);
         if (!result || !result.success) {
             this.error = "Failed to open port";
             console.warn(result);

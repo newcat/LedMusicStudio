@@ -11,7 +11,7 @@
                     <Button @click="updateValues">Cancel</Button>
                 </div>
             </div>
-            <UniverseSettings v-else-if="activeTab === 1" :fixtures="fixtures"></UniverseSettings>
+            <UniverseSettings v-else-if="activeTab === 1" :fixtures="output.fixtures"></UniverseSettings>
             <FixtureLibrary v-else-if="activeTab === 2" @add-fixture="addFixture"></FixtureLibrary>
         </div>
     </div>
@@ -35,7 +35,6 @@ const props = defineProps({
 
 const activeTab = ref(0);
 const port = ref("");
-const fixtures = ref<DmxFixture[]>([]);
 
 const tabMenuItems: TabMenuProps["model"] = [
     { label: "Settings", icon: "mdi mdi-cog-outline" },
@@ -44,16 +43,12 @@ const tabMenuItems: TabMenuProps["model"] = [
 ];
 
 function updateValues() {
-    port.value = props.output.state.port;
-    fixtures.value = JSON.parse(JSON.stringify(props.output.state.fixtures));
+    port.value = props.output.port;
 }
 
-function apply() {
-    props.output.applyState({
-        port: port.value,
-        fixtures: fixtures.value,
-    });
-    updateValues();
+async function apply() {
+    props.output.port = port.value;
+    await props.output.update();
 }
 
 function addFixture(rawFixture: Fixture) {
@@ -65,7 +60,7 @@ function addFixture(rawFixture: Fixture) {
         const range = ranges[rangeIndex];
         
     }*/
-    fixtures.value.push(fixture);
+    props.output.fixtures.push(fixture);
     activeTab.value = 1;
 }
 

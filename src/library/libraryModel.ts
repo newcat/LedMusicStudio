@@ -53,7 +53,8 @@ export const useLibrary = defineStore("library", () => {
                     libItem = new PatternLibraryItem();
                     break;
                 case LibraryItemType.OUTPUT:
-                    libItem = new OutputLibraryItem();
+                    // output will be created during "deserialize"
+                    libItem = new OutputLibraryItem(undefined as any);
                     break;
                 default:
                     console.warn(`Unknown library type: ${type}`);
