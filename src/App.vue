@@ -22,11 +22,14 @@
         </div>
         <c-settings v-model="showSettings"></c-settings>
         <c-loading-dialog v-model="showLoadingDialog"></c-loading-dialog>
+        <Toast />
     </main>
 </template>
 
 <script setup lang="ts">
-import { provide, ref } from "vue";
+import { ref } from "vue";
+import Toast from 'primevue/toast';
+import { useToast } from "primevue/usetoast";
 
 // @ts-ignore
 import { Splitpanes, Pane } from "splitpanes";
@@ -43,6 +46,7 @@ import { TimelineProcessor } from "@/timeline";
 import { showOpenDialog, showSaveDialog, readFile, writeFile } from "@/native";
 
 const globalState = useGlobalState();
+const toast = useToast();
 
 const showSettings = ref(false);
 const showLoadingDialog = ref(false);
@@ -75,6 +79,7 @@ async function save(): Promise<void> {
     }
     const state = globalState.save();
     await writeFile(globalState.projectFilePath, state);
+    toast.add({ severity: "success", summary: "Saved", detail: "Project successfully saved", life: 2000 });
 }
 
 async function saveAs(): Promise<void> {
@@ -118,6 +123,7 @@ main {
     width: 100%;
     display: grid;
     grid-template-rows: min-content minmax(0, 1fr);
+    grid-template-columns: 100%;
 }
 
 .content {

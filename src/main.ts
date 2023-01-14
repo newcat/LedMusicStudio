@@ -14,6 +14,7 @@ import "@baklavajs/themes/dist/syrup-dark.css";
 
 import App from "./App.vue";
 import PrimeVue from "primevue/config";
+import ToastService from "primevue/toastservice";
 
 const pinia = createPinia();
 
@@ -24,4 +25,4 @@ const router = VueRouter.createRouter({
     routes: [{ path: "/", component: App }],
 });
 
-createApp(App).use(PrimeVue).use(pinia).use(router).mount("#app");
+createApp(App).use(PrimeVue).use(ToastService).use(pinia).use(router).mount("#app");
