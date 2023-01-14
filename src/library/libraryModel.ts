@@ -1,4 +1,4 @@
-import { Ref, ref } from "vue";
+import { reactive, Ref, ref } from "vue";
 import { serialize, deserialize, Binary } from "bson";
 import { defineStore } from "pinia";
 import { AudioLibraryItem } from "@/audio";
@@ -38,7 +38,7 @@ export const useLibrary = defineStore("library", () => {
             }
             const { type, data } = item;
             const buffer = data.buffer as Buffer;
-            let libItem: LibraryItem | undefined;
+            let libItem: LibraryItem;
             switch (type) {
                 case LibraryItemType.AUDIO:
                     libItem = new AudioLibraryItem();
@@ -58,8 +58,10 @@ export const useLibrary = defineStore("library", () => {
                     break;
                 default:
                     console.warn(`Unknown library type: ${type}`);
+                    continue;
             }
 
+            libItem = reactive(libItem);
             if (libItem) {
                 libItem.deserialize(buffer);
                 if ((libItem as any).load) {

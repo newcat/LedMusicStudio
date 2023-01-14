@@ -2,9 +2,9 @@
     <Dialog :visible="modelValue" @update:visible="emit('update:modelValue', $event)" header="Loading" modal>
         <template v-for="item in items">
             <div class="my-3" v-if="item.loading || item.error" :key="item.id">
-                <div class="d-flex align-items-center">
+                <div class="flex flex-nowrap align-items-center">
                     <div class="mr-2">
-                        <ProgressSpinner v-if="item.loading" />
+                        <i v-if="item.loading" class="pi pi-spin pi-spinner"></i>
                         <i v-else-if="item.error" class="pi pi-times error-icon"></i>
                     </div>
                     <div>
@@ -31,7 +31,6 @@
 import { computed, watch } from "vue";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
-import ProgressSpinner from "primevue/progressspinner";
 
 import { showOpenDialog } from "@/native";
 import { AudioLibraryItem } from "@/audio";
