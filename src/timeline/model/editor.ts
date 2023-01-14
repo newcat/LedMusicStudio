@@ -43,7 +43,6 @@ export const useTimeline = defineStore("timeline", () => {
             const t = Track.load(ts);
             addTrack(t);
         }
-        // state.tracks.forEach((ts) => this.addTrack(Track.load(ts)));
         state.items.forEach((is) => addItem(Item.load(is)));
         unitWidth.value = state.unitWidth ?? 1.5;
         headerWidth.value = state.headerWidth ?? 200;
@@ -68,7 +67,6 @@ export const useTimeline = defineStore("timeline", () => {
 
     function addDefaultTrack() {
         const t = new Track(`Track ${tracks.value.length + 1}`);
-        console.log("Adding default track", t.id);
         addTrack(t);
         return t;
     }
@@ -81,7 +79,6 @@ export const useTimeline = defineStore("timeline", () => {
         const i = tracks.value.indexOf(track);
         if (i >= 0) {
             tracks.value.splice(i, 1);
-            console.log("removing track", track.id);
         }
     }
 

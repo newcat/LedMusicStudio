@@ -36,7 +36,6 @@ export class TimelineProcessor {
 
     public constructor() {
         (window as any).processor = this; // for debugging purposes; can now be accessed in dev tools console
-        console.log("Timeline initializing");
         if (this.audioProcessor) {
             this.audioProcessor.destroy();
         }
@@ -45,7 +44,6 @@ export class TimelineProcessor {
         this.observers.push(watchEffect(() => this.setTimer()));
         this.observers.push(watchEffect(() => this.onIsPlayingChanged()));
         this.audioProcessor = new AudioProcessor();
-        console.log("Timeline initialized");
     }
 
     public onIsPlayingChanged() {

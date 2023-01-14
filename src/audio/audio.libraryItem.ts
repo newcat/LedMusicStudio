@@ -39,21 +39,15 @@ export class AudioLibraryItem extends LibraryItem {
         }
 
         try {
-            console.log("Reading Data");
             const timeoutSymbol = Symbol("timeout");
             const rawData = await Promise.race([readFile(this.path), new Promise<symbol>((res) => setTimeout(res, 5000, timeoutSymbol))]);
             if (rawData === timeoutSymbol) {
                 throw new Error("Timeout while reading data");
             }
 
-            console.log("Creating Offline Context with sample rate", AudioLibraryItem.sampleRate);
             const offlineAudioContext = new OfflineAudioContext(1, 2, AudioLibraryItem.sampleRate);
-            console.log("Decoding...");
             this.audioBuffer = await offlineAudioContext.decodeAudioData((rawData as Buffer).buffer);
-
-            console.log("Creating waveform");
             this.waveform = await this.generateWaveform();
-            console.log("Done");
         } catch (err) {
             console.warn(err);
             this.error = true;
