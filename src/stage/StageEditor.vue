@@ -22,6 +22,11 @@ import { StripProp } from "./props/strip/strip";
 // @ts-ignore
 import { Splitpanes, Pane } from "splitpanes";
 import { Prop } from "./props";
+import { StageLibraryItem } from "./stage.libraryItem";
+
+defineProps<{
+    stage: StageLibraryItem;
+}>();
 
 const editMode = ref(true);
 const testProp = ref(new StripProp());

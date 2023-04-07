@@ -19,7 +19,7 @@ export const useLibrary = defineStore("library", () => {
     const items = ref<LibraryItem[]>([]);
     const selectedItemId = ref<string | null>(null);
 
-    function save(): Buffer {
+    function save() {
         return serialize(
             items.value.map((i) => ({
                 type: i.type,

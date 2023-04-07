@@ -16,7 +16,7 @@
                 :key="'a' + selectedItem.id"
             ></automation-editor>
             <output-editor v-else-if="isOutput(selectedItem)" :output="selectedItem" :key="'o' + selectedItem.id"></output-editor>
-            <stage-editor v-else-if="isStage(selectedItem)" :output="selectedItem" :key="'s' + selectedItem.id"></stage-editor>
+            <stage-editor v-else-if="isStage(selectedItem)" :stage="selectedItem" :key="'s' + selectedItem.id"></stage-editor>
         </template>
     </Card>
 </template>

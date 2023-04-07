@@ -45,8 +45,8 @@ export abstract class LibraryItem {
     public loading = false;
     public error = false;
 
-    public abstract serialize(): Buffer;
-    public abstract deserialize(buffer: Buffer): void;
+    public abstract serialize(): Uint8Array;
+    public abstract deserialize(buffer: Uint8Array): void;
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     public async destroy(): Promise<void> {}

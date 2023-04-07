@@ -11,7 +11,7 @@ export class OutputLibraryItem extends LibraryItem {
         super();
     }
 
-    public serialize(): Buffer {
+    public serialize() {
         return serialize({
             id: this.id,
             type: this.outputInstance.type,
@@ -19,7 +19,7 @@ export class OutputLibraryItem extends LibraryItem {
         });
     }
 
-    public async deserialize(buffer: Buffer): Promise<void> {
+    public async deserialize(buffer: Uint8Array): Promise<void> {
         const { id, type, state } = deserialize(buffer);
         this.id = id;
         this.outputInstance = createOutput(type);

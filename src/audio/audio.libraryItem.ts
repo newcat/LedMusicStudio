@@ -65,7 +65,7 @@ export class AudioLibraryItem extends LibraryItem {
         });
     }
 
-    public deserialize(buffer: Buffer): void {
+    public deserialize(buffer: Uint8Array): void {
         const { id, name, path } = deserialize(buffer);
         this.id = id;
         this.name = name;

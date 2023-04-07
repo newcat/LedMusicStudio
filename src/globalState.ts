@@ -49,7 +49,7 @@ export const useGlobalState = defineStore("globalState", () => {
         timeline.reset();
     }
 
-    function save(): Buffer {
+    function save() {
         return serialize({
             timeline: timeline.save(),
             library: library.save(),

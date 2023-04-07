@@ -10,7 +10,7 @@
                     <pane>
                         <splitpanes horizontal>
                             <pane>
-                                <c-unified-editor class="fill-height" :selectedItemId="selectedLibraryItemId"></c-unified-editor>
+                                <c-unified-editor class="fill-height"></c-unified-editor>
                             </pane>
                             <pane>
                                 <c-timeline></c-timeline>
