@@ -6,6 +6,11 @@
             </div>
             <LabelledInputText v-model="fixture.name">Name</LabelledInputText>
             <div>
+                <LabelledFormField label="Start Channel">
+                    <InputNumber v-model="fixture.startChannel"></InputNumber>
+                </LabelledFormField>
+            </div>
+            <div>
                 <LabelledFormField label="Mode">
                     <Dropdown v-model="fixture.mode" :options="fixture.definition.modes" option-label="name"></Dropdown>
                 </LabelledFormField>
@@ -15,10 +20,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
 import Panel from "primevue/panel";
 import Chip from "primevue/chip";
 import Dropdown from "primevue/dropdown";
+import InputNumber from 'primevue/inputnumber';
 import LabelledInputText from "@/components/LabelledInputText.vue";
 import LabelledFormField from "@/components/LabelledFormField.vue";
 import { DmxFixture } from "./fixture";

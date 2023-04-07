@@ -1,7 +1,14 @@
 <template>
     <div class="universe-settings">
-        <Listbox v-model="selectedFixture" class="h-full" :options="fixtures" option-label="name" empty-message="No fixtures added. Go to the library to add one." />
-        <FixtureSettings v-if="selectedFixture" :fixture="selectedFixture" />
+        <Listbox
+            v-model="selectedFixture"
+            class="fixture-list"
+            :options="fixtures"
+            option-label="name"
+            empty-message="No fixtures added. Go to the library to add one."
+        />
+        <FixtureSettings v-if="selectedFixture" class="fixture-settings" :fixture="selectedFixture" />
+        <ChannelVisualization class="channel-visualization" v-model:selected-fixture="selectedFixture" :fixtures="fixtures"></ChannelVisualization>
     </div>
 </template>
 
@@ -10,6 +17,7 @@ import { ref } from "vue";
 import Listbox from "primevue/listbox";
 import { DmxFixture } from "./fixture";
 import FixtureSettings from "./FixtureSettings.vue";
+import ChannelVisualization from "./ChannelVisualization.vue";
 
 const props = defineProps<{
     fixtures: DmxFixture[];
@@ -23,7 +31,24 @@ const selectedFixture = ref<DmxFixture | null>(null);
     margin-top: 1rem;
     height: calc(100% - 1rem);
     display: grid;
-    grid-template-columns: 20rem 3fr;
     gap: 1rem;
+    grid-template-columns: 20rem 3fr;
+    grid-template-rows: 1fr min-content;
+    grid-template-areas:
+        "fixture-list fixture-settings"
+        "channel-visualization channel-visualization";
+}
+
+.fixture-list {
+    grid-area: fixture-list;
+    height: 100%;
+}
+
+.fixture-settings {
+    grid-area: fixture-settings;
+}
+
+.channel-visualization {
+    grid-area: channel-visualization;
 }
 </style>
