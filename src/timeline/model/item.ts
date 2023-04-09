@@ -50,12 +50,14 @@ export class Item {
         this._end = end;
     }
 
-    public move(start: number, end: number) {
-        if (!this.events.beforeMoved.emit({ start, end }).prevented) {
-            this._start = start;
-            this._end = end;
-            this.events.moved.emit({ start, end });
+    public move(start: number, end: number, force = false) {
+        if (!force && this.events.beforeMoved.emit({ start, end }).prevented) {
+            return;
         }
+
+        this._start = start;
+        this._end = end;
+        this.events.moved.emit({ start, end });
     }
 
     public save(): IItemState {

@@ -131,7 +131,7 @@ export const useTimeline = defineStore("timeline", () => {
                         return;
                     }
                     const length = af.audioBuffer.duration * (newBpm / 60) * TICKS_PER_BEAT;
-                    i.move(i.start, i.start + length);
+                    i.move(i.start, i.start + length, true);
                 }
             });
         }
