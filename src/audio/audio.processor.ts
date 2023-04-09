@@ -132,6 +132,17 @@ export class AudioProcessor {
         }
     }
 
+    public playRaw(buffer: AudioBuffer): AudioBufferSourceNode {
+        const source = this.audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(this.gainNode);
+        source.addEventListener("ended", () => {
+            source.disconnect();
+        });
+        source.start(this.audioContext.currentTime);
+        return source;
+    }
+
     private createSource(buffer: AudioBuffer, startUnit: number) {
         const source = this.audioContext.createBufferSource();
         source.buffer = buffer;

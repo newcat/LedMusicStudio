@@ -5,7 +5,7 @@ import { watchEffect } from "vue";
 import { BaklavaEvent } from "@baklavajs/events";
 import { applyResult } from "@baklavajs/engine";
 
-import { AudioLibraryItem, AudioProcessor } from "@/audio";
+import { AudioLibraryItem, AudioProcessor, Metronome } from "@/audio";
 import { GraphLibraryItem } from "@/graph";
 import { AutomationLibraryItem } from "@/automation";
 import { LibraryItemType, useLibrary } from "@/library";
@@ -29,6 +29,7 @@ export class TimelineProcessor {
 
     private activeItems: Item[] = [];
     private audioProcessor?: AudioProcessor;
+    private metronome?: Metronome;
 
     // this is needed because onIsPlayingChanged is sometimes called multiple times
     // which would lead to stuttery playback otherwise due to many subsequent play() calls
@@ -44,6 +45,7 @@ export class TimelineProcessor {
         this.observers.push(watchEffect(() => this.setTimer()));
         this.observers.push(watchEffect(() => this.onIsPlayingChanged()));
         this.audioProcessor = new AudioProcessor();
+        this.metronome = new Metronome(this.audioProcessor);
     }
 
     public onIsPlayingChanged() {
@@ -118,6 +120,8 @@ export class TimelineProcessor {
         for (const o of outputs) {
             await o.outputInstance.send();
         }
+
+        this.metronome?.tick(unit);
     }
 
     private activate(item: Item) {

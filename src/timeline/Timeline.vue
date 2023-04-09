@@ -15,6 +15,14 @@
             <Divider layout="vertical" />
             <div class="mr-4">BPM</div>
             <InputText :model-value="bpm" @update:model-value="setBpm" style="max-width: 4em"></InputText>
+            <ToggleButton
+                v-model="globalState.metronome"
+                class="ml-4"
+                on-icon="mdi mdi-metronome"
+                off-icon="mdi mdi-metronome"
+                on-label=""
+                off-label=""
+            ></ToggleButton>
             <div class="__spacer"></div>
             <span class="mr-4 mdi mdi-volume-high" style="font-size: 1.5em"></span>
             <Slider :model-value="volume * 100" @update:model-value="setVolume" :min="0" :max="100" style="width: 7em"></Slider>
@@ -27,10 +35,10 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import Toolbar from "primevue/toolbar";
 import Button from "primevue/button";
 import Divider from "primevue/divider";
 import Slider from "primevue/slider";
+import ToggleButton from "primevue/togglebutton";
 import Dropdown, { DropdownProps } from "primevue/dropdown";
 import InputText from "primevue/inputtext";
 
