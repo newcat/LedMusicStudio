@@ -11,7 +11,7 @@
                     <Button @click="updateValues">Cancel</Button>
                 </div>
             </div>
-            <UniverseSettings v-else-if="activeTab === 1" :fixtures="output.fixtures"></UniverseSettings>
+            <UniverseSettings v-else-if="activeTab === 1" v-model:fixtures="output.fixtures"></UniverseSettings>
             <FixtureLibrary v-else-if="activeTab === 2" @add-fixture="addFixture"></FixtureLibrary>
         </div>
     </div>

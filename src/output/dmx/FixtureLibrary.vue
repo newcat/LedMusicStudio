@@ -1,14 +1,14 @@
 <template>
     <div class="fixture-library">
         <div class="toolbar">
-            <Button label="Add to Universe" :disabled="!selectedFixture" @click="addToUniverse" />
-            <div class="grow"></div>
             <Button
                 class="p-button-outlined"
                 :disabled="updatingFixtureLibrary"
                 label="Update Fixture Library"
                 @click="updateFixtureLibrary"
             />
+            <div class="grow"></div>
+            <Button label="Add to Universe" :disabled="!selectedFixture" @click="addToUniverse" />
         </div>
         <Listbox
             class="manufacturer-list"

@@ -15,6 +15,7 @@ import "@baklavajs/themes/dist/syrup-dark.css";
 import App from "./App.vue";
 import PrimeVue from "primevue/config";
 import ToastService from "primevue/toastservice";
+import Tooltip from "primevue/tooltip";
 
 const pinia = createPinia();
 
@@ -25,4 +26,4 @@ const router = VueRouter.createRouter({
     routes: [{ path: "/", component: App }],
 });
 
-createApp(App).use(PrimeVue).use(ToastService).use(pinia).use(router).mount("#app");
+createApp(App).use(PrimeVue).use(ToastService).directive("tooltip", Tooltip).use(pinia).use(router).mount("#app");

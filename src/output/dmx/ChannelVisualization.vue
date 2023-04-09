@@ -3,12 +3,12 @@
         <div class="channels">
             <div
                 v-for="fixture in fixtures"
-                v-tooltip.top="`${fixture.name} (${fixture.startChannel} - ${fixture.startChannel + fixture.mode.channels.length - 1})`"
+                v-tooltip.top="`${fixture.name} (${fixture.startChannel} - ${fixture.startChannel + fixture.usedChannels.length - 1})`"
                 class="fixture"
                 :class="{ '--selected': selectedFixture === fixture }"
                 :style="{
                     'grid-column-start': fixture.startChannel,
-                    'grid-column-end': fixture.startChannel + fixture.mode.channels.length,
+                    'grid-column-end': fixture.startChannel + fixture.usedChannels.length,
                 }"
                 @click="emit('update:selectedFixture', fixture)"
             ></div>

@@ -7,8 +7,12 @@
             option-label="name"
             empty-message="No fixtures added. Go to the library to add one."
         />
-        <FixtureSettings v-if="selectedFixture" class="fixture-settings" :fixture="selectedFixture" />
-        <ChannelVisualization class="channel-visualization" v-model:selected-fixture="selectedFixture" :fixtures="fixtures"></ChannelVisualization>
+        <FixtureSettings v-if="selectedFixture" class="u-fixture-settings" :fixture="selectedFixture" @remove="removeFixture" />
+        <ChannelVisualization
+            class="channel-visualization"
+            v-model:selected-fixture="selectedFixture"
+            :fixtures="fixtures"
+        ></ChannelVisualization>
     </div>
 </template>
 
@@ -23,7 +27,19 @@ const props = defineProps<{
     fixtures: DmxFixture[];
 }>();
 
+const emit = defineEmits<{
+    (e: "update:fixtures", fixtures: DmxFixture[]): void;
+}>();
+
 const selectedFixture = ref<DmxFixture | null>(null);
+
+function removeFixture() {
+    emit(
+        "update:fixtures",
+        props.fixtures.filter((f) => f !== selectedFixture.value)
+    );
+    selectedFixture.value = null;
+}
 </script>
 
 <style scoped>
@@ -44,7 +60,7 @@ const selectedFixture = ref<DmxFixture | null>(null);
     height: 100%;
 }
 
-.fixture-settings {
+.u-fixture-settings {
     grid-area: fixture-settings;
 }
 

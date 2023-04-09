@@ -83,10 +83,8 @@ export const DmxOutputNode = defineDynamicNode({
         const fixtureInstance = dmxOutput.fixtures.find((f) => f.id === fixture)!;
 
         const inputs: DynamicNodeDefinition = {};
-        for (const channel of fixtureInstance.mode.channels) {
-            if (typeof channel === "string") {
-                inputs[channel] = () => new IntegerInterface(channel, 0, 0, 255);
-            }
+        for (const channel of fixtureInstance.channelNames) {
+            inputs[channel] = () => new IntegerInterface(channel, 0, 0, 255);
         }
 
         return { inputs };
