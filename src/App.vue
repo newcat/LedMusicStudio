@@ -28,7 +28,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import Toast from 'primevue/toast';
+import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 
 // @ts-ignore
@@ -50,7 +50,6 @@ const toast = useToast();
 
 const showSettings = ref(false);
 const showLoadingDialog = ref(false);
-const selectedLibraryItemId = ref("");
 const processor = ref(new TimelineProcessor());
 
 newProject();
@@ -68,7 +67,18 @@ async function load(): Promise<void> {
     await globalState.reset();
     globalState.projectFilePath = p;
     showLoadingDialog.value = true;
-    await globalState.load(buff);
+    try {
+        await globalState.load(buff);
+    } catch (err) {
+        toast.add({
+            severity: "error",
+            closable: true,
+            summary: "Failed to load project",
+            detail: err instanceof Error ? err.message : String(err),
+            life: 6000,
+        });
+        showLoadingDialog.value = false;
+    }
 }
 
 async function save(): Promise<void> {
