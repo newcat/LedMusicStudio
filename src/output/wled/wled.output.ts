@@ -1,8 +1,8 @@
-import type { Socket } from "dgram";
 import { Buffer } from "buffer";
+import { v4 as uuidv4 } from "uuid";
 import { Color } from "@/graph/colors";
 import { scaleColorArray } from "@/utils";
-import { dgramCreateSocket } from "@/native";
+import { ipcRenderer } from "@/native";
 import { BaseOutput } from "../base.output";
 import { OutputType } from "../outputTypes";
 
@@ -25,13 +25,12 @@ export class WledOutput extends BaseOutput<IWledOutputState, IWledOutputData> {
     public timeout = 255;
     public numLeds = 60;
 
-    private socket?: Socket;
+    private id = uuidv4();
     private buff?: Buffer;
 
-    public update() {
+    public async update() {
         this.error = "";
-        this.socket?.close();
-        this.socket = dgramCreateSocket("udp4");
+        await this.open();
     }
 
     public onData(data?: IWledOutputData): void {
@@ -53,16 +52,15 @@ export class WledOutput extends BaseOutput<IWledOutputState, IWledOutputData> {
         }
     }
 
-    public send(): void {
-        if (!this.socket || !this.buff) {
+    public async send(): Promise<void> {
+        if (!this.buff) {
             return;
         }
-        this.socket.send(this.buff, this.port, this.host, (err) => {
-            if (err) {
-                this.error = "Failed to send WLED data";
-                console.warn(`Failed to send WLED data to ${this.host}:${this.port}`, err);
-            }
-        });
+        const result = await ipcRenderer.invoke("DGRAM_SEND", this.host, this.port, this.buff);
+        if (!result || !result.success) {
+            this.error = "Failed to send WLED data";
+            console.warn(`Failed to send WLED data to ${this.host}:${this.port}`, result.err);
+        }
     }
 
     public toObject(): IWledOutputState {
@@ -83,8 +81,18 @@ export class WledOutput extends BaseOutput<IWledOutputState, IWledOutputData> {
         return Promise.resolve();
     }
 
-    public destroy(): Promise<void> {
-        this.socket?.close();
-        return Promise.resolve();
+    public async destroy(): Promise<void> {
+        await ipcRenderer.invoke("DGRAM_CLOSE", this.id);
+    }
+
+    private async open() {
+        if (!this.port) {
+            return;
+        }
+        const result = await ipcRenderer.invoke("DGRAM_OPEN", this.id);
+        if (!result || !result.success) {
+            this.error = "Failed to open socket";
+            console.warn(result);
+        }
     }
 }

@@ -25,7 +25,7 @@ export const useGlobalState = defineStore("globalState", () => {
     const isPlaying = ref(false);
     const resolution = ref(defaults.resolution);
     const snapUnits = ref(defaults.snapUnits);
-    const metronome = ref(true);
+    const metronome = ref(false);
 
     const library = useLibrary();
     const timeline = useTimeline();
