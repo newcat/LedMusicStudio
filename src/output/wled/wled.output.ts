@@ -56,7 +56,7 @@ export class WledOutput extends BaseOutput<IWledOutputState, IWledOutputData> {
         if (!this.buff) {
             return;
         }
-        const result = await ipcRenderer.invoke("DGRAM_SEND", this.host, this.port, this.buff);
+        const result = await ipcRenderer.invoke("DGRAM_SEND", this.id, this.host, this.port, this.buff);
         if (!result || !result.success) {
             this.error = "Failed to send WLED data";
             console.warn(`Failed to send WLED data to ${this.host}:${this.port}`, result.err);
