@@ -1,9 +1,8 @@
-import { Buffer } from "buffer";
-import { v4 as uuidv4 } from "uuid";
 import { ipcRenderer } from "@/native";
 import { BaseOutput } from "../base.output";
 import { OutputType } from "../outputTypes";
 import { DmxFixture } from "./fixture";
+import { useOutputStore } from "../outputStore";
 
 export interface IDmxOutputState {
     port: string;
@@ -20,8 +19,8 @@ export class DmxOutput extends BaseOutput<IDmxOutputState, IDmxOutputData> {
     public port = "";
     public fixtures: DmxFixture[] = [];
 
-    private id = uuidv4();
     private currentChannelValues: Map<number, number> = new Map();
+    private outputStore = useOutputStore();
 
     public async update() {
         await this.open();
@@ -45,13 +44,18 @@ export class DmxOutput extends BaseOutput<IDmxOutputState, IDmxOutputData> {
             return;
         }
 
-        const buffer = Buffer.alloc(maxChannel + 2);
+        const buffer: number[] = new Array(maxChannel + 2);
         buffer[0] = Math.floor(maxChannel / 256);
         buffer[1] = maxChannel % 256;
         for (let i = 1; i <= maxChannel; i++) {
             buffer[i + 1] = this.currentChannelValues.get(i) ?? 0;
         }
 
+        await this.outputStore.sendMessage({
+            type: "DmxData",
+            id: this.id,
+            data: buffer,
+        });
         const result = await ipcRenderer.invoke("SERIALPORT_SEND", this.id, buffer);
         if (!result || !result.success) {
             this.error = "Failed to send data";

@@ -4,6 +4,8 @@ export abstract class BaseOutput<S = unknown, D = unknown> {
     public error = "";
     public abstract type: OutputType;
 
+    public constructor(public readonly id: string) {}
+
     public abstract onData(data?: D): void | Promise<void>;
     public abstract send(): void | Promise<void>;
 

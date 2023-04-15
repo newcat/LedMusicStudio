@@ -1,5 +1,4 @@
 import { Buffer } from "buffer";
-import { v4 as uuidv4 } from "uuid";
 import { Color } from "@/graph/colors";
 import { scaleColorArray } from "@/utils";
 import { ipcRenderer } from "@/native";
@@ -25,7 +24,6 @@ export class WledOutput extends BaseOutput<IWledOutputState, IWledOutputData> {
     public timeout = 255;
     public numLeds = 60;
 
-    private id = uuidv4();
     private buff?: Buffer;
 
     public async update() {

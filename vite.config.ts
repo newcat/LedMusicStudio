@@ -12,6 +12,7 @@ export default defineConfig({
     resolve: {
         alias: {
             "@": path.resolve(__dirname, "./src"),
+            lms_bridge: path.resolve(__dirname, "./src/bindings"),
         },
     },
     plugins: [

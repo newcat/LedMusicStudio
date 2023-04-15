@@ -5,14 +5,14 @@ import { DmxOutput } from "./dmx/dmx.output";
 import { WledOutput } from "./wled/wled.output";
 import { ChromaOutput } from "./razerchroma/chroma.output";
 
-export function createOutput(type: OutputType): BaseOutput {
+export function createOutput(type: OutputType, id: string): BaseOutput {
     switch (type) {
         case OutputType.DUMMY:
-            return new DummyOutput();
+            return new DummyOutput(id);
         case OutputType.WLED:
-            return new WledOutput();
+            return new WledOutput(id);
         case OutputType.DMX:
-            return new DmxOutput();
+            return new DmxOutput(id);
         case OutputType.RAZER_CHROMA:
             return new ChromaOutput();
         default:

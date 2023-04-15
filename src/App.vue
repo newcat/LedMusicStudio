@@ -121,24 +121,6 @@ async function openSaveDialog(): Promise<boolean> {
     globalState.projectFilePath = dialogResult.filePath!;
     return true;
 }
-
-const ws = new WebSocket("ws://localhost:1234");
-ws.onopen = () => {
-    ws.send(
-        JSON.stringify({
-            type: "ConfigureOutputs",
-            outputs: [
-                {
-                    id: "asdf",
-                    output: {
-                        type: "Dmx",
-                        port: "/dev/tty0",
-                    },
-                },
-            ],
-        })
-    );
-};
 </script>
 
 <style scoped>
