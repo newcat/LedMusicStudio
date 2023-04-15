@@ -1,8 +1,8 @@
-import { ipcRenderer } from "@/native";
 import { BaseOutput } from "../base.output";
 import { OutputType } from "../outputTypes";
 import { DmxFixture } from "./fixture";
 import { useOutputStore } from "../outputStore";
+import { BaseOutputConfiguration } from "lms_bridge/BaseOutputConfiguration";
 
 export interface IDmxOutputState {
     port: string;
@@ -23,7 +23,7 @@ export class DmxOutput extends BaseOutput<IDmxOutputState, IDmxOutputData> {
     private outputStore = useOutputStore();
 
     public async update() {
-        await this.open();
+        this.outputStore.updateOutputs();
     }
 
     public onData(data?: IDmxOutputData) {
@@ -51,18 +51,11 @@ export class DmxOutput extends BaseOutput<IDmxOutputState, IDmxOutputData> {
             buffer[i + 1] = this.currentChannelValues.get(i) ?? 0;
         }
 
-        await this.outputStore.sendMessage({
+        this.outputStore.sendMessage({
             type: "DmxData",
             id: this.id,
             data: buffer,
         });
-        const result = await ipcRenderer.invoke("SERIALPORT_SEND", this.id, buffer);
-        if (!result || !result.success) {
-            this.error = "Failed to send data";
-            console.warn(result);
-        } else {
-            this.error = "";
-        }
     }
 
     public toObject(): IDmxOutputState {
@@ -78,21 +71,13 @@ export class DmxOutput extends BaseOutput<IDmxOutputState, IDmxOutputData> {
         await this.update();
     }
 
-    public async destroy(): Promise<void> {
-        const result = await ipcRenderer.invoke("SERIALPORT_CLOSE", this.id);
-        if (!result || !result.success) {
-            console.warn("Failed to close port", result);
-        }
-    }
-
-    private async open() {
-        if (!this.port) {
-            return;
-        }
-        const result = await ipcRenderer.invoke("SERIALPORT_OPEN", this.id, this.port);
-        if (!result || !result.success) {
-            this.error = "Failed to open port";
-            console.warn(result);
-        }
+    public getBridgeConfiguration(): BaseOutputConfiguration {
+        return {
+            id: this.id,
+            output: {
+                type: "Dmx",
+                port: this.port,
+            },
+        };
     }
 }

@@ -5,7 +5,7 @@ use ts_rs::TS;
 #[serde(tag = "type")]
 #[ts(export)]
 pub enum WsMessage {
-    ConfigureOutputs { outputs: Vec<BaseOutput> },
+    ConfigureOutputs { outputs: Vec<BaseOutputConfiguration> },
     DmxData(DmxOutputData),
     WledData(WledOutputData),
 }
@@ -13,27 +13,27 @@ pub enum WsMessage {
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[serde(tag = "type")]
 #[ts(export)]
-pub enum Output {
-    Dmx(DmxOutput),
-    Wled(WledOutput),
+pub enum OutputConfiguration {
+    Dmx(DmxOutputConfiguration),
+    Wled(WledOutputConfiguration),
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
-pub struct BaseOutput {
+pub struct BaseOutputConfiguration {
     pub id: String,
-    pub output: Output,
+    pub output: OutputConfiguration,
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
-pub struct DmxOutput {
+pub struct DmxOutputConfiguration {
     pub port: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
-pub struct WledOutput {
+pub struct WledOutputConfiguration {
     pub host: String,
     pub port: u16,
 }

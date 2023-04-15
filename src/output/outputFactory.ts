@@ -14,7 +14,7 @@ export function createOutput(type: OutputType, id: string): BaseOutput {
         case OutputType.DMX:
             return new DmxOutput(id);
         case OutputType.RAZER_CHROMA:
-            return new ChromaOutput();
+            return new ChromaOutput(id);
         default:
             throw new Error(`Unknown output type: ${type}`);
     }

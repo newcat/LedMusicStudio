@@ -31,6 +31,7 @@ fn on_connect(mut client: Client<TcpStream>) {
 
 fn main() {
     let mut server = Server::bind("127.0.0.1:1234").unwrap();
+    println!("LMSBridge started. Listening on port 1234...");
 
     loop {
         match server.accept() {

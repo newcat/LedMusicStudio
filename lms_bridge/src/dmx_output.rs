@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use crate::types::DmxOutputData;
-use serialport::{SerialPort, Result};
+use serialport::{Result, SerialPort};
 
 pub struct DmxOutput {
     port_name: String,
@@ -9,15 +9,16 @@ pub struct DmxOutput {
 }
 
 impl DmxOutput {
-    pub fn new(configuration: &crate::types::DmxOutput) -> Self {
+    pub fn new(configuration: &crate::types::DmxOutputConfiguration) -> Self {
         let mut port = serialport::new(&configuration.port, 115200)
             .parity(serialport::Parity::None)
             .data_bits(serialport::DataBits::Eight)
             .stop_bits(serialport::StopBits::One)
             .open();
 
-        if let Ok(ref mut p) = port {
-            p.as_mut().write(&[99]);
+        match port {
+            Ok(ref mut p) => { p.as_mut().write(&[99]); () },
+            Err(ref err) => { println!("Failed to open port {}: {}", configuration.port, err); () },
         }
 
         return DmxOutput {

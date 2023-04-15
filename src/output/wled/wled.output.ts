@@ -1,9 +1,9 @@
-import { Buffer } from "buffer";
 import { Color } from "@/graph/colors";
 import { scaleColorArray } from "@/utils";
-import { ipcRenderer } from "@/native";
 import { BaseOutput } from "../base.output";
 import { OutputType } from "../outputTypes";
+import { BaseOutputConfiguration } from "lms_bridge/BaseOutputConfiguration";
+import { useOutputStore } from "../outputStore";
 
 export interface IWledOutputState {
     host: string;
@@ -24,11 +24,11 @@ export class WledOutput extends BaseOutput<IWledOutputState, IWledOutputData> {
     public timeout = 255;
     public numLeds = 60;
 
-    private buff?: Buffer;
+    private buff?: number[];
+    private readonly outputStore = useOutputStore();
 
     public async update() {
-        this.error = "";
-        await this.open();
+        this.outputStore.updateOutputs();
     }
 
     public onData(data?: IWledOutputData): void {
@@ -37,7 +37,7 @@ export class WledOutput extends BaseOutput<IWledOutputState, IWledOutputData> {
             colors = data.colors;
         }
 
-        this.buff = Buffer.allocUnsafe(3 * this.numLeds + 2);
+        this.buff = new Array(3 * this.numLeds + 2);
         colors = scaleColorArray(colors, this.numLeds);
 
         this.buff[0] = 2; // Use DRGB protocol
@@ -54,11 +54,11 @@ export class WledOutput extends BaseOutput<IWledOutputState, IWledOutputData> {
         if (!this.buff) {
             return;
         }
-        const result = await ipcRenderer.invoke("DGRAM_SEND", this.id, this.host, this.port, this.buff);
-        if (!result || !result.success) {
-            this.error = "Failed to send WLED data";
-            console.warn(`Failed to send WLED data to ${this.host}:${this.port}`, result.err);
-        }
+        this.outputStore.sendMessage({
+            type: "WledData",
+            id: this.id,
+            data: this.buff,
+        });
     }
 
     public toObject(): IWledOutputState {
@@ -79,18 +79,14 @@ export class WledOutput extends BaseOutput<IWledOutputState, IWledOutputData> {
         return Promise.resolve();
     }
 
-    public async destroy(): Promise<void> {
-        await ipcRenderer.invoke("DGRAM_CLOSE", this.id);
-    }
-
-    private async open() {
-        if (!this.port) {
-            return;
-        }
-        const result = await ipcRenderer.invoke("DGRAM_OPEN", this.id);
-        if (!result || !result.success) {
-            this.error = "Failed to open socket";
-            console.warn(result);
-        }
+    public getBridgeConfiguration(): BaseOutputConfiguration {
+        return {
+            id: this.id,
+            output: {
+                type: "Wled",
+                host: this.host,
+                port: this.port,
+            },
+        };
     }
 }

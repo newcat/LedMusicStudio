@@ -53,12 +53,12 @@ impl Bridge {
         }
     }
 
-    fn configure_outputs(self: &mut Self, configuration: &Vec<types::BaseOutput>) {
+    fn configure_outputs(self: &mut Self, configuration: &Vec<types::BaseOutputConfiguration>) {
         self.outputs.clear();
         for output_configuration in configuration {
             let output = match &output_configuration.output {
-                crate::types::Output::Dmx(c) => Output::Dmx(DmxOutput::new(&c)),
-                crate::types::Output::Wled(c) => Output::Wled(WledOutput::new(&c)),
+                crate::types::OutputConfiguration::Dmx(c) => Output::Dmx(DmxOutput::new(&c)),
+                crate::types::OutputConfiguration::Wled(c) => Output::Wled(WledOutput::new(&c)),
             };
             self.outputs
                 .insert(output_configuration.id.to_owned(), output);

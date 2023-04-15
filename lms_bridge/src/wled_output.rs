@@ -9,11 +9,11 @@ pub struct WledOutput {
 }
 
 impl WledOutput {
-    pub fn new(configuration: &crate::types::WledOutput) -> Self {
+    pub fn new(configuration: &crate::types::WledOutputConfiguration) -> Self {
         return WledOutput {
             host: configuration.host.to_owned(),
             port: configuration.port,
-            socket: UdpSocket::bind("0.0.0.0").ok(),
+            socket: UdpSocket::bind("0.0.0.0:0").ok(),
         };
     }
 

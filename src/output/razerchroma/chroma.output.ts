@@ -15,8 +15,8 @@ export class ChromaOutput extends BaseOutput<{}, IChromaOutputData> {
     private data: number[][] = [];
     private isSending = false;
 
-    public constructor() {
-        super();
+    public constructor(id: string) {
+        super(id);
         this.api.initialize();
     }
 

@@ -28,8 +28,8 @@ export class StripOutputNode extends BaseOutputNode<IStripOutputData, Inputs, Ou
 
     public outputs = {
         preview: new PreviewInterface("Preview"),
-        outputId: new NodeInterface<string | undefined>("OutputId", undefined).setPort(false),
-        data: new NodeInterface<IStripOutputData | undefined>("Data", undefined).setPort(false),
+        outputId: new NodeInterface<string | undefined>("OutputId", undefined).setHidden(true),
+        data: new NodeInterface<IStripOutputData | undefined>("Data", undefined).setHidden(true),
     };
 
     public constructor() {

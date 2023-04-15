@@ -2,13 +2,16 @@ import { deserialize, serialize } from "bson";
 import { LibraryItem, LibraryItemType } from "@/library";
 import { BaseOutput } from "./base.output";
 import { createOutput } from "./outputFactory";
+import { OutputType } from "./outputTypes";
 
 export class OutputLibraryItem extends LibraryItem {
     public type = LibraryItemType.OUTPUT;
     public name = "Output";
+    public outputInstance: BaseOutput;
 
-    public constructor(public outputInstance: BaseOutput) {
+    public constructor(outputType: OutputType) {
         super();
+        this.outputInstance = createOutput(outputType, this.id);
     }
 
     public serialize() {
@@ -22,7 +25,7 @@ export class OutputLibraryItem extends LibraryItem {
     public async deserialize(buffer: Uint8Array): Promise<void> {
         const { id, type, state } = deserialize(buffer);
         this.id = id;
-        this.outputInstance = createOutput(type);
+        this.outputInstance = createOutput(type, this.id);
         this.outputInstance.fromObject(state);
     }
 
