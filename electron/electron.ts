@@ -2,9 +2,6 @@ import * as path from "path";
 import { app, BrowserWindow, dialog, ipcMain, OpenDialogOptions, SaveDialogOptions } from "electron";
 import installExtension, { VUEJS3_DEVTOOLS } from "electron-devtools-installer";
 
-import "./serialport";
-import "./dgram";
-
 let mainWindow: BrowserWindow;
 const isDev = process.env.IS_DEV == "true" ? true : false;
 

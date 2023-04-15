@@ -6,3 +6,4 @@ dist-ssr
 src/rust/target
 src/rust/pkg
 electron-dist
+dist_electron

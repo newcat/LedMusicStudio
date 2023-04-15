@@ -1,7 +1,7 @@
 {
   "name": "ledmusicstudio",
   "version": "0.0.0",
-  "main": "electron/electron.js",
+  "main": "electron-dist/electron.js",
   "license": "GPL-3.0",
   "scripts": {
     "dev": "vite",
@@ -12,7 +12,7 @@
     "electron:dev": "concurrently -k \"cross-env BROWSER=none yarn dev\" \"yarn electron\"",
     "electron:builder": "electron-builder",
     "build:for:electron": "vue-tsc --noEmit && cross-env ELECTRON=true vite build",
-    "app:build": "yarn build:for:electron && yarn electron:builder",
+    "app:build": "yarn build:for:electron && yarn build:electron && yarn electron:builder",
     "build:wasm": "wasm-pack build ./src/rust --target web",
     "build:electron": "tsc -p tsconfig.main.json"
   },
@@ -30,7 +30,6 @@
     "pinia": "^2.0.34",
     "primeicons": "^6.0.1",
     "primevue": "^3.26.1",
-    "serialport": "^10.5.0",
     "splitpanes": "^3.1.5",
     "uuid": "^9.0.0",
     "vue": "^3.2.47",
@@ -41,7 +40,6 @@
     "@types/chroma-js": "^2.4.0",
     "@types/node": "18.15.11",
     "@types/offscreencanvas": "^2019.7.0",
-    "@types/serialport": "^8.0.2",
     "@types/uuid": "^9.0.1",
     "@vitejs/plugin-vue": "^4.1.0",
     "autoprefixer": "^10.4.14",
@@ -72,7 +70,7 @@
     },
     "files": [
       "dist/**/*",
-      "electron/**/*"
+      "electron-dist/**/*"
     ],
     "directories": {
       "buildResources": "assets",
