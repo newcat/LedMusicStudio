@@ -18,7 +18,6 @@ fn on_connect(mut client: Client<TcpStream>) {
             OwnedMessage::Text(s) => {
                 let msg: WsMessage = serde_json::from_str(&s).unwrap();
                 bridge.handle_message(&msg);
-                println!("{:?}", bridge);
             }
             OwnedMessage::Close(_) => {
                 println!("Client disconnected");
