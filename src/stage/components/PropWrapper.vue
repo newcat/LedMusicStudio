@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { type Component, computed, ref } from "vue";
 import { Prop as PropModel, propList } from "../props";
 
 type VerticalHandle = "t" | "m" | "b";
@@ -53,7 +53,7 @@ const style = computed(() => {
     };
 });
 
-const propComponent = computed(() => {
+const propComponent = computed<Component | undefined>(() => {
     return propList.find((p) => p.type === props.prop.type)?.component;
 });
 

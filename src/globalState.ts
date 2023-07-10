@@ -26,6 +26,7 @@ export const useGlobalState = defineStore("globalState", () => {
     const resolution = ref(defaults.resolution);
     const snapUnits = ref(defaults.snapUnits);
     const metronome = ref(false);
+    const bridgeUrl = ref("");
 
     const library = useLibrary();
     const timeline = useTimeline();
@@ -45,6 +46,7 @@ export const useGlobalState = defineStore("globalState", () => {
         isPlaying.value = false;
         resolution.value = defaults.resolution;
         snapUnits.value = defaults.snapUnits;
+        bridgeUrl.value = "";
 
         await library.reset();
         timeline.reset();
@@ -60,6 +62,7 @@ export const useGlobalState = defineStore("globalState", () => {
             position: position.value,
             resolution: resolution.value,
             snapUnits: snapUnits.value,
+            bridgeUrl: bridgeUrl.value,
         });
     }
 
@@ -73,6 +76,7 @@ export const useGlobalState = defineStore("globalState", () => {
         position.value = data.position ?? 0;
         resolution.value = data.resolution ?? defaults.resolution;
         snapUnits.value = data.snapUnits ?? defaults.snapUnits;
+        bridgeUrl.value = bridgeUrl.value ?? "";
     }
 
     function setPositionByUser(newPosition: number) {
@@ -90,6 +94,7 @@ export const useGlobalState = defineStore("globalState", () => {
         resolution,
         snapUnits,
         metronome,
+        bridgeUrl,
         timeline,
         events,
         reset,
