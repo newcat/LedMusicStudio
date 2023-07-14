@@ -22,4 +22,9 @@ export default defineConfig({
             filename: "dist/stats.html",
         }),
     ],
+    optimizeDeps: {
+        esbuildOptions: {
+            target: "esnext",
+        },
+    },
 });

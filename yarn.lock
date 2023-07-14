@@ -62,58 +62,58 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@baklavajs/core@npm:^2.0.2-beta.3":
-  version: 2.0.2-beta.3
-  resolution: "@baklavajs/core@npm:2.0.2-beta.3"
+"@baklavajs/core@npm:^2.0.2-beta.4":
+  version: 2.0.2-beta.4
+  resolution: "@baklavajs/core@npm:2.0.2-beta.4"
   dependencies:
-    "@baklavajs/events": ^2.0.2-beta.3
+    "@baklavajs/events": ^2.0.2-beta.4
     uuid: ^9.0.0
-  checksum: 53fef2c1353d939f3e06dd625e738e01316cec13497b0588a2b375545ae5c7fd18028199f1ddadf7702fc7936cb7734103f5ea6a2a8e0723fd08a4948891861a
+  checksum: 725bd1a33d10d707841ea81fd3e56a0a8db073f45205ee5f8670a8c23521b46efffca0bf6e1863ab3d4358454ac3fa282eec440221c8a63f8b5816d50bda65e4
   languageName: node
   linkType: hard
 
-"@baklavajs/engine@npm:^2.0.2-beta.3":
-  version: 2.0.2-beta.3
-  resolution: "@baklavajs/engine@npm:2.0.2-beta.3"
+"@baklavajs/engine@npm:^2.0.2-beta.4":
+  version: 2.0.2-beta.4
+  resolution: "@baklavajs/engine@npm:2.0.2-beta.4"
   dependencies:
-    "@baklavajs/core": ^2.0.2-beta.3
-    "@baklavajs/events": ^2.0.2-beta.3
-  checksum: a168ac54357d6fc89ac1c0ec960962b1f0984626d54a7b02b00642b7be879cca340319e40cf22e7b3800b472593204bf7a2d930959eb88d421bec0130403c8bf
+    "@baklavajs/core": ^2.0.2-beta.4
+    "@baklavajs/events": ^2.0.2-beta.4
+  checksum: a6ef5b05daf7d55b52ee989e83c2c441b4023ac863b2109f996e3a9ceaa263efba7be560bb636adb5f77b3609685dcedf0143032dc46bf48f46fa6a89801140c
   languageName: node
   linkType: hard
 
-"@baklavajs/events@npm:^2.0.2-beta.3":
-  version: 2.0.2-beta.3
-  resolution: "@baklavajs/events@npm:2.0.2-beta.3"
-  checksum: 67c6aa22f3d653c225c4b51a5bcbe7b57c7edd34266c7825ba2ac4308481a1df5a056e32c43d28849592f7d6c54a7f74d7f461acc481daef349cd07a7e244351
+"@baklavajs/events@npm:^2.0.2-beta.4":
+  version: 2.0.2-beta.4
+  resolution: "@baklavajs/events@npm:2.0.2-beta.4"
+  checksum: 397b78fb060fc7140925ff5b0fb72229f3a13dbb451c355e2dd309468ebf748678ce30b2b28f310cdb2c3185ccc001e2d3de06777e530d5a01933480f1d82bf4
   languageName: node
   linkType: hard
 
-"@baklavajs/interface-types@npm:^2.0.2-beta.3":
-  version: 2.0.2-beta.3
-  resolution: "@baklavajs/interface-types@npm:2.0.2-beta.3"
+"@baklavajs/interface-types@npm:^2.0.2-beta.4":
+  version: 2.0.2-beta.4
+  resolution: "@baklavajs/interface-types@npm:2.0.2-beta.4"
   dependencies:
-    "@baklavajs/core": ^2.0.2-beta.3
-    "@baklavajs/engine": ^2.0.2-beta.3
-    "@baklavajs/renderer-vue": ^2.0.2-beta.3
-  checksum: 959a7d91c4ab14c211317f8f4d0c107ff7af24bb1a463474fbb8dcbd24bc8a7c4a3397a927dbe66c70720324ce1c84b6c09250d43ad2c7d9e74327d34348da97
+    "@baklavajs/core": ^2.0.2-beta.4
+    "@baklavajs/engine": ^2.0.2-beta.4
+    "@baklavajs/renderer-vue": ^2.0.2-beta.4
+  checksum: 49bb2544d4a8b1a0500adf5271a2799b21c4b051f64271157a95ae97aa3c2e6763884340824c846e986ab202429b7656dcd71f124116ce891ca6e4a5c8732b9c
   languageName: node
   linkType: hard
 
-"@baklavajs/renderer-vue@npm:^2.0.2-beta.3":
-  version: 2.0.2-beta.3
-  resolution: "@baklavajs/renderer-vue@npm:2.0.2-beta.3"
+"@baklavajs/renderer-vue@npm:^2.0.2-beta.4":
+  version: 2.0.2-beta.4
+  resolution: "@baklavajs/renderer-vue@npm:2.0.2-beta.4"
   dependencies:
-    "@baklavajs/core": ^2.0.2-beta.3
-    "@baklavajs/events": ^2.0.2-beta.3
-  checksum: 06077052790e9119711472a15584ecad43f94923b0b724459ec4c706abc5ddb1154c18d1f4b29bb34649ee261f93d5045476e833b09fe5d1641872a8e21ba720
+    "@baklavajs/core": ^2.0.2-beta.4
+    "@baklavajs/events": ^2.0.2-beta.4
+  checksum: 6567dc1920c6cbb55dc825f1b2655285999336c16e3578276c519a9026a9f2c9b853bf81227db433229671b0ebaecc27772b8e86722dd22aa5e73b1d70e0e2a9
   languageName: node
   linkType: hard
 
-"@baklavajs/themes@npm:^2.0.2-beta.3":
-  version: 2.0.2-beta.3
-  resolution: "@baklavajs/themes@npm:2.0.2-beta.3"
-  checksum: 5a0e4c60b8ff39fe4b89ef7e7548d4e67db43e23ca717964c901f17893a2871bac041d28ea1d025343be976963b594881a935ac67f2b1396a06a05bb2327e907
+"@baklavajs/themes@npm:^2.0.2-beta.4":
+  version: 2.0.2-beta.4
+  resolution: "@baklavajs/themes@npm:2.0.2-beta.4"
+  checksum: f6d3a806b511634cd70553de738a463d7fed4e39d0c63589ce709dc4151835f4117c669230d35ef4ecc1323da8e2770e5a6950c402dffa363b46134c4beb3244
   languageName: node
   linkType: hard
 
@@ -786,30 +786,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@volar/language-core@npm:1.8.0, @volar/language-core@npm:~1.8.0":
-  version: 1.8.0
-  resolution: "@volar/language-core@npm:1.8.0"
+"@volar/language-core@npm:1.9.0, @volar/language-core@npm:~1.9.0":
+  version: 1.9.0
+  resolution: "@volar/language-core@npm:1.9.0"
   dependencies:
-    "@volar/source-map": 1.8.0
-  checksum: f3d0d90a9457929631c2658c77089414fe79bdc68ff1abc750b191bce4a4cec999309b07f3dd75aaf241bb42872c4e12e4b52d667057ef2149bebf92b873595e
+    "@volar/source-map": 1.9.0
+  checksum: 4e88f1d58319e567039763b0cc728ea7b50c49f664771278b4506035f3f0d3ec252898d4e9fb9b4391420b2b597df994ad4a5021236e55b48906f19b9f685d9e
   languageName: node
   linkType: hard
 
-"@volar/source-map@npm:1.8.0, @volar/source-map@npm:~1.8.0":
-  version: 1.8.0
-  resolution: "@volar/source-map@npm:1.8.0"
+"@volar/source-map@npm:1.9.0, @volar/source-map@npm:~1.9.0":
+  version: 1.9.0
+  resolution: "@volar/source-map@npm:1.9.0"
   dependencies:
     muggle-string: ^0.3.1
-  checksum: 379f85416f7bbe1ffb9ffe1d3b4b6424ee42b3542d10d1c55dcd28f0279f2f0a970bed75e48695f76aaab7ad5e61ead26d6c1aaa276d76180af14a1cbe502c6b
+  checksum: 3d2f6a638c6f5003ecec74d1e4278d1b209076e0379bbcb6e538e1634f86f933e6436d8c74d8b13ffa260b04bfea793b138d42901a4fda42463e7b83fc6f4191
   languageName: node
   linkType: hard
 
-"@volar/typescript@npm:~1.8.0":
-  version: 1.8.0
-  resolution: "@volar/typescript@npm:1.8.0"
+"@volar/typescript@npm:~1.9.0":
+  version: 1.9.0
+  resolution: "@volar/typescript@npm:1.9.0"
   dependencies:
-    "@volar/language-core": 1.8.0
-  checksum: 184840c523972a7481685635f7e8dd207b8d2a870a430db76cea34708b779da94af78cc8b07f6b12cd0428a1009a7f981fed32a04a9e37b395cda844daab89c3
+    "@volar/language-core": 1.9.0
+  checksum: 31eb608dac3806ea2545da1999e1437a7102fa803f611a569f1e0145264f2e727462d4273653c96ce69f26be31c21dec2a89072690b5387b0bab9c081d54ffcb
   languageName: node
   linkType: hard
 
@@ -870,12 +870,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vue/language-core@npm:1.8.4":
-  version: 1.8.4
-  resolution: "@vue/language-core@npm:1.8.4"
+"@vue/language-core@npm:1.8.5":
+  version: 1.8.5
+  resolution: "@vue/language-core@npm:1.8.5"
   dependencies:
-    "@volar/language-core": ~1.8.0
-    "@volar/source-map": ~1.8.0
+    "@volar/language-core": ~1.9.0
+    "@volar/source-map": ~1.9.0
     "@vue/compiler-dom": ^3.3.0
     "@vue/reactivity": ^3.3.0
     "@vue/shared": ^3.3.0
@@ -887,7 +887,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: d235c253e858096bbdf9862966328b333734927e1c69f06321fc138e1ee9d2ca2d179ccbc2c6ae6f6b64d5936600c23d10d29e5ed50b991067ce88b1b53cf373
+  checksum: ff5c997ba21148334c6788f8babbf8fd5bce89e569795f90ad1fd5d9414c8dc0a817150368d774aad7c1141ec242cd2aa4bba60baea7f6a81da1e12a7b81171d
   languageName: node
   linkType: hard
 
@@ -953,13 +953,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vue/typescript@npm:1.8.4":
-  version: 1.8.4
-  resolution: "@vue/typescript@npm:1.8.4"
+"@vue/typescript@npm:1.8.5":
+  version: 1.8.5
+  resolution: "@vue/typescript@npm:1.8.5"
   dependencies:
-    "@volar/typescript": ~1.8.0
-    "@vue/language-core": 1.8.4
-  checksum: 1fbf30ca0981675ef750af92c2eedf802b698810bc97b98fdb22783d17b59b9045b80e70fb6dd4e65b6253689c6f2013c8f79694c914e5eca5ca98ebe0e1bc12
+    "@volar/typescript": ~1.9.0
+    "@vue/language-core": 1.8.5
+  checksum: a59124617cee80fccdff5f51cc358ac69b59ce21fa7d9f64237fdb3f5d19b5397310125ebdfad90bd136aff283d8109e79ada52ecb082cc411641d395f43483e
   languageName: node
   linkType: hard
 
@@ -1259,16 +1259,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"baklavajs@npm:^2.0.2-beta.3":
-  version: 2.0.2-beta.3
-  resolution: "baklavajs@npm:2.0.2-beta.3"
+"baklavajs@npm:^2.0.2-beta.4":
+  version: 2.0.2-beta.4
+  resolution: "baklavajs@npm:2.0.2-beta.4"
   dependencies:
-    "@baklavajs/core": ^2.0.2-beta.3
-    "@baklavajs/engine": ^2.0.2-beta.3
-    "@baklavajs/interface-types": ^2.0.2-beta.3
-    "@baklavajs/renderer-vue": ^2.0.2-beta.3
-    "@baklavajs/themes": ^2.0.2-beta.3
-  checksum: 1b8286364a4fdf13abc16cc4bdddc937331d0213924ab9b4609f3292dd1502759d68cc4900ff763c67ed7be61b6f1f70187e3109e6f0aa313d10d599d0ee1b22
+    "@baklavajs/core": ^2.0.2-beta.4
+    "@baklavajs/engine": ^2.0.2-beta.4
+    "@baklavajs/interface-types": ^2.0.2-beta.4
+    "@baklavajs/renderer-vue": ^2.0.2-beta.4
+    "@baklavajs/themes": ^2.0.2-beta.4
+  checksum: dfe5f1075d4c157d0689d636506c58b5c522d74a2011a7392352c04cf9333b9f9fb11b547a9a8d921adccf0f85bca76638d6ef986530446168d66e7aaf130947
   languageName: node
   linkType: hard
 
@@ -1378,12 +1378,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"bson@npm:4.7.2":
-  version: 4.7.2
-  resolution: "bson@npm:4.7.2"
-  dependencies:
-    buffer: ^5.6.0
-  checksum: f357d12c5679c8eb029a62e410ad40fb862b7b91f0fc12a3399fb3668e14aecaa63205ffeeee48735a01d393171743607dcd527eb8c058b6f2bd294079ee4125
+"bson@npm:5.4.0":
+  version: 5.4.0
+  resolution: "bson@npm:5.4.0"
+  checksum: 1c07e3d09f139d414bd226bf7f4e9aaa7a726e0c9718c55b53bb23ffa2805cac8b66e4fa46b424c73a35c6e292ed5f7432df5c76ea5d08052642b2ac9e0399e3
   languageName: node
   linkType: hard
 
@@ -2016,7 +2014,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"electron-builder@npm:^24.4.0":
+"electron-builder@npm:^24.5.2":
   version: 24.5.2
   resolution: "electron-builder@npm:24.5.2"
   dependencies:
@@ -2072,16 +2070,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"electron@npm:^25.2.0":
-  version: 25.2.0
-  resolution: "electron@npm:25.2.0"
+"electron@npm:^25.3.0":
+  version: 25.3.0
+  resolution: "electron@npm:25.3.0"
   dependencies:
     "@electron/get": ^2.0.0
     "@types/node": ^18.11.18
     extract-zip: ^2.0.1
   bin:
     electron: cli.js
-  checksum: 264b19af3077da70fc137a244cec24a7674b0938695fcbf8b22a48164d43efe58c597e189501ee48d02bb52ff26e6952a8c69e4c50bb42686f117d6e10a33aa4
+  checksum: 60817fe35c71dd1c3a764b0f8eb99fbbd7a0ba2dde1f715d5ebdc75b27eefba7f98e2e3ba79c90f43f0c37931c9a4e78b9f1bc72e1a28772dfbe2cd85edc79bb
   languageName: node
   linkType: hard
 
@@ -3108,31 +3106,31 @@ __metadata:
     "@vueuse/core": ^10.2.1
     autoprefixer: ^10.4.14
     axios: ^1.4.0
-    baklavajs: ^2.0.2-beta.3
-    bson: 4.7.2
+    baklavajs: ^2.0.2-beta.4
+    bson: 5.4.0
     chroma-js: ^2.4.2
     comlink: ^4.4.1
     concurrently: ^8.2.0
     cross-env: ^7.0.3
-    electron: ^25.2.0
-    electron-builder: ^24.4.0
+    electron: ^25.3.0
+    electron-builder: ^24.5.2
     electron-devtools-installer: ^3.2.0
     jszip: ^3.10.1
     open-simplex-noise: ^2.5.0
     pinia: ^2.1.4
-    postcss: ^8.4.25
+    postcss: ^8.4.26
     primeicons: ^6.0.1
-    primevue: ^3.29.2
+    primevue: ^3.30.1
     rollup-plugin-visualizer: ^5.9.2
     sass: ^1.63.6
     splitpanes: ^3.1.5
-    tailwindcss: ^3.3.2
+    tailwindcss: ^3.3.3
     typescript: ^5.1.6
     uuid: ^9.0.0
-    vite: ^4.4.2
+    vite: ^4.4.4
     vue: ^3.3.4
     vue-router: 4.2.4
-    vue-tsc: ^1.8.4
+    vue-tsc: ^1.8.5
     wait-on: ^7.0.1
   languageName: unknown
   linkType: soft
@@ -3980,7 +3978,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss@npm:^8.4.23, postcss@npm:^8.4.24, postcss@npm:^8.4.25":
+"postcss@npm:^8.4.23, postcss@npm:^8.4.25":
   version: 8.4.25
   resolution: "postcss@npm:8.4.25"
   dependencies:
@@ -3991,6 +3989,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"postcss@npm:^8.4.26":
+  version: 8.4.26
+  resolution: "postcss@npm:8.4.26"
+  dependencies:
+    nanoid: ^3.3.6
+    picocolors: ^1.0.0
+    source-map-js: ^1.0.2
+  checksum: 1cf08ee10d58cbe98f94bf12ac49a5e5ed1588507d333d2642aacc24369ca987274e1f60ff4cbf0081f70d2ab18a5cd3a4a273f188d835b8e7f3ba381b184e57
+  languageName: node
+  linkType: hard
+
 "primeicons@npm:^6.0.1":
   version: 6.0.1
   resolution: "primeicons@npm:6.0.1"
@@ -3998,12 +4007,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"primevue@npm:^3.29.2":
-  version: 3.29.2
-  resolution: "primevue@npm:3.29.2"
+"primevue@npm:^3.30.1":
+  version: 3.30.1
+  resolution: "primevue@npm:3.30.1"
   peerDependencies:
     vue: ^3.0.0
-  checksum: 8938c0adcc91a208703b562b4b2dba7e3f73a2c4cb3f87a8f552dfb08742390556c2f7cd2ded4a706374eb3a3965edfb004ada41a1deabd2a14b0e4bc0ac9d1d
+  checksum: c8dd89ea536826c9307aaca813285c568286674ed5432fb37ea1c21d96e4fb268b6a20b7c15b63c6e937e3521afcd1e24f53f297c9eb64836b6d83523b8b24b8
   languageName: node
   linkType: hard
 
@@ -4728,9 +4737,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tailwindcss@npm:^3.3.2":
-  version: 3.3.2
-  resolution: "tailwindcss@npm:3.3.2"
+"tailwindcss@npm:^3.3.3":
+  version: 3.3.3
+  resolution: "tailwindcss@npm:3.3.3"
   dependencies:
     "@alloc/quick-lru": ^5.2.0
     arg: ^5.0.2
@@ -4752,13 +4761,12 @@ __metadata:
     postcss-load-config: ^4.0.1
     postcss-nested: ^6.0.1
     postcss-selector-parser: ^6.0.11
-    postcss-value-parser: ^4.2.0
     resolve: ^1.22.2
     sucrase: ^3.32.0
   bin:
     tailwind: lib/cli.js
     tailwindcss: lib/cli.js
-  checksum: 4897c70e671c885e151f57434d87ccb806f468a11900f028245b351ffbca5245ff0c10ca5dbb6eb4c7c4df3de8a15a05fe08c2aea4b152cb07bee9bb1d8a14a8
+  checksum: 0195c7a3ebb0de5e391d2a883d777c78a4749f0c532d204ee8aea9129f2ed8e701d8c0c276aa5f7338d07176a3c2a7682c1d0ab9c8a6c2abe6d9325c2954eb50
   languageName: node
   linkType: hard
 
@@ -5049,13 +5057,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:^4.4.2":
-  version: 4.4.2
-  resolution: "vite@npm:4.4.2"
+"vite@npm:^4.4.4":
+  version: 4.4.4
+  resolution: "vite@npm:4.4.4"
   dependencies:
     esbuild: ^0.18.10
     fsevents: ~2.3.2
-    postcss: ^8.4.24
+    postcss: ^8.4.25
     rollup: ^3.25.2
   peerDependencies:
     "@types/node": ">= 14"
@@ -5085,7 +5093,7 @@ __metadata:
       optional: true
   bin:
     vite: bin/vite.js
-  checksum: 37a1c3a0ccc4b80c0a696203d3608d6bf7dc98219ddc178e528b972e3305af9ab8f92dea455421024e98c59372f6a97b1b4cc409a05f757a64bff830610053c6
+  checksum: 51c208e53680fa46f7166e49b037625ae43d507f85f1fd3da7e290263bccb77d5f8c466fe82746285927620afeeff949ac3b8e1b6a7b4fe7bfe11419729256b4
   languageName: node
   linkType: hard
 
@@ -5126,18 +5134,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vue-tsc@npm:^1.8.4":
-  version: 1.8.4
-  resolution: "vue-tsc@npm:1.8.4"
+"vue-tsc@npm:^1.8.5":
+  version: 1.8.5
+  resolution: "vue-tsc@npm:1.8.5"
   dependencies:
-    "@vue/language-core": 1.8.4
-    "@vue/typescript": 1.8.4
+    "@vue/language-core": 1.8.5
+    "@vue/typescript": 1.8.5
     semver: ^7.3.8
   peerDependencies:
     typescript: "*"
   bin:
     vue-tsc: bin/vue-tsc.js
-  checksum: 97df9cefbd784901b01c1cf24a4262feb60d4f665e9f69a763408291199e2ab24a9b03d1183cabea200fb5afde7c9a0de19b82c3e0c0b85ee9685c57f8b240c4
+  checksum: 20a7a9e62107423e1715159cc031302822fba6aa4053ae75fbfec27fb67bb9e629e2bf8a12a28115d3add5e21f384e8560751428f2858a308676463d4659ead5
   languageName: node
   linkType: hard
 
