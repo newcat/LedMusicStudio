@@ -83,17 +83,20 @@ function addToUniverse() {
     grid-area: toolbar;
 }
 
-.manufacturer-list {
-    min-height: 10rem;
-    max-height: 100%;
-    overflow-y: hidden;
-    grid-area: manufacturer-list;
-}
-
+.manufacturer-list,
 .fixture-list {
     min-height: 10rem;
     max-height: 100%;
     overflow-y: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.manufacturer-list {
+    grid-area: manufacturer-list;
+}
+
+.fixture-list {
     grid-area: fixture-list;
 }
 </style>

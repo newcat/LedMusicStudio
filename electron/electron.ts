@@ -1,5 +1,5 @@
 import * as path from "path";
-import { app, BrowserWindow, dialog, ipcMain, OpenDialogOptions, SaveDialogOptions } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, OpenDialogOptions, SaveDialogOptions, shell } from "electron";
 import installExtension, { VUEJS3_DEVTOOLS } from "electron-devtools-installer";
 
 let mainWindow: BrowserWindow;
@@ -46,6 +46,11 @@ function createWindow() {
             "Access-Control-Allow-Origin": [isDev ? "http://localhost:3000" : "capacitor-electron://-"],
         };
         callback({ responseHeaders: details.responseHeaders });
+    });
+
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        shell.openExternal(url);
+        return { action: "deny" };
     });
 }
 

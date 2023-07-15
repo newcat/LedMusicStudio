@@ -1,6 +1,14 @@
 <template>
     <Panel header="Fixture Settings">
         <template #icons>
+            <button
+                v-if="fixture.definition.oflURL"
+                v-tooltip.left="'Open OFL page'"
+                class="p-panel-header-icon p-link"
+                @click="openOflPage"
+            >
+                <span class="pi pi-external-link"></span>
+            </button>
             <button v-tooltip.left="'Remove Fixture'" class="p-panel-header-icon p-link" @click="emit('remove')">
                 <span class="pi pi-trash"></span>
             </button>
@@ -41,6 +49,10 @@ const props = defineProps<{
 const emit = defineEmits<{
     (e: "remove"): void;
 }>();
+
+function openOflPage() {
+    window.open(props.fixture.definition.oflURL as string, "_blank");
+}
 </script>
 
 <style scoped>

@@ -4,15 +4,17 @@
             <TabMenu v-model:active-index="activeTab" :model="tabMenuItems" />
         </div>
         <div class="h-full">
-            <div v-if="activeTab === 0" class="flex flex-col mt-4 gap-4">
-                <LabelledInputText v-model="port">Port</LabelledInputText>
-                <div class="flex gap-4">
-                    <Button @click="apply">Apply</Button>
-                    <Button @click="updateValues">Cancel</Button>
+            <KeepAlive>
+                <div v-if="activeTab === 0" class="flex flex-col mt-4 gap-4">
+                    <LabelledInputText v-model="port">Port</LabelledInputText>
+                    <div class="flex gap-4">
+                        <Button @click="apply">Apply</Button>
+                        <Button @click="updateValues">Cancel</Button>
+                    </div>
                 </div>
-            </div>
-            <UniverseSettings v-else-if="activeTab === 1" v-model:fixtures="output.fixtures"></UniverseSettings>
-            <FixtureLibrary v-else-if="activeTab === 2" @add-fixture="addFixture"></FixtureLibrary>
+                <UniverseSettings v-else-if="activeTab === 1" v-model:fixtures="output.fixtures"></UniverseSettings>
+                <FixtureLibrary v-else-if="activeTab === 2" @add-fixture="addFixture"></FixtureLibrary>
+            </KeepAlive>
         </div>
     </div>
 </template>
