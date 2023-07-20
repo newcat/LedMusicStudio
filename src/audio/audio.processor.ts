@@ -50,11 +50,7 @@ export class AudioProcessor {
         });
     }
 
-    public supportsWebAudio() {
-        return !!(window.AudioContext || (window as any).webkitAudioContext);
-    }
-
-    public play() {
+    public async play() {
         // need to re-create sources on each playback
         for (const t of this.tracks) {
             this.destroySource(t.source);
