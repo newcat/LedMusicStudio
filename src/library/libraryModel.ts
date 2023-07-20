@@ -9,6 +9,13 @@ import { PatternLibraryItem } from "@/pattern";
 import { OutputLibraryItem } from "@/output";
 import { LibraryItem, LibraryItemType } from "./libraryItem";
 
+interface ILibraryState {
+    items: Array<{
+        type: LibraryItemType;
+        data: Uint8Array;
+    }>;
+}
+
 export const useLibrary = defineStore("library", () => {
     const events = {
         loaded: new BaklavaEvent<void, undefined>(undefined),
@@ -20,19 +27,20 @@ export const useLibrary = defineStore("library", () => {
     const selectedItemId = ref<string | null>(null);
 
     function save() {
-        return serialize(
-            items.value.map((i) => ({
+        const state: ILibraryState = {
+            items: items.value.map((i) => ({
                 type: i.type,
                 data: i.serialize(),
-            }))
-        );
+            })),
+        };
+        return serialize(state);
     }
 
     async function load(serialized: Binary) {
-        const newItemStates: Record<number, { type: number; data: Buffer }> = deserialize(serialized.buffer);
+        const newItemStates = deserialize(serialized.buffer) as ILibraryState;
         const newItems: LibraryItem[] = [];
 
-        for (const item of Object.values(newItemStates)) {
+        for (const item of Object.values(newItemStates.items)) {
             if (!item) {
                 break;
             }

@@ -87,9 +87,20 @@ async function save(): Promise<void> {
             return;
         }
     }
-    const state = globalState.save();
-    await writeFile(globalState.projectFilePath, state);
-    toast.add({ severity: "success", summary: "Saved", detail: "Project successfully saved", life: 2000 });
+    try {
+        const state = globalState.save();
+        await writeFile(globalState.projectFilePath, state);
+        toast.add({ severity: "success", summary: "Saved", detail: "Project successfully saved", life: 2000 });
+    } catch (err) {
+        toast.add({
+            severity: "error",
+            closable: true,
+            summary: "Failed to save project",
+            detail: err instanceof Error ? err.message : String(err),
+            life: 6000,
+        });
+        showLoadingDialog.value = false;
+    }
 }
 
 async function saveAs(): Promise<void> {
