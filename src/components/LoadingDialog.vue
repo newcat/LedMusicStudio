@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from "vue";
+import { WatchStopHandle, computed, watch } from "vue";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 
@@ -36,10 +36,7 @@ import { showOpenDialog } from "@/native";
 import { AudioLibraryItem } from "@/audio";
 import { LibraryItem, LibraryItemType, useLibrary } from "@/library";
 
-defineProps({
-    modelValue: { type: Boolean },
-});
-
+const props = defineProps<{ modelValue: boolean }>();
 const emit = defineEmits(["update:modelValue"]);
 
 const library = useLibrary();
@@ -67,18 +64,32 @@ async function replaceAudioFile(item: AudioLibraryItem) {
     item.load();
 }
 
+let stopWatch: WatchStopHandle | null = null;
 watch(
-    () => items.value,
+    () => props.modelValue,
     () => {
-        if (items.value.every((i) => !i.loading && !i.error)) {
-            close();
+        if (props.modelValue) {
+            if (stopWatch) {
+                stopWatch();
+            }
+
+            stopWatch = watch(
+                () => items.value,
+                () => {
+                    if (items.value.every((i) => !i.loading && !i.error)) {
+                        close();
+                    }
+                },
+                { deep: true, immediate: true }
+            );
         }
-    },
-    { deep: true, immediate: true }
+    }
 );
 
 function close() {
     emit("update:modelValue", false);
+    stopWatch?.();
+    stopWatch = null;
 }
 </script>
 
