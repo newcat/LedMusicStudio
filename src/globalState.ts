@@ -4,7 +4,6 @@ import { defineStore } from "pinia";
 import { BaklavaEvent } from "@baklavajs/events";
 
 import { useTimeline } from "@/timeline";
-import { ipcRenderer } from "@/native";
 import { useLibrary } from "./library";
 import { TICKS_PER_BEAT } from "./constants";
 
@@ -36,8 +35,6 @@ export const useGlobalState = defineStore("globalState", () => {
     };
 
     async function reset() {
-        ipcRenderer.send("RESET");
-
         projectFilePath.value = "";
         bpm.value = defaults.bpm;
         fps.value = defaults.fps;
