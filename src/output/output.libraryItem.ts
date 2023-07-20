@@ -7,11 +7,16 @@ import { OutputType } from "./outputTypes";
 export class OutputLibraryItem extends LibraryItem {
     public type = LibraryItemType.OUTPUT;
     public name = "Output";
-    public outputInstance: BaseOutput;
+    public outputInstance!: BaseOutput;
 
-    public constructor(outputType: OutputType) {
+    public constructor(outputType: OutputType | undefined) {
         super();
-        this.outputInstance = createOutput(outputType, this.id);
+        if (outputType) {
+            this.outputInstance = createOutput(outputType, this.id);
+        } else {
+            // this happens when loading; deserialize() will be called right after
+            // and there the outputInstance will be created.
+        }
     }
 
     public serialize() {
