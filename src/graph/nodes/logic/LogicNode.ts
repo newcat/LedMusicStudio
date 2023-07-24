@@ -12,7 +12,7 @@ export const LogicNode = defineNode({
         gate: () => new SelectInterface("Gate", "AND", operations),
     },
     outputs: {
-        result: () => new CheckboxInterface("Result", false),
+        result: () => new CheckboxInterface("Result", false).setComponent(undefined),
     },
     calculate({ a, b, gate }) {
         let output = false;

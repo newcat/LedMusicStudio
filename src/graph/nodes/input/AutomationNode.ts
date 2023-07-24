@@ -15,7 +15,6 @@ interface Outputs {
 
 export class AutomationNode extends TrackInputNode<Inputs, Outputs> {
     public type = "Automation";
-    public title = this.type;
 
     public inputs = {
         track: new SelectInterface("Track", "", []).setPort(false),
@@ -24,11 +23,12 @@ export class AutomationNode extends TrackInputNode<Inputs, Outputs> {
     };
 
     public outputs = {
-        value: new NumberInterface("Value", 0),
+        value: new NumberInterface("Value", 0).setComponent(undefined),
     };
 
     public constructor() {
         super();
+        this.title = this.type;
         this.initializeIo();
     }
 

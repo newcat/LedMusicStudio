@@ -7,9 +7,9 @@ export const ColorToRgbNode = defineNode({
         color: () => new ColorSingleInterface("Color", [0, 0, 0]),
     },
     outputs: {
-        r: () => new IntegerInterface("Red", 0, 0, 255),
-        g: () => new IntegerInterface("Green", 0, 0, 255),
-        b: () => new IntegerInterface("Blue", 0, 0, 255),
+        r: () => new IntegerInterface("Red", 0, 0, 255).setComponent(undefined),
+        g: () => new IntegerInterface("Green", 0, 0, 255).setComponent(undefined),
+        b: () => new IntegerInterface("Blue", 0, 0, 255).setComponent(undefined),
     },
     calculate: ({ color }) => {
         return { r: color[0], g: color[1], b: color[2] };

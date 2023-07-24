@@ -23,8 +23,8 @@ export const SpectrumNode = defineNode({
     outputs: {
         spectrum: () =>
             new NodeInterface<Float32Array>("Spectrum", new Float32Array()).setComponent(markRaw(SpectrumOptionVue)).setPort(false),
-        average: () => new NumberInterface("Average", 0),
-        peak: () => new NumberInterface("Peak", 0),
+        average: () => new NumberInterface("Average", 0).setComponent(undefined),
+        peak: () => new NumberInterface("Peak", 0).setComponent(undefined),
     },
     calculate(inputs, context: LmsCalculationContext) {
         const { frequencyData, sampleRate } = context.globalValues;

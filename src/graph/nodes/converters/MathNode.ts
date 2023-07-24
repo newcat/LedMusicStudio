@@ -30,7 +30,7 @@ export const MathNode = defineNode({
         val2: () => new NumberInterface("Value 2", 0),
     },
     outputs: {
-        result: () => new NumberInterface("Result", 0),
+        result: () => new NumberInterface("Result", 0).setComponent(undefined),
     },
     calculate({ val1, val2, operation }) {
         let outputVal = 0;

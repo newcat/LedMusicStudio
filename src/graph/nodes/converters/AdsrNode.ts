@@ -18,7 +18,6 @@ interface Outputs {
 
 export class AdsrNode extends Node<Inputs, Outputs> {
     public type = "ADSR";
-    public title = this.type;
 
     public inputs = {
         trigger: new CheckboxInterface("Trigger", false),
@@ -29,7 +28,7 @@ export class AdsrNode extends Node<Inputs, Outputs> {
     };
 
     public outputs = {
-        value: new NumberInterface("Value", 0),
+        value: new NumberInterface("Value", 0).setComponent(undefined),
     };
 
     private phase: Phase = "None";
@@ -39,6 +38,7 @@ export class AdsrNode extends Node<Inputs, Outputs> {
 
     constructor() {
         super();
+        this.title = this.type;
         this.initializeIo();
     }
 

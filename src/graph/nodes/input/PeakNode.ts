@@ -12,7 +12,7 @@ export const PeakNode = defineNode({
     },
     outputs: {
         preview: () => new NodeInterface("Peak", 0).setComponent(markRaw(PeakOptionVue)).setPort(false),
-        peak: () => new NumberInterface("Peak", 0),
+        peak: () => new NumberInterface("Peak", 0).setComponent(undefined),
     },
     calculate({ minDb, maxDb }, context: LmsCalculationContext) {
         const { timeDomainData, sampleRate, fps } = context.globalValues;

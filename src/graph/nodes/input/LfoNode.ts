@@ -34,7 +34,7 @@ export const LfoNode = defineNode({
         shape: () => new SelectInterface("Shape", "Sine", Object.keys(functions)).setPort(false),
     },
     outputs: {
-        value: () => new NumberInterface("Value", 0),
+        value: () => new NumberInterface("Value", 0).setComponent(undefined),
     },
     calculate(inputs, context: LmsCalculationContext) {
         const { min, max, phaseOffset, invert, rate, shape } = inputs;

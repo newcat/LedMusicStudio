@@ -10,18 +10,18 @@ interface Outputs {
 
 export class PatternNode extends TrackInputNode<TrackInputNodeInputs, Outputs> {
     public type = "Pattern";
-    public title = this.type;
 
     public inputs = {
         track: new SelectInterface("Track", "", []).setPort(false),
     };
 
     public outputs = {
-        singleNote: new NumberInterface("Value", 0),
+        singleNote: new NumberInterface("Value", 0).setComponent(undefined),
     };
 
     public constructor() {
         super();
+        this.title = this.type;
         this.initializeIo();
     }
 

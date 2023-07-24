@@ -17,7 +17,6 @@ interface Outputs {
 
 export class NoiseNode extends Node<Inputs, Outputs> {
     public type = "Noise";
-    public title = this.type;
 
     public inputs = {
         spaceFreq: new NumberInterface("Space Freq", 10, 0),
@@ -36,6 +35,7 @@ export class NoiseNode extends Node<Inputs, Outputs> {
 
     public constructor() {
         super();
+        this.title  =this.type;
         this.initializeIo();
     }
 

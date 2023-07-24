@@ -24,7 +24,6 @@ interface Outputs {
 
 export class ParticleNode extends Node<Inputs, Outputs> {
     public type = "Particle";
-    public title = this.type;
 
     public inputs = {
         emit: new CheckboxInterface("Emit", true),
@@ -48,6 +47,7 @@ export class ParticleNode extends Node<Inputs, Outputs> {
 
     constructor() {
         super();
+        this.title = this.type;
         this.initializeIo();
     }
 

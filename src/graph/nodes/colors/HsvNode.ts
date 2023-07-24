@@ -11,7 +11,7 @@ export const HsvNode = defineNode({
     },
     outputs: {
         preview: () => new PreviewInterface("Preview"),
-        color: () => new ColorSingleInterface("Color"),
+        color: () => new ColorSingleInterface("Color").setComponent(undefined),
     },
     calculate({ hue, saturation, value }) {
         const c = fromChroma(chroma(hue, saturation, value, "hsv"));

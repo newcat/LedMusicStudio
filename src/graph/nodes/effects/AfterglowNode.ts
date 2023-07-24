@@ -16,7 +16,6 @@ interface Outputs {
 
 export class AfterglowNode extends Node<Inputs, Outputs> {
     public type = "Afterglow";
-    public title = this.type;
 
     public inputs = {
         input: new ColorArrayInterface("Input"),
@@ -31,6 +30,7 @@ export class AfterglowNode extends Node<Inputs, Outputs> {
 
     public constructor() {
         super();
+        this.title = this.type;
         this.initializeIo();
     }
 

@@ -14,7 +14,7 @@ export const BooleanNode = defineNode({
         operation: () => new SelectInterface("Operation", "==", operations),
     },
     outputs: {
-        result: () => new CheckboxInterface("Result", false),
+        result: () => new CheckboxInterface("Result", false).setComponent(false),
     },
     calculate(inputs) {
         const { val1, val2, useInt, invert, operation } = inputs;

@@ -11,7 +11,7 @@ export const RgbNode = defineNode({
     },
     outputs: {
         preview: () => new PreviewInterface("Preview"),
-        color: () => new ColorSingleInterface("Color"),
+        color: () => new ColorSingleInterface("Color").setComponent(undefined),
     },
     calculate({ r, g, b }) {
         const c = fromChroma(chroma(r * 255, g * 255, b * 255, "rgb"));
