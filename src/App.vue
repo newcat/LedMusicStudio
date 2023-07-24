@@ -52,6 +52,9 @@ const showSettings = ref(false);
 const showLoadingDialog = ref(false);
 const processor = ref(new TimelineProcessor());
 
+(window as any).globalState = globalState;
+(window as any).processor = processor;
+
 newProject();
 
 async function newProject(): Promise<void> {

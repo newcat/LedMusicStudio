@@ -165,10 +165,9 @@ export class TimelineProcessor {
 
     private async processGraph(item: Item, calculationData: ICalculationData, outputMap: Map<BaseOutput, any>): Promise<void> {
         const graph = item.libraryItem as GraphLibraryItem;
+        graph.keyframeManager.applyKeyframes();
         const results = (await graph.editor.enginePlugin.runOnce(calculationData))!;
-        graph.editor.enginePlugin.pause();
         applyResult(results, graph.editor.editor);
-        graph.editor.enginePlugin.resume();
         results.forEach((intfValues) => {
             if (!intfValues.has("outputId")) {
                 return;

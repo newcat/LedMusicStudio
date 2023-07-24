@@ -1,12 +1,14 @@
 import { serialize, deserialize } from "bson";
 import { LibraryItem, LibraryItemType } from "@/library";
 import { BaklavaEditor } from "./editor";
+import { KeyframeManager } from "./keyframes/KeyframeManager";
 
 export class GraphLibraryItem extends LibraryItem {
     public type = LibraryItemType.GRAPH;
     public name = "Graph";
 
     public editor = new BaklavaEditor();
+    public keyframeManager = new KeyframeManager(this.editor);
 
     public serialize() {
         return serialize({

@@ -110,7 +110,7 @@ export class AudioProcessor {
     }
 
     public secondsToUnits(seconds: number) {
-        return (seconds / 60) * this.state.bpm * 24;
+        return Math.floor((seconds / 60) * this.state.bpm * 24);
     }
 
     public registerBuffer(buffer: AudioBuffer, startUnit: number) {
