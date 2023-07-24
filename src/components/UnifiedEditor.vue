@@ -4,19 +4,15 @@
             <h2 class="m-4 font-bold text-xl">{{ title }}</h2>
         </template>
         <template #content>
-            <baklava-editor
-                v-if="isGraph(selectedItem)"
-                :view-model="selectedItem.editor.viewModel"
-                :key="'g' + selectedItem.id"
-            ></baklava-editor>
-            <note-editor v-else-if="isPattern(selectedItem)" :notePattern="selectedItem" :key="'p' + selectedItem.id"></note-editor>
-            <automation-editor
+            <GraphEditor v-if="isGraph(selectedItem)" :graph="selectedItem" :key="'g' + selectedItem.id"></GraphEditor>
+            <NoteEditor v-else-if="isPattern(selectedItem)" :notePattern="selectedItem" :key="'p' + selectedItem.id"></NoteEditor>
+            <AutomationEditor
                 v-else-if="isAutomation(selectedItem)"
                 :automationClip="selectedItem"
                 :key="'a' + selectedItem.id"
-            ></automation-editor>
-            <output-editor v-else-if="isOutput(selectedItem)" :output="selectedItem" :key="'o' + selectedItem.id"></output-editor>
-            <stage-editor v-else-if="isStage(selectedItem)" :stage="selectedItem" :key="'s' + selectedItem.id"></stage-editor>
+            ></AutomationEditor>
+            <OutputEditor v-else-if="isOutput(selectedItem)" :output="selectedItem" :key="'o' + selectedItem.id"></OutputEditor>
+            <StageEditor v-else-if="isStage(selectedItem)" :stage="selectedItem" :key="'s' + selectedItem.id"></StageEditor>
         </template>
     </Card>
 </template>
@@ -24,14 +20,13 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import Card from "primevue/card";
-import { EditorComponent as BaklavaEditor } from "@baklavajs/renderer-vue";
 
 import { LibraryItem, LibraryItemType, useLibrary } from "@/library";
 import { NoteEditor, PatternLibraryItem } from "@/pattern";
 import { AutomationEditor, AutomationLibraryItem } from "@/automation";
 import { OutputEditor, OutputLibraryItem } from "@/output";
 import { StageEditor, StageLibraryItem } from "@/stage";
-import { GraphLibraryItem } from "@/graph";
+import { GraphEditor, GraphLibraryItem } from "@/graph";
 
 const library = useLibrary();
 
