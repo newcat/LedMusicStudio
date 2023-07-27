@@ -37,6 +37,13 @@ const popupMenu: MenuProps["model"] = [
         },
     },
     {
+        label: "Duplicate",
+        icon: "mdi mdi-content-copy",
+        command: () => {
+            library.duplicateItem(item.value!);
+        },
+    },
+    {
         label: "Delete",
         icon: "mdi mdi-delete",
         command: () => {

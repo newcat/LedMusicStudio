@@ -23,13 +23,15 @@ export class OutputLibraryItem extends LibraryItem {
         return serialize({
             id: this.id,
             type: this.outputInstance.type,
+            name: this.name,
             state: this.outputInstance.toObject(),
         });
     }
 
     public async deserialize(buffer: Uint8Array): Promise<void> {
-        const { id, type, state } = deserialize(buffer);
+        const { id, type, name, state } = deserialize(buffer);
         this.id = id;
+        this.name = name;
         this.outputInstance = createOutput(type, this.id);
         this.outputInstance.fromObject(state);
     }

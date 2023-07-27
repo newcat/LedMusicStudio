@@ -73,7 +73,7 @@ export const useGlobalState = defineStore("globalState", () => {
         position.value = data.position ?? 0;
         resolution.value = data.resolution ?? defaults.resolution;
         snapUnits.value = data.snapUnits ?? defaults.snapUnits;
-        bridgeUrl.value = bridgeUrl.value ?? "";
+        bridgeUrl.value = data.bridgeUrl ?? "";
     }
 
     function setPositionByUser(newPosition: number) {

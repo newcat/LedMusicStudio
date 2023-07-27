@@ -53,6 +53,7 @@ export const useOutputStore = defineStore("outputStore", () => {
         bridge = new WebSocket(`ws://${url}`);
         bridge.onopen = () => {
             bridgeConnectionStatus.value = "CONNECTED";
+            updateOutputs();
         };
         bridge.onclose = () => {
             bridgeConnectionStatus.value = "DISCONNECTED";

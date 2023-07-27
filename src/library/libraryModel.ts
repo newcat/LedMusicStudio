@@ -1,6 +1,7 @@
 import { reactive, Ref, ref } from "vue";
 import { serialize, deserialize, Binary } from "bson";
 import { defineStore } from "pinia";
+import { v4 as uuidv4 } from "uuid";
 import { AudioLibraryItem } from "@/audio";
 import { AutomationLibraryItem } from "@/automation";
 import { GraphLibraryItem } from "@/graph";
@@ -14,6 +15,33 @@ interface ILibraryState {
         type: LibraryItemType;
         data: Uint8Array;
     }>;
+}
+
+const LOADING_ORDER: LibraryItemType[] = [
+    LibraryItemType.AUDIO,
+    LibraryItemType.OUTPUT,
+    LibraryItemType.AUTOMATION,
+    LibraryItemType.PATTERN,
+    LibraryItemType.STAGE,
+    LibraryItemType.GRAPH,
+];
+
+function createItemByType(type: LibraryItemType): LibraryItem | undefined {
+    switch (type) {
+        case LibraryItemType.AUDIO:
+            return new AudioLibraryItem();
+        case LibraryItemType.AUTOMATION:
+            return new AutomationLibraryItem();
+        case LibraryItemType.GRAPH:
+            return new GraphLibraryItem();
+        case LibraryItemType.PATTERN:
+            return new PatternLibraryItem();
+        case LibraryItemType.OUTPUT:
+            // output will be created during "deserialize"
+            return new OutputLibraryItem(undefined as any);
+        default:
+            console.warn(`Unknown library type: ${type}`);
+    }
 }
 
 export const useLibrary = defineStore("library", () => {
@@ -38,48 +66,28 @@ export const useLibrary = defineStore("library", () => {
 
     async function load(serialized: Binary) {
         const newItemStates = deserialize(serialized.buffer) as ILibraryState;
-        const newItems: LibraryItem[] = [];
 
-        for (const item of Object.values(newItemStates.items)) {
-            if (!item) {
-                break;
-            }
-            const { type, data } = item;
-            const buffer = data.buffer as Buffer;
-            let libItem: LibraryItem;
-            switch (type) {
-                case LibraryItemType.AUDIO:
-                    libItem = new AudioLibraryItem();
-                    break;
-                case LibraryItemType.AUTOMATION:
-                    libItem = new AutomationLibraryItem();
-                    break;
-                case LibraryItemType.GRAPH:
-                    libItem = new GraphLibraryItem();
-                    break;
-                case LibraryItemType.PATTERN:
-                    libItem = new PatternLibraryItem();
-                    break;
-                case LibraryItemType.OUTPUT:
-                    // output will be created during "deserialize"
-                    libItem = new OutputLibraryItem(undefined as any);
-                    break;
-                default:
-                    console.warn(`Unknown library type: ${type}`);
-                    continue;
-            }
-
-            libItem = reactive(libItem);
-            if (libItem) {
-                libItem.deserialize(buffer);
-                if ((libItem as any).load) {
-                    (libItem as any).load();
+        for (const type of LOADING_ORDER) {
+            const itemsToLoad = newItemStates.items.filter((i) => i.type === type);
+            for (const item of itemsToLoad) {
+                const { data } = item;
+                const buffer = data.buffer as Buffer;
+                let libItem = createItemByType(type);
+                if (!libItem) {
+                    return;
                 }
-                newItems.push(libItem);
+
+                libItem = reactive(libItem);
+                libItem.deserialize(buffer);
+                libItem.load();
+                items.value.push(libItem);
             }
         }
 
-        items.value = newItems;
+        if (items.value.length !== newItemStates.items.length) {
+            console.error(`Expected to load ${newItemStates.items.length} items but loaded ${items.value.length} items`);
+        }
+
         events.loaded.emit();
     }
 
@@ -90,6 +98,14 @@ export const useLibrary = defineStore("library", () => {
     function addItem(item: LibraryItem) {
         items.value.push(item);
         events.itemAdded.emit(item);
+    }
+
+    function duplicateItem(item: LibraryItem) {
+        const duplicate = reactive(createItemByType(item.type)!);
+        duplicate.deserialize(item.serialize());
+        duplicate.id = uuidv4();
+        duplicate.load();
+        items.value.push(duplicate);
     }
 
     async function removeItem(item: LibraryItem) {
@@ -115,6 +131,7 @@ export const useLibrary = defineStore("library", () => {
         load,
         getItemById,
         addItem,
+        duplicateItem,
         removeItem,
         reset,
     };

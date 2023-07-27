@@ -73,6 +73,7 @@ async function load(): Promise<void> {
     try {
         await globalState.load(buff);
     } catch (err) {
+        console.error(err);
         toast.add({
             severity: "error",
             closable: true,

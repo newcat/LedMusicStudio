@@ -67,7 +67,12 @@ export class DmxOutput extends BaseOutput<IDmxOutputState, IDmxOutputData> {
 
     public async fromObject(state: IDmxOutputState): Promise<void> {
         this.port = state.port;
-        this.fixtures = state.fixtures;
+        this.fixtures = state.fixtures.map((f) => {
+            const fixture = new DmxFixture(f.definition, f.startChannel);
+            fixture.id = f.id;
+            fixture.name = f.name;
+            return fixture;
+        });
         await this.update();
     }
 

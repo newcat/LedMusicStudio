@@ -28,7 +28,7 @@ export class AudioLibraryItem extends LibraryItem {
         loaded: new BaklavaEvent<void, this>(this),
     };
 
-    public async load() {
+    public override async load() {
         this.loading = true;
         this.error = false;
 

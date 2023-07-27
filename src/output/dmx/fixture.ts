@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Fixture as OpenFixtureDefinition } from "./open-fixture";
 
 export class DmxFixture {
-    public readonly id = uuidv4();
+    public id = uuidv4();
     public mode: OpenFixtureDefinition["modes"][0];
     public name: string;
 
