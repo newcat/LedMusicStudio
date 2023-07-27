@@ -1,7 +1,7 @@
-import { useGlobalState } from "@/globalState";
-import { BaklavaEditor } from "../editor";
-import { Color, mix } from "../colors";
 import { NodeInterface } from "baklavajs";
+import { useTimeline } from "@/timeline";
+import { Color, mix } from "../colors";
+import { GraphLibraryItem } from "../graph.libraryItem";
 
 interface VALUE_TYPES {
     boolean: boolean;
@@ -45,27 +45,22 @@ const INTERPOLATION_FUNCTIONS: { [V in keyof VALUE_TYPES]: InterpolationFunction
     unknown: (a, b, f) => a,
 };
 
-// TODO: Do not use global position but instead position relative to start of graph library item instance
-
 export class KeyframeManager {
-    private keyframes: Map<string, InterfaceKeyframes> = new Map();
+    public keyframes: Map<string, InterfaceKeyframes> = new Map();
 
-    private _globalState: ReturnType<typeof useGlobalState> | undefined = undefined;
-    private get globalState() {
-        if (!this._globalState) {
-            this._globalState = useGlobalState();
-        }
-        return this._globalState;
-    }
-
-    public constructor(private readonly editor: BaklavaEditor) {
-        editor.editor.graphEvents.removeNode.subscribe(this, (node) => {
+    public constructor(private readonly item: GraphLibraryItem) {
+        item.editor.editor.graphEvents.removeNode.subscribe(this, (node) => {
             // TODO: Remove all keyframes for all interfaces of this node
         });
     }
 
-    public addKeyframe<T>(intf: NodeInterface, value: T): void {
-        const position = this.globalState.position;
+    public addKeyframe<T>(intf: NodeInterface, value: T): boolean {
+        const timeline = useTimeline();
+        const position = timeline.getPositionRelativeToItem(this.item);
+        if (position < 0) {
+            return false;
+        }
+
         const keyframesForInterface = this.keyframes.get(intf.id)?.keyframes;
         if (keyframesForInterface) {
             const existingKeyframe = keyframesForInterface.find((k) => k.position === position);
@@ -82,10 +77,17 @@ export class KeyframeManager {
                 keyframes: [{ position, value }],
             });
         }
+
+        return true;
     }
 
-    public removeKeyframe(interfaceId: string): void {
-        const position = this.globalState.position;
+    public removeKeyframe(interfaceId: string): boolean {
+        const timeline = useTimeline();
+        const position = timeline.getPositionRelativeToItem(this.item);
+        if (position < 0) {
+            return false;
+        }
+
         const keyframesForInterface = this.keyframes.get(interfaceId)?.keyframes;
         if (keyframesForInterface) {
             const existingKeyframeIndex = keyframesForInterface.findIndex((k) => k.position === position);
@@ -96,13 +98,13 @@ export class KeyframeManager {
                 this.keyframes.delete(interfaceId);
             }
         }
+        return true;
     }
 
-    public applyKeyframes() {
-        const position = this.globalState.position;
+    public applyKeyframes(position: number) {
         for (const [interfaceId, interfaceKeyframes] of this.keyframes.entries()) {
             const value = this.getValueAtPosition(interfaceKeyframes, position);
-            for (const graph of this.editor.editor.graphs) {
+            for (const graph of this.item.editor.editor.graphs) {
                 const ni = graph.findNodeInterface(interfaceId);
                 if (ni) {
                     ni.value = value;

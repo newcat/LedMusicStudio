@@ -302,7 +302,7 @@ function onHeaderClick(ev: MouseEvent): void {
     }
 
     const tick = pixelToUnit(x);
-    globalState.setPositionByUser(tick);
+    globalState.setPositionByUser(snap(tick));
 }
 
 function wheel(ev: WheelEvent) {

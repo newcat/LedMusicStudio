@@ -19,11 +19,12 @@ import { LibraryItemType } from "@/library";
 import { markRaw, computed, ComponentOptions } from "vue";
 import AudioPreview from "@/audio/AudioPreview.vue";
 import AutomationPreview from "@/automation/AutomationPreview.vue";
+import GraphPreview from "@/graph/GraphPreview.vue";
 import PatternPreview from "@/pattern/PatternPreview.vue";
 
 const ITEM_COMPONENT_MAPPING: Record<LibraryItemType, ComponentOptions<any> | null> = markRaw({
     [LibraryItemType.AUDIO]: AudioPreview,
-    [LibraryItemType.GRAPH]: null,
+    [LibraryItemType.GRAPH]: GraphPreview,
     [LibraryItemType.AUTOMATION]: AutomationPreview,
     [LibraryItemType.PATTERN]: PatternPreview,
     [LibraryItemType.OUTPUT]: null,

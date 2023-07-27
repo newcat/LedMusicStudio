@@ -103,7 +103,7 @@ export class TimelineProcessor {
         const graphs = currentActiveItems.filter((i) => this.isType(i, LibraryItemType.GRAPH));
         for (const g of graphs) {
             try {
-                await this.processGraph(g, calculationData, outputMap);
+                await this.processGraph(g, unit, calculationData, outputMap);
                 if (g.libraryItem.error) {
                     g.libraryItem.error = false;
                 }
@@ -163,9 +163,14 @@ export class TimelineProcessor {
         return item.libraryItem.type === type;
     }
 
-    private async processGraph(item: Item, calculationData: ICalculationData, outputMap: Map<BaseOutput, any>): Promise<void> {
+    private async processGraph(
+        item: Item,
+        unit: number,
+        calculationData: ICalculationData,
+        outputMap: Map<BaseOutput, any>
+    ): Promise<void> {
         const graph = item.libraryItem as GraphLibraryItem;
-        graph.keyframeManager.applyKeyframes();
+        graph.keyframeManager.applyKeyframes(unit - item.start);
         const results = (await graph.editor.enginePlugin.runOnce(calculationData))!;
         applyResult(results, graph.editor.editor);
         results.forEach((intfValues) => {

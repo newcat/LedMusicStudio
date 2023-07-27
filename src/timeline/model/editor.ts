@@ -1,7 +1,7 @@
 import { ref, Ref, watch } from "vue";
 import { defineStore } from "pinia";
 import { BaklavaEvent } from "@baklavajs/events";
-import { LibraryItemType, useLibrary } from "@/library";
+import { LibraryItem, LibraryItemType, useLibrary } from "@/library";
 import { AudioLibraryItem } from "@/audio";
 import { TICKS_PER_BEAT } from "@/constants";
 import { useGlobalState } from "@/globalState";
@@ -120,6 +120,13 @@ export const useTimeline = defineStore("timeline", () => {
         return true;
     }
 
+    function getPositionRelativeToItem(item: LibraryItem): number {
+        const unit = globalState.position;
+        const currentActiveItems = items.value.filter((i) => i.start <= unit && i.end >= unit) as Item[];
+        const activeItemOfType = currentActiveItems.find((i) => i.libraryItem.id === item.id);
+        return activeItemOfType ? unit - activeItemOfType.start : -1;
+    }
+
     watch(
         () => globalState.bpm,
         (newBpm) => {
@@ -159,5 +166,6 @@ export const useTimeline = defineStore("timeline", () => {
         moveTrack,
         addItem,
         removeItem,
+        getPositionRelativeToItem,
     };
 });

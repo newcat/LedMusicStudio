@@ -23,10 +23,17 @@ const NodeInterfaceComponent = Components.NodeInterface;
 const props = defineProps<{ graph: GraphLibraryItem }>();
 
 const ctxMenu = ref<InstanceType<typeof ContextMenu>>();
-const items = ref<ContextMenuProps["model"]>([{ label: "Add Keyframe", command: addKeyframe }]);
+const items = ref<ContextMenuProps["model"]>([
+    { label: "Add Keyframe", command: addKeyframe },
+    { label: "Remove Keyframe", command: removeKeyframe },
+]);
 const currentInterface = ref<NodeInterface | null>(null) as Ref<NodeInterface | null>;
 
 function onContextmenu(ev: PointerEvent, intf: NodeInterface) {
+    if (!intf.isInput) {
+        return;
+    }
+
     currentInterface.value = intf;
     ctxMenu.value!.show(ev);
 }
@@ -37,5 +44,13 @@ function addKeyframe() {
     }
 
     props.graph.keyframeManager.addKeyframe(currentInterface.value, currentInterface.value.value);
+}
+
+function removeKeyframe() {
+    if (!currentInterface.value) {
+        return;
+    }
+
+    props.graph.keyframeManager.removeKeyframe(currentInterface.value.id);
 }
 </script>
