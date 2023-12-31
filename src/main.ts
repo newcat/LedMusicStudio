@@ -4,13 +4,12 @@ import { createPinia } from "pinia";
 import { wasmInterop } from "./wasmInterop";
 
 import "splitpanes/dist/splitpanes.css";
-import "./index.css";
-import "./styles/all.scss";
+import "@baklavajs/themes/dist/syrup-dark.css";
 import "primevue/resources/themes/vela-blue/theme.css";
-import "primevue/resources/primevue.min.css";
 import "primeicons/primeicons.css";
 import "@mdi/font/css/materialdesignicons.css";
-import "@baklavajs/themes/dist/syrup-dark.css";
+import "./index.css";
+import "./styles/all.scss";
 
 import App from "./App.vue";
 import PrimeVue from "primevue/config";

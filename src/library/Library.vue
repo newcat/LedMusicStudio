@@ -5,7 +5,7 @@
                 <div class="font-bold text-xl">Library</div>
             </template>
             <template #end>
-                <Button class="p-button-outlined p-button-sm" type="button" @click="toggleAddItemMenu">Add Item</Button>
+                <Button type="button" outlined size="small" @click="toggleAddItemMenu">Add Item</Button>
                 <Menu ref="menu" :model="addItemOptions" :popup="true"></Menu>
             </template>
         </Toolbar>

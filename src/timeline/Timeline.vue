@@ -1,7 +1,7 @@
 <template>
     <div class="timeline-container">
         <div class="timeline-toolbar">
-            <Button class="p-button-outlined p-button-sm" @click="() => editor.addDefaultTrack()">Add Track</Button>
+            <Button outlined size="small" @click="() => editor.addDefaultTrack()">Add Track</Button>
             <Divider layout="vertical" />
             <span class="mr-4 mdi mdi-ruler" style="font-size: 1.5em"></span>
             <Dropdown

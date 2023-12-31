@@ -7,7 +7,7 @@
             </template>
         </Listbox>
         <template #footer>
-            <Button class="p-button-outlined" label="Cancel" @click="cancel"></Button>
+            <Button label="Cancel" outlined @click="cancel"></Button>
             <Button label="Add" :disabled="!selectedType" @click="add"></Button>
         </template>
     </Dialog>

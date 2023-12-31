@@ -4,14 +4,14 @@
             <div class="__title">{{ track.name }}</div>
             <div class="__actions" v-if="confirmRemove">
                 <div class="text-caption">Remove?</div>
-                <Button class="p-button-text p-button-sm" @click="remove">Yes</Button>
-                <Button class="p-button-text p-button-sm" @click="confirmRemove = false">No</Button>
+                <Button text size="small" @click="remove">Yes</Button>
+                <Button text size="small" @click="confirmRemove = false">No</Button>
             </div>
             <div class="__actions" v-else>
-                <Button class="p-button-text p-button-sm" icon="mdi mdi-pencil" @click="settingsOpen = true"> </Button>
-                <Button class="p-button-text p-button-sm" icon="mdi mdi-chevron-up" @click="moveUp"> </Button>
-                <Button class="p-button-text p-button-sm" icon="mdi mdi-chevron-down" @click="moveDown"> </Button>
-                <Button class="p-button-text p-button-sm" icon="mdi mdi-close" @click="confirmRemove = true"> </Button>
+                <Button text size="small" icon="mdi mdi-pencil" @click="settingsOpen = true"> </Button>
+                <Button text size="small" icon="mdi mdi-chevron-up" @click="moveUp"> </Button>
+                <Button text size="small" icon="mdi mdi-chevron-down" @click="moveDown"> </Button>
+                <Button text size="small" icon="mdi mdi-close" @click="confirmRemove = true"> </Button>
             </div>
         </div>
         <div

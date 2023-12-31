@@ -1,12 +1,7 @@
 <template>
     <div class="fixture-library">
         <div class="toolbar">
-            <Button
-                class="p-button-outlined"
-                :disabled="updatingFixtureLibrary"
-                label="Update Fixture Library"
-                @click="updateFixtureLibrary"
-            />
+            <Button :disabled="updatingFixtureLibrary" label="Update Fixture Library" outlined @click="updateFixtureLibrary" />
             <div class="grow"></div>
             <Button label="Add to Universe" :disabled="!selectedFixture" @click="addToUniverse" />
         </div>
