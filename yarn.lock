@@ -71,58 +71,58 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@baklavajs/core@npm:^2.2.1":
-  version: 2.2.1
-  resolution: "@baklavajs/core@npm:2.2.1"
+"@baklavajs/core@npm:^2.3.0":
+  version: 2.3.0
+  resolution: "@baklavajs/core@npm:2.3.0"
   dependencies:
-    "@baklavajs/events": ^2.1.1
+    "@baklavajs/events": ^2.3.0
     uuid: ^9.0.1
-  checksum: c43ac9f231d07d6e8a81f65710dba7dfebaaaeaee22b0e4ee555d0fe2e80215659d403533c92101b00a518b706e38f9c1c7f99fbbd410088d58625a02d33a5a5
+  checksum: d5d4b338222ed9e6f923decc97224aab012e09cfd020acc54be9d5a69741bba89df507515ed49c93ecc3f258364dd170f683e4782eced8042fdd5bf6105d716c
   languageName: node
   linkType: hard
 
-"@baklavajs/engine@npm:^2.2.1":
-  version: 2.2.1
-  resolution: "@baklavajs/engine@npm:2.2.1"
+"@baklavajs/engine@npm:^2.3.0":
+  version: 2.3.0
+  resolution: "@baklavajs/engine@npm:2.3.0"
   dependencies:
-    "@baklavajs/core": ^2.2.1
-    "@baklavajs/events": ^2.1.1
-  checksum: 2a6469f25e91a8dd03a4c1a1eab8bfb984ca6c2a962250dcf1bd1fc7865b2b0a723cffa8b6e069702dde87d6880ed4d849607cee735259f5ec48e7c6ef230edb
+    "@baklavajs/core": ^2.3.0
+    "@baklavajs/events": ^2.3.0
+  checksum: 859241c3c33167a575a634037d77ce8a64e48b82db77f75d08301919dcf4b0556d6b4220442121b6da48c22072d2aa57eb0688d2abfe3d24f0d689a4af4b18da
   languageName: node
   linkType: hard
 
-"@baklavajs/events@npm:^2.1.1":
-  version: 2.1.1
-  resolution: "@baklavajs/events@npm:2.1.1"
-  checksum: 1bc33ff1523afc43f28ef1c4f679f62a0b3886f694253604a6d472de35ea64af797a150de9e1976c40880fdbf10c31560b8a5b235cac51cca915e373d192840a
+"@baklavajs/events@npm:^2.3.0":
+  version: 2.3.0
+  resolution: "@baklavajs/events@npm:2.3.0"
+  checksum: 7aa0c5de1a2ac54126f86e8fed16e360220c909049cc4bcf10241afbfda87e4c3c982442ef204f8f7c0a90a1e613d2e36e0001953252b53321936d2cebfd90ce
   languageName: node
   linkType: hard
 
-"@baklavajs/interface-types@npm:^2.2.1":
-  version: 2.2.1
-  resolution: "@baklavajs/interface-types@npm:2.2.1"
+"@baklavajs/interface-types@npm:^2.3.0":
+  version: 2.3.0
+  resolution: "@baklavajs/interface-types@npm:2.3.0"
   dependencies:
-    "@baklavajs/core": ^2.2.1
-    "@baklavajs/engine": ^2.2.1
-    "@baklavajs/renderer-vue": ^2.2.1
-  checksum: 72692c781c838a0410a0ed44609f173abb54ab6634f638b84d08d33e835c98180344482b571926dd4fe68e4e457038352fd166b44b8070d6dbd6036c1c177b47
+    "@baklavajs/core": ^2.3.0
+    "@baklavajs/engine": ^2.3.0
+    "@baklavajs/renderer-vue": ^2.3.0
+  checksum: bcc7eeef57a0dfc8bad11d032b7cb2f3dc5f9bf58a1fb14f0786c826b9c2ff9a1e83f7ea7bcbf26c4fc25253680f8c886afeb4c7b7844233d9220ac116a9020b
   languageName: node
   linkType: hard
 
-"@baklavajs/renderer-vue@npm:^2.2.1":
-  version: 2.2.1
-  resolution: "@baklavajs/renderer-vue@npm:2.2.1"
+"@baklavajs/renderer-vue@npm:^2.3.0":
+  version: 2.3.0
+  resolution: "@baklavajs/renderer-vue@npm:2.3.0"
   dependencies:
-    "@baklavajs/core": ^2.2.1
-    "@baklavajs/events": ^2.1.1
-  checksum: 09120a2e84653c56136951d0ecc4c1a2aa4dd67294fb9fc57fc6b61d6ccc8593b5b47ff5e4a17ff6aaaf5e3dd1dfc31ab0ad6043de1b95397492401b653a35b1
+    "@baklavajs/core": ^2.3.0
+    "@baklavajs/events": ^2.3.0
+  checksum: 5d54b27a35a437ce8e86bf159b3993358e53caec16833ecf87186d0a2bfdcbadc686afe9c54c662b57b9eea83ff0cccdebb3c8c2739704c966ab620de516107b
   languageName: node
   linkType: hard
 
-"@baklavajs/themes@npm:^2.2.0":
-  version: 2.2.0
-  resolution: "@baklavajs/themes@npm:2.2.0"
-  checksum: 05b0a1a620801c13bdd845c747b3857d1725da76602a011c8a9c8d937723b80db4653671aaa918398d71cec4a56ea85d5ba9b21efef406862ae6581cd36575c6
+"@baklavajs/themes@npm:^2.3.0":
+  version: 2.3.0
+  resolution: "@baklavajs/themes@npm:2.3.0"
+  checksum: 7ea20fade12f230fd2ee266907f0bb1c122bef628147369740642f523661b88e6e9266155df375aa5a89669f3a6bd12c2ef93bb2fb112383957b563db8f1a506
   languageName: node
   linkType: hard
 
@@ -1289,16 +1289,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"baklavajs@npm:^2.2.1":
-  version: 2.2.1
-  resolution: "baklavajs@npm:2.2.1"
+"baklavajs@npm:^2.3.0":
+  version: 2.3.0
+  resolution: "baklavajs@npm:2.3.0"
   dependencies:
-    "@baklavajs/core": ^2.2.1
-    "@baklavajs/engine": ^2.2.1
-    "@baklavajs/interface-types": ^2.2.1
-    "@baklavajs/renderer-vue": ^2.2.1
-    "@baklavajs/themes": ^2.2.0
-  checksum: 4d4799a51f9792ebdd51d42e078d3f234776f5ef4971ce1350cfdf0c7a4392618d33668df7533e3ca995db8f617622dd1071888afb4cf44922a1a910c2d9de5e
+    "@baklavajs/core": ^2.3.0
+    "@baklavajs/engine": ^2.3.0
+    "@baklavajs/interface-types": ^2.3.0
+    "@baklavajs/renderer-vue": ^2.3.0
+    "@baklavajs/themes": ^2.3.0
+  checksum: d3cea440b8e782d94cefabecd853b7ac465399dd95e23098c9667cf5c0dbbcf9edd97ace7af5368dd804bddaff6b64834f6e30edd053a79c417a6df4575fee27
   languageName: node
   linkType: hard
 
@@ -3013,7 +3013,7 @@ __metadata:
     "@vueuse/core": ^10.7.1
     autoprefixer: ^10.4.16
     axios: ^1.6.3
-    baklavajs: ^2.2.1
+    baklavajs: ^2.3.0
     bson: 6.2.0
     chroma-js: ^2.4.2
     comlink: ^4.4.1

@@ -1,80 +1,81 @@
 {
-  "name": "ledmusicstudio",
-  "version": "0.0.0",
-  "main": "electron-dist/electron.js",
-  "license": "GPL-3.0",
-  "scripts": {
-    "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
-    "serve": "vite preview",
-    "electron": "yarn build:electron && wait-on tcp:3000 && cross-env IS_DEV=true electron electron-dist/electron.js",
-    "electron:pack": "electron-builder --dir",
-    "electron:dev": "concurrently -k \"cross-env BROWSER=none yarn dev\" \"yarn electron\"",
-    "electron:builder": "electron-builder",
-    "build:for:electron": "vue-tsc --noEmit && cross-env ELECTRON=true vite build",
-    "app:build": "yarn build:for:electron && yarn build:electron && yarn electron:builder",
-    "build:wasm": "wasm-pack build ./src/rust --target web",
-    "build:electron": "tsc -p tsconfig.main.json"
-  },
-  "dependencies": {
-    "@ckpack/vue-color": "^1.5.0",
-    "@mdi/font": "^7.4.47",
-    "@vueuse/core": "^10.7.1",
-    "axios": "^1.6.3",
-    "baklavajs": "^2.2.1",
-    "bson": "6.2.0",
-    "chroma-js": "^2.4.2",
-    "comlink": "^4.4.1",
-    "jszip": "^3.10.1",
-    "open-simplex-noise": "^2.5.0",
-    "pinia": "^2.1.7",
-    "primeicons": "^6.0.1",
-    "primevue": "^3.45.0",
-    "splitpanes": "^3.1.5",
-    "uuid": "^9.0.1",
-    "vue": "^3.4.3",
-    "vue-router": "4.2.5"
-  },
-  "devDependencies": {
-    "@types/bson": "^4.2.0",
-    "@types/chroma-js": "^2.4.3",
-    "@types/node": "20.10.6",
-    "@types/offscreencanvas": "^2019.7.3",
-    "@types/uuid": "^9.0.7",
-    "@vitejs/plugin-vue": "^5.0.2",
-    "autoprefixer": "^10.4.16",
-    "concurrently": "^8.2.2",
-    "cross-env": "^7.0.3",
-    "electron": "^28.1.0",
-    "electron-builder": "^24.10.0",
-    "electron-devtools-installer": "^3.2.0",
-    "postcss": "^8.4.32",
-    "rollup-plugin-visualizer": "^5.12.0",
-    "sass": "^1.69.6",
-    "tailwindcss": "^3.4.0",
-    "typescript": "^5.3.3",
-    "vite": "^5.0.10",
-    "vue-tsc": "^1.8.27",
-    "wait-on": "^7.2.0"
-  },
-  "build": {
-    "appId": "com.github.newcat.ledmusicstudio",
-    "productName": "LedMusicStudio",
-    "copyright": "Copyright © 2022 newcat",
-    "mac": {
-      "category": "public.app-category.utilities"
+    "name": "ledmusicstudio",
+    "version": "0.0.0",
+    "main": "electron-dist/electron.js",
+    "license": "GPL-3.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vue-tsc --noEmit && vite build",
+        "serve": "vite preview",
+        "electron": "yarn build:electron && wait-on tcp:3000 && cross-env IS_DEV=true electron electron-dist/electron.js",
+        "electron:pack": "electron-builder --dir",
+        "electron:dev": "concurrently -k \"cross-env BROWSER=none yarn dev\" \"yarn electron\"",
+        "electron:builder": "electron-builder",
+        "build:for:electron": "vue-tsc --noEmit && cross-env ELECTRON=true vite build",
+        "app:build": "yarn build:for:electron && yarn build:electron && yarn electron:builder",
+        "build:wasm": "wasm-pack build ./src/rust --target web",
+        "build:electron": "tsc -p tsconfig.main.json && node ./postbuild.mjs"
     },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+    "dependencies": {
+        "@ckpack/vue-color": "^1.5.0",
+        "@mdi/font": "^7.4.47",
+        "@vueuse/core": "^10.7.1",
+        "axios": "^1.6.3",
+        "baklavajs": "^2.3.0",
+        "bson": "6.2.0",
+        "chroma-js": "^2.4.2",
+        "comlink": "^4.4.1",
+        "jszip": "^3.10.1",
+        "open-simplex-noise": "^2.5.0",
+        "pinia": "^2.1.7",
+        "primeicons": "^6.0.1",
+        "primevue": "^3.45.0",
+        "splitpanes": "^3.1.5",
+        "uuid": "^9.0.1",
+        "vue": "^3.4.3",
+        "vue-router": "4.2.5"
     },
-    "files": [
-      "dist/**/*",
-      "electron-dist/**/*"
-    ],
-    "directories": {
-      "buildResources": "assets",
-      "output": "dist_electron"
+    "devDependencies": {
+        "@types/bson": "^4.2.0",
+        "@types/chroma-js": "^2.4.3",
+        "@types/node": "20.10.6",
+        "@types/offscreencanvas": "^2019.7.3",
+        "@types/uuid": "^9.0.7",
+        "@vitejs/plugin-vue": "^5.0.2",
+        "autoprefixer": "^10.4.16",
+        "concurrently": "^8.2.2",
+        "cross-env": "^7.0.3",
+        "electron": "^28.1.0",
+        "electron-builder": "^24.10.0",
+        "electron-devtools-installer": "^3.2.0",
+        "postcss": "^8.4.32",
+        "rollup-plugin-visualizer": "^5.12.0",
+        "sass": "^1.69.6",
+        "tailwindcss": "^3.4.0",
+        "typescript": "^5.3.3",
+        "vite": "^5.0.10",
+        "vue-tsc": "^1.8.27",
+        "wait-on": "^7.2.0"
+    },
+    "build": {
+        "appId": "com.github.newcat.ledmusicstudio",
+        "productName": "LedMusicStudio",
+        "copyright": "Copyright © 2024 newcat",
+        "mac": {
+            "category": "public.app-category.utilities"
+        },
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true
+        },
+        "files": [
+            "dist/**/*",
+            "electron-dist/**/*"
+        ],
+        "directories": {
+            "buildResources": "assets",
+            "output": "dist_electron"
+        }
     }
-  }
 }

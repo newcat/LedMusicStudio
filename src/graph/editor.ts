@@ -18,6 +18,9 @@ export class BaklavaEditor {
         registerNodes(this.editor);
         registerTypes(this.intfTypes);
 
+        this.viewModel.settings.enableMinimap = true;
+        this.viewModel.settings.nodes.resizable = true;
+
         this.editor.graphEvents.addConnection.subscribe(this, () => this.updateNodeInterfaceTypes());
         this.editor.graphEvents.removeConnection.subscribe(this, () => this.updateNodeInterfaceTypes());
 

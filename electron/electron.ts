@@ -1,6 +1,9 @@
 import * as path from "path";
+import * as url from "url";
 import { app, BrowserWindow, dialog, ipcMain, OpenDialogOptions, SaveDialogOptions, shell } from "electron";
 import installExtension, { VUEJS3_DEVTOOLS } from "electron-devtools-installer";
+
+const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
 let mainWindow: BrowserWindow;
 const isDev = process.env.IS_DEV == "true" ? true : false;
@@ -19,7 +22,7 @@ function createWindow() {
         width: 1280,
         height: 720,
         webPreferences: {
-            preload: path.join(__dirname, "preload.js"),
+            preload: path.join(__dirname, "preload.mjs"),
             nodeIntegration: true,
         },
         autoHideMenuBar: true,
