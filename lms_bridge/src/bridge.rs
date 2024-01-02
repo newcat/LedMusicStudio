@@ -36,7 +36,7 @@ impl Bridge {
                 if dmx_output.on_data(data).is_err() {
                     println!("Failed to write to serialport");
                 }
-            },
+            }
             WsMessage::WledData(data) => {
                 let Some(output) = self.outputs.get_mut(&data.id) else {
                     println!("Could not find output with id {}", data.id);
