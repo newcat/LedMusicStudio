@@ -9,17 +9,29 @@
                 <Menu ref="menu" :model="addFixtureOptions" :popup="true"></Menu>
             </div>
             <div>
-                <Button :disabled="!stage.scene" outlined label="Apply" @click="applyFixtures" />
+                <Button :disabled="!stage.scene || !canApply" outlined label="Apply" @click="applyFixtures" />
             </div>
         </div>
-        <Listbox
-            class="fixture-list"
-            v-model="selectedFixture"
-            :options="fixtures"
-            option-label="name"
-            empty-message="No fixtures added."
-        />
+        <Listbox class="fixture-list" v-model="selectedFixture" :options="fixtures" empty-message="No fixtures added.">
+            <template #option="{ option }">
+                <div class="flex align-items-center">
+                    <i v-if="!option.isValid" class="mdi mdi-alert mr-4" title="Please set all necessary options to use this fixture"></i>
+                    <div>{{ option.name }}</div>
+                </div>
+            </template>
+        </Listbox>
         <Panel header="Fixture Settings">
+            <template #icons>
+                <button
+                    v-tooltip.left="'Remove Fixture'"
+                    class="p-panel-header-icon p-link"
+                    :disabled="!selectedFixture"
+                    @click="removeSelectedFixture"
+                >
+                    <span class="pi pi-trash"></span>
+                </button>
+            </template>
+
             <div v-if="selectedFixture" class="fixture-settings">
                 <div>
                     <Chip>{{ selectedFixture.type }}</Chip>
@@ -40,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, markRaw, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import Button from "primevue/button";
 import Listbox from "primevue/listbox";
 import Panel from "primevue/panel";
@@ -63,6 +75,7 @@ const props = defineProps<{
 
 const library = useLibrary();
 
+const canApply = ref(false);
 const fixtures = ref<BaseStageFixture[]>([]);
 const selectedFixture = ref<BaseStageFixture | null>(null);
 const menu = ref<Menu | null>(null);
@@ -70,11 +83,26 @@ const menu = ref<Menu | null>(null);
 const addFixtureOptions: MenuProps["model"] = [
     { label: "LED Strip", icon: "mdi mdi-led-on", command: () => addFixture(StageFixtureType.LED_STRIP) },
 ];
-const outputOptions = computed(() => library.items.filter((item) => isOutputLibraryItem(item)));
+const outputOptions = computed(() =>
+    library.items.filter(
+        (item) => isOutputLibraryItem(item) && selectedFixture.value?.compatibleOutputTypes.includes(item.outputInstance.type)
+    )
+);
 
-onMounted(() => {
+onMounted(async () => {
     fixtures.value = props.stage.fixtures;
+    // needed, because the watcher is triggered by the statement above but only after the tick is processed
+    await nextTick();
+    canApply.value = false;
 });
+
+watch(
+    fixtures,
+    () => {
+        canApply.value = true;
+    },
+    { deep: true }
+);
 
 async function loadScene() {
     const result = await showOpenDialog({ title: "Load Scene", filters: [{ name: "Stage Scene", extensions: ["json"] }] });
@@ -108,6 +136,16 @@ function addFixture(type: StageFixtureType) {
 
 function applyFixtures() {
     props.stage.applyFixtures(fixtures.value);
+    canApply.value = false;
+}
+
+function removeSelectedFixture() {
+    if (!selectedFixture.value) {
+        return;
+    }
+
+    fixtures.value = fixtures.value.filter((fixture) => fixture !== selectedFixture.value);
+    selectedFixture.value = null;
 }
 </script>
 
