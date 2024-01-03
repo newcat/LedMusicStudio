@@ -5,6 +5,8 @@ export class StageLibraryItem extends LibraryItem {
     public type = LibraryItemType.STAGE;
     public name = "Stage";
 
+    public outputData: Map<string, any> = new Map();
+
     public serialize() {
         return serialize({
             id: this.id,
@@ -16,5 +18,9 @@ export class StageLibraryItem extends LibraryItem {
         const { id, name } = deserialize(buffer);
         this.id = id;
         this.name = name;
+    }
+
+    public onOutputData(outputId: string, data: any) {
+        this.outputData.set(outputId, data);
     }
 }

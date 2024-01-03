@@ -1,63 +1,94 @@
 <template>
-    <div class="stage-editor">
-        <!-- TODO -->
-        <!--<n-menu mode="horizontal" :options="menuOptions" />-->
-        <!--<n-divider class="my-1"></n-divider>-->
-        <splitpanes>
-            <pane class="prop-area" @click.self="selectedProp = null">
-                <prop-wrapper :selected="selectedProp === testProp" :prop="testProp" @select="selectedProp = testProp"></prop-wrapper>
-            </pane>
-            <pane class="properties" size="20">
-                <!--<n-h2>Properties</n-h2>-->
-            </pane>
-        </splitpanes>
-    </div>
+    <div ref="rootEl" class="stage-editor"></div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { PropWrapper } from "./components";
-import { StripProp } from "./props/strip/strip";
-
-// @ts-ignore
-import { Splitpanes, Pane } from "splitpanes";
-import { Prop } from "./props";
+import { onBeforeUnmount, onMounted, ref } from "vue";
+import * as THREE from "three";
+import Stats from "three/examples/jsm/libs/stats.module.js";
+import { LibraryItemType, useLibrary } from "@/library";
+import { isOutputLibraryItem } from "@/utils";
+import { OutputLibraryItem, OutputType, WledOutput } from "@/output";
 import { StageLibraryItem } from "./stage.libraryItem";
+import { ThreeLedStrip } from "./ledStrip";
 
-defineProps<{
+import testscene from "./testscene.json";
+
+const props = defineProps<{
     stage: StageLibraryItem;
 }>();
 
-const editMode = ref(true);
-const testProp = ref(new StripProp());
-const selectedProp = ref<Prop | null>(null);
+const library = useLibrary();
 
-const menuOptions = [
-    {
-        label: "Add",
-        key: "add",
-        children: [{ label: "Linear Fixture", key: "linearFixture" }],
-    },
-];
+const rootEl = ref<HTMLElement>();
+let continueAnimation = true;
+
+onMounted(() => {
+    if (!rootEl.value) {
+        console.warn("rootEl is not set");
+        return;
+    }
+
+    const stats = new Stats();
+    const statsEl = stats.dom;
+    statsEl.style.position = "absolute";
+    rootEl.value.appendChild(statsEl);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(rootEl.value.clientWidth, rootEl.value.clientHeight);
+    rootEl.value.appendChild(renderer.domElement);
+
+    const loader = new THREE.ObjectLoader();
+    const scene = loader.parse(testscene);
+
+    const camera = scene.children.find((child) => child.type === "PerspectiveCamera") as THREE.PerspectiveCamera;
+    if (!camera) {
+        console.warn("Camera not found");
+        return;
+    }
+
+    const ledStripMeshes = scene.children.filter((child) => child.userData?.type === "ledStrip") as THREE.Mesh[];
+    const ledStrips: ThreeLedStrip[] = [];
+    for (const mesh of ledStripMeshes) {
+        const strip = new ThreeLedStrip(mesh, "");
+        const output = library.items.find(
+            (it) => isOutputLibraryItem(it) && it.outputInstance.type === OutputType.WLED
+        ) as OutputLibraryItem;
+        if (output) {
+            console.log("Found output", output);
+            strip.outputId = output.id;
+            strip.updateState(output.outputInstance as WledOutput);
+        }
+        ledStrips.push(strip);
+        scene.add(strip);
+    }
+
+    function render() {
+        if (continueAnimation) {
+            requestAnimationFrame(render);
+        }
+        stats.begin();
+        ledStrips.forEach((strip) => {
+            const data = props.stage.outputData.get(strip.outputId);
+            if (data) {
+                strip.updateData(data);
+            }
+        });
+        renderer.render(scene, camera);
+        stats.end();
+    }
+    render();
+});
+
+onBeforeUnmount(() => {
+    continueAnimation = false;
+});
 </script>
 
 <style scoped>
 .stage-editor {
     width: 100%;
     height: 100%;
-}
-
-.prop-area {
-    height: 100%;
-}
-
-.properties {
-    height: 100%;
-    padding: 1rem;
-}
-
-.splitpanes > :deep(.splitpanes__splitter) {
-    min-width: 2px;
-    background-color: var(--n-border-color);
+    position: relative;
 }
 </style>

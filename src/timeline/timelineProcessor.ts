@@ -10,6 +10,7 @@ import { GraphLibraryItem } from "@/graph";
 import { AutomationLibraryItem } from "@/automation";
 import { LibraryItemType, useLibrary } from "@/library";
 import { INote, PatternLibraryItem } from "@/pattern";
+import { StageLibraryItem } from "@/stage";
 import { ICalculationData } from "@/graph";
 import { useGlobalState } from "@/globalState";
 
@@ -113,9 +114,12 @@ export class TimelineProcessor {
             }
         }
 
+        const stages = this.library.items.filter((i) => i.type === LibraryItemType.STAGE) as StageLibraryItem[];
         const outputs = this.library.items.filter((i) => i.type === LibraryItemType.OUTPUT) as OutputLibraryItem[];
         for (const o of outputs) {
-            await o.outputInstance.onData(outputMap.get(o.outputInstance));
+            const outputData = outputMap.get(o.outputInstance);
+            await o.outputInstance.onData(outputData);
+            stages.forEach((s) => s.onOutputData(o.id, outputData));
         }
         for (const o of outputs) {
             await o.outputInstance.send();
