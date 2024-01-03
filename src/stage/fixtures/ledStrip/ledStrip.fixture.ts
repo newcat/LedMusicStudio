@@ -5,7 +5,12 @@ import { BaseStageFixture, StageFixtureType } from "../base.fixture";
 import LedStripFixtureSettings from "./LedStripFixtureSettings.vue";
 import { ThreeLedStripFixture } from "./ledStrip.three";
 
-export class LedStripStageFixture extends BaseStageFixture {
+interface LedStripStageFixtureState {
+    meshId: string;
+    numLeds: number;
+}
+
+export class LedStripStageFixture extends BaseStageFixture<LedStripStageFixtureState> {
     public readonly settingsComponent = markRaw(LedStripFixtureSettings);
     public readonly compatibleOutputTypes = [OutputType.WLED];
 
@@ -22,5 +27,16 @@ export class LedStripStageFixture extends BaseStageFixture {
 
     public createThreeInstance(scene: THREE.Scene) {
         return new ThreeLedStripFixture(this, scene);
+    }
+
+    public saveState(): LedStripStageFixtureState {
+        return {
+            meshId: this.meshId,
+            numLeds: this.numLeds,
+        };
+    }
+    public loadState(state: LedStripStageFixtureState): void {
+        this.meshId = state.meshId;
+        this.numLeds = state.numLeds;
     }
 }

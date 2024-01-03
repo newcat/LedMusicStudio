@@ -55,7 +55,6 @@ import LabelledFormField from "@/components/LabelledFormField.vue";
 
 import { StageLibraryItem } from "./stage.libraryItem";
 import { BaseStageFixture, LedStripStageFixture, StageFixtureType } from "./fixtures";
-import { StageScene } from "./stageScene";
 import { isOutputLibraryItem } from "@/utils";
 
 const props = defineProps<{
@@ -92,7 +91,7 @@ async function loadScene() {
         throw new Error("Timeout while reading data");
     }
 
-    props.stage.scene = markRaw(new StageScene(JSON.parse(rawData as string)));
+    props.stage.createScene(JSON.parse(rawData as string));
 }
 
 function addFixture(type: StageFixtureType) {
@@ -108,8 +107,7 @@ function addFixture(type: StageFixtureType) {
 }
 
 function applyFixtures() {
-    props.stage.fixtures = fixtures.value;
-    props.stage.scene?.applyFixtures(fixtures.value);
+    props.stage.applyFixtures(fixtures.value);
 }
 </script>
 

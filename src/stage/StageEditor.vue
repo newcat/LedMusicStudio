@@ -5,15 +5,15 @@
         </div>
         <div class="h-full min-h-0">
             <KeepAlive>
-                <StageSettings v-if="activeTab === 0" v-model:stage="stage"></StageSettings>
-                <StageView v-else-if="activeTab === 1 && stage.scene" v-model:stage="stage"></StageView>
+                <StageView v-if="activeTab === 0 && stage.scene" v-model:stage="stage"></StageView>
+                <StageSettings v-else v-model:stage="stage"></StageSettings>
             </KeepAlive>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import TabMenu, { TabMenuProps } from "primevue/tabmenu";
 
 import { StageLibraryItem } from "./stage.libraryItem";
@@ -24,9 +24,15 @@ const stage = defineModel<StageLibraryItem>("stage", { required: true });
 
 const activeTab = ref(0);
 const tabMenuItems = computed<TabMenuProps["model"]>(() => [
-    { label: "Settings", icon: "mdi mdi-cog-outline" },
     { label: "Stage", icon: "mdi mdi-cast-variant", disabled: !stage.value.scene },
+    { label: "Settings", icon: "mdi mdi-cog-outline" },
 ]);
+
+onMounted(() => {
+    if (!stage.value.scene) {
+        activeTab.value = 1;
+    }
+});
 </script>
 
 <style scoped>

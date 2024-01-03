@@ -8,7 +8,7 @@ export class StageScene {
     public outputData: Map<string, any> = new Map();
     private fixtureInstances: ThreeBaseFixture[] = [];
 
-    public constructor(private readonly baseScene: any) {
+    public constructor(public readonly baseScene: any) {
         const loader = new THREE.ObjectLoader();
         this.scene = loader.parse(baseScene) as THREE.Scene;
 
@@ -28,6 +28,7 @@ export class StageScene {
 
         for (const fixture of fixtures) {
             if (!fixture.isValid) {
+                console.warn(`Fixture ${fixture.name} is not valid`, fixture);
                 continue;
             }
             const fixtureInstance = fixture.createThreeInstance(this.scene);

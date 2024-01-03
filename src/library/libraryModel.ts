@@ -2,12 +2,13 @@ import { reactive, Ref, ref } from "vue";
 import { serialize, deserialize, Binary } from "bson";
 import { defineStore } from "pinia";
 import { v4 as uuidv4 } from "uuid";
+import { BaklavaEvent } from "@baklavajs/events";
 import { AudioLibraryItem } from "@/audio";
 import { AutomationLibraryItem } from "@/automation";
 import { GraphLibraryItem } from "@/graph";
-import { BaklavaEvent } from "@baklavajs/events";
 import { PatternLibraryItem } from "@/pattern";
 import { OutputLibraryItem } from "@/output";
+import { StageLibraryItem } from "@/stage";
 import { LibraryItem, LibraryItemType } from "./libraryItem";
 
 interface ILibraryState {
@@ -39,6 +40,8 @@ function createItemByType(type: LibraryItemType): LibraryItem | undefined {
         case LibraryItemType.OUTPUT:
             // output will be created during "deserialize"
             return new OutputLibraryItem(undefined as any);
+        case LibraryItemType.STAGE:
+            return new StageLibraryItem();
         default:
             console.warn(`Unknown library type: ${type}`);
     }

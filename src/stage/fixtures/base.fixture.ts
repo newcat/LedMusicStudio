@@ -7,7 +7,7 @@ export enum StageFixtureType {
     LED_STRIP = "Led Strip",
 }
 
-export abstract class BaseStageFixture {
+export abstract class BaseStageFixture<S = unknown> {
     public abstract readonly settingsComponent?: any;
     public abstract readonly compatibleOutputTypes: OutputType[];
 
@@ -24,4 +24,6 @@ export abstract class BaseStageFixture {
     }
 
     public abstract createThreeInstance(scene: THREE.Scene): ThreeBaseFixture;
+    public abstract saveState(): S;
+    public abstract loadState(state: S): void;
 }
