@@ -1,17 +1,15 @@
-import { markRaw } from "vue";
 import { serialize, deserialize } from "bson";
 import * as THREE from "three";
 import { LibraryItem, LibraryItemType } from "@/library";
 import { StageScene } from "./stageScene";
-
-import testscene from "./testscene.json";
+import { BaseStageFixture } from "./fixtures";
 
 export class StageLibraryItem extends LibraryItem {
     public type = LibraryItemType.STAGE;
     public name = "Stage";
 
-    public outputData: Map<string, any> = new Map();
-    public scene = markRaw(new StageScene(testscene));
+    public scene: StageScene | null = null;
+    public fixtures: BaseStageFixture[] = [];
 
     public serialize() {
         return serialize({
@@ -27,7 +25,7 @@ export class StageLibraryItem extends LibraryItem {
     }
 
     public onOutputData(outputId: string, data: any) {
-        this.outputData.set(outputId, data);
+        this.scene?.outputData.set(outputId, data);
     }
 
     public loadScene(sceneObject: any) {

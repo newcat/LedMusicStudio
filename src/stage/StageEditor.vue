@@ -5,30 +5,28 @@
         </div>
         <div class="h-full min-h-0">
             <KeepAlive>
-                <StageSettings v-if="activeTab === 0" v-model:stage="props.stage"></StageSettings>
-                <StageView v-else-if="activeTab === 1" v-model:stage="props.stage"></StageView>
+                <StageSettings v-if="activeTab === 0" v-model:stage="stage"></StageSettings>
+                <StageView v-else-if="activeTab === 1 && stage.scene" v-model:stage="stage"></StageView>
             </KeepAlive>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import TabMenu, { TabMenuProps } from "primevue/tabmenu";
 
 import { StageLibraryItem } from "./stage.libraryItem";
 import StageSettings from "./StageSettings.vue";
 import StageView from "./StageView.vue";
 
-const props = defineProps<{
-    stage: StageLibraryItem;
-}>();
+const stage = defineModel<StageLibraryItem>("stage", { required: true });
 
 const activeTab = ref(0);
-const tabMenuItems: TabMenuProps["model"] = [
+const tabMenuItems = computed<TabMenuProps["model"]>(() => [
     { label: "Settings", icon: "mdi mdi-cog-outline" },
-    { label: "Stage", icon: "mdi mdi-cast-variant" },
-];
+    { label: "Stage", icon: "mdi mdi-cast-variant", disabled: !stage.value.scene },
+]);
 </script>
 
 <style scoped>

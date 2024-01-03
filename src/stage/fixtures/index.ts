@@ -1,17 +1,3 @@
-export enum StageFixtureType {
-    WLED,
-}
-
-export interface BaseStageFixture {
-    type: StageFixtureType;
-    id: string;
-    name: string;
-    outputId: string;
-}
-
-export interface WledStageFixture extends BaseStageFixture {
-    type: StageFixtureType.WLED;
-    meshId: string;
-}
-
-export type StageFixture = WledStageFixture;
+export * from "./base.fixture";
+export * from "./base.three";
+export * from "./ledStrip";

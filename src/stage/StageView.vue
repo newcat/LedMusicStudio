@@ -48,7 +48,11 @@ function render() {
     if (continueAnimation) {
         requestAnimationFrame(render);
     }
+    if (!props.stage.scene) {
+        return;
+    }
     stats.begin();
+    props.stage.scene.updateFixtureData();
     renderer.render(props.stage.scene.scene, props.stage.scene.camera);
     stats.end();
 }
