@@ -1,5 +1,7 @@
+import { markRaw } from "vue";
 import { BaseFixture, FixtureType } from "../base.fixture";
 import { Fixture as OpenFixtureDefinition } from "./open-fixture";
+import DmxFixtureSettings from "./DmxFixtureSettings.vue";
 
 interface DmxFixtureConfiguration {
     definition: OpenFixtureDefinition | null;
@@ -9,6 +11,7 @@ interface DmxFixtureConfiguration {
 
 export class DmxFixture extends BaseFixture<number[], DmxFixtureConfiguration> {
     public override readonly type = FixtureType.DMX;
+    public override readonly settingsComponent = markRaw(DmxFixtureSettings);
 
     public constructor() {
         super([], {

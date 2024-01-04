@@ -1,39 +1,47 @@
 <template>
-    <div class="fixture-library">
-        <div class="toolbar">
-            <Button :disabled="updatingFixtureLibrary" label="Update Fixture Library" outlined @click="updateFixtureLibrary" />
-            <div class="grow"></div>
-            <Button label="Add to Universe" :disabled="!selectedFixture" @click="addToUniverse" />
+    <Dialog v-model:visible="visible" modal header="Choose Fixture" style="width: 50vw; min-width: 1000px">
+        <div class="fixture-library">
+            <div class="toolbar">
+                <Button :disabled="updatingFixtureLibrary" label="Update Fixture Library" outlined @click="updateFixtureLibrary" />
+            </div>
+            <Listbox
+                class="manufacturer-list"
+                v-model="selectedManufacturer"
+                :options="fixtureLibrary.fixtures"
+                optionLabel="name"
+                :filter="true"
+                listStyle="max-height: 100%"
+            ></Listbox>
+            <Listbox
+                class="fixture-list"
+                v-model="selectedFixture"
+                :options="selectedManufacturer?.fixtures ?? []"
+                optionLabel="name"
+                :filter="true"
+                listStyle="max-height: 100%"
+            ></Listbox>
         </div>
-        <Listbox
-            class="manufacturer-list"
-            v-model="selectedManufacturer"
-            :options="fixtureLibrary.fixtures"
-            optionLabel="name"
-            :filter="true"
-            listStyle="max-height: 100%"
-        ></Listbox>
-        <Listbox
-            class="fixture-list"
-            v-model="selectedFixture"
-            :options="selectedManufacturer?.fixtures ?? []"
-            optionLabel="name"
-            :filter="true"
-            listStyle="max-height: 100%"
-        ></Listbox>
-    </div>
+
+        <template #footer>
+            <Button label="Ok" icon="pi pi-check" :disabled="!selectedFixture" @click="addToUniverse" />
+            <Button label="Cancel" icon="pi pi-times" outlined @click="visible = false" />
+        </template>
+    </Dialog>
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue";
+import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import Listbox from "primevue/listbox";
 import { useToast } from "primevue/usetoast";
-import { Manufacturer, useFixtureLibrary } from "./fixtureLibrary";
-import { Fixture } from "./open-fixture";
 
+import { Fixture } from "./open-fixture";
+import { Manufacturer, useFixtureLibrary } from "./fixtureLibrary";
+
+const visible = defineModel<boolean>({ required: true });
 const emit = defineEmits<{
-    (e: "addFixture", fixture: Fixture): void;
+    (e: "setFixture", fixture: Fixture): void;
 }>();
 
 const toast = useToast();
@@ -56,14 +64,15 @@ async function updateFixtureLibrary() {
 }
 
 function addToUniverse() {
-    emit("addFixture", selectedFixture.value!);
+    emit("setFixture", selectedFixture.value!);
+    visible.value = false;
 }
 </script>
 
 <style scoped>
 .fixture-library {
     margin-top: 1rem;
-    height: calc(100% - 1rem);
+    height: 50vh;
     display: grid;
     gap: 1rem;
     grid-template-rows: min-content auto;
