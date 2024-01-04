@@ -8,7 +8,6 @@ import { AutomationLibraryItem } from "@/automation";
 import { GraphLibraryItem } from "@/graph";
 import { PatternLibraryItem } from "@/pattern";
 import { OutputLibraryItem } from "@/output";
-import { StageLibraryItem } from "@/stage";
 import { LibraryItem, LibraryItemType } from "./libraryItem";
 
 interface ILibraryState {
@@ -20,10 +19,8 @@ interface ILibraryState {
 
 const LOADING_ORDER: LibraryItemType[] = [
     LibraryItemType.AUDIO,
-    LibraryItemType.OUTPUT,
     LibraryItemType.AUTOMATION,
     LibraryItemType.PATTERN,
-    LibraryItemType.STAGE,
     LibraryItemType.GRAPH,
 ];
 
@@ -37,11 +34,6 @@ function createItemByType(type: LibraryItemType): LibraryItem | undefined {
             return new GraphLibraryItem();
         case LibraryItemType.PATTERN:
             return new PatternLibraryItem();
-        case LibraryItemType.OUTPUT:
-            // output will be created during "deserialize"
-            return new OutputLibraryItem(undefined as any);
-        case LibraryItemType.STAGE:
-            return new StageLibraryItem();
         default:
             console.warn(`Unknown library type: ${type}`);
     }

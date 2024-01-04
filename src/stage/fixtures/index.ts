@@ -1,4 +1,3 @@
 export * from "./base.fixture";
-export * from "./base.three";
-export * from "./ledStrip";
-export * from "./spot";
+export * from "./dmx/dmx.fixture";
+export * from "./ledStrip/ledStrip.fixture";

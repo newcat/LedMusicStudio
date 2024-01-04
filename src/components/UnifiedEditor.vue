@@ -11,8 +11,6 @@
                 :automationClip="selectedItem"
                 :key="'a' + selectedItem.id"
             ></AutomationEditor>
-            <OutputEditor v-else-if="isOutput(selectedItem)" :output="selectedItem" :key="'o' + selectedItem.id"></OutputEditor>
-            <StageEditor v-else-if="isStage(selectedItem)" :stage="selectedItem" :key="'s' + selectedItem.id"></StageEditor>
         </template>
     </Card>
 </template>
@@ -24,8 +22,6 @@ import Card from "primevue/card";
 import { LibraryItem, LibraryItemType, useLibrary } from "@/library";
 import { NoteEditor, PatternLibraryItem } from "@/pattern";
 import { AutomationEditor, AutomationLibraryItem } from "@/automation";
-import { OutputEditor, OutputLibraryItem } from "@/output";
-import { StageEditor, StageLibraryItem } from "@/stage";
 import { GraphEditor, GraphLibraryItem } from "@/graph";
 
 const library = useLibrary();
@@ -52,14 +48,6 @@ function isAutomation(item?: LibraryItem): item is AutomationLibraryItem {
 
 function isPattern(item?: LibraryItem): item is PatternLibraryItem {
     return !!item && item.type === LibraryItemType.PATTERN;
-}
-
-function isOutput(item?: LibraryItem): item is OutputLibraryItem {
-    return !!item && item.type === LibraryItemType.OUTPUT;
-}
-
-function isStage(item?: LibraryItem): item is StageLibraryItem {
-    return !!item && item.type === LibraryItemType.STAGE;
 }
 </script>
 

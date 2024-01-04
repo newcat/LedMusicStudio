@@ -1,13 +1,13 @@
 import { IWledOutputData } from "@/output";
 import { scaleColorArray } from "@/utils";
 import * as THREE from "three";
-import { LedStripStageFixture } from "./ledStrip.fixture";
-import { ThreeBaseFixture } from "../base.three";
+import { LedStripFixture } from "../../fixtures/ledStrip/ledStrip.fixture";
+import { BaseVisualization } from "./base.visualization";
 
-export class ThreeLedStripFixture extends ThreeBaseFixture {
+export class LedStripVisualization extends BaseVisualization {
     private leds: THREE.PointLight[] = [];
 
-    constructor(private readonly fixture: LedStripStageFixture, scene: THREE.Scene) {
+    constructor(private readonly fixture: LedStripFixture, scene: THREE.Scene) {
         super();
 
         const mesh = scene.children.find((c) => c.uuid === fixture.meshId && c instanceof THREE.Mesh) as THREE.Mesh | undefined;

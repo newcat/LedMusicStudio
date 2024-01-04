@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { BaseStageFixture, ThreeBaseFixture } from "./fixtures";
+import { BaseStageFixture, ThreeBaseFixture } from "./fixtureVisualizations";
 
-export class StageScene {
+export class StageVisualization {
     public readonly scene: THREE.Scene;
     public readonly camera: THREE.PerspectiveCamera;
 

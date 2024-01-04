@@ -1,30 +1,38 @@
-import { OutputType } from "@/output";
+import { Component } from "vue";
 import { v4 as uuidv4 } from "uuid";
-import * as THREE from "three";
-import { ThreeBaseFixture } from "./base.three";
 
-export enum StageFixtureType {
-    LED_STRIP = "Led Strip",
-    SPOT = "Spot",
+export enum FixtureType {
+    LED_STRIP = "LED Strip",
+    DMX = "DMX",
 }
 
-export abstract class BaseStageFixture<S = unknown> {
-    public abstract readonly settingsComponent?: any;
-    public abstract readonly compatibleOutputTypes: OutputType[];
+export abstract class BaseFixture<V = unknown, C = unknown> {
+    public readonly id = uuidv4();
+    public abstract readonly type: FixtureType;
+    public name: string = "Fixture";
+    public readonly settingsComponent: Component | null = null;
 
-    public type: StageFixtureType;
-    public name: string;
-    public id: string = uuidv4();
-    public outputId: string = "";
+    protected _value: V;
+    protected _config: C;
 
-    public abstract get isValid(): boolean;
-
-    public constructor(type: StageFixtureType, name: string) {
-        this.type = type;
-        this.name = name;
+    public get value(): V {
+        return this._value;
     }
 
-    public abstract createThreeInstance(scene: THREE.Scene): ThreeBaseFixture;
-    public abstract saveState(): S;
-    public abstract loadState(state: S): void;
+    public get config(): C {
+        return this._config;
+    }
+
+    constructor(initialValue: V, initialConfig: C) {
+        this._value = initialValue;
+        this._config = initialConfig;
+    }
+
+    public setValue(v: V) {
+        this._value = v;
+    }
+
+    public setConfig(c: C) {
+        this._config = c;
+    }
 }

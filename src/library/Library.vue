@@ -48,7 +48,6 @@ import { AudioLibraryItem } from "@/audio/audio.libraryItem";
 import { AutomationLibraryItem } from "@/automation/automation.libraryItem";
 import { GraphLibraryItem } from "@/graph/graph.libraryItem";
 import { PatternLibraryItem } from "@/pattern/pattern.libraryItem";
-import { StageLibraryItem } from "@/stage/stage.libraryItem";
 import { LibraryItemType, LibraryItem, LibraryItemTypeIcons, LibraryItemTypeLabels, LibraryItemTypeList } from "./libraryItem";
 import { useLibrary } from "./libraryModel";
 
@@ -114,14 +113,8 @@ function addItem(key: LibraryItemType) {
         case LibraryItemType.GRAPH:
             item = GraphLibraryItem;
             break;
-        case LibraryItemType.OUTPUT:
-            showSelectOutputTypeDialog.value = true;
-            return;
         case LibraryItemType.PATTERN:
             item = PatternLibraryItem;
-            break;
-        case LibraryItemType.STAGE:
-            item = StageLibraryItem;
             break;
         default:
             return;

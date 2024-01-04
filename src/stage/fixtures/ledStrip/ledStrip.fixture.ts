@@ -1,42 +1,27 @@
 import { markRaw } from "vue";
-import * as THREE from "three";
-import { OutputType } from "@/output";
-import { BaseStageFixture, StageFixtureType } from "../base.fixture";
-import LedStripFixtureSettings from "./LedStripFixtureSettings.vue";
-import { ThreeLedStripFixture } from "./ledStrip.three";
 
-interface LedStripStageFixtureState {
-    meshId: string;
+import { Color } from "@/graph/colors";
+import { scaleColorArray } from "@/utils";
+import { BaseFixture, FixtureType } from "../base.fixture";
+import LedStripFixtureSettings from "./LedStripFixtureSettings.vue";
+
+interface LedStripFixtureConfiguration {
     numLeds: number;
 }
 
-export class LedStripStageFixture extends BaseStageFixture<LedStripStageFixtureState> {
-    public readonly settingsComponent = markRaw(LedStripFixtureSettings);
-    public readonly compatibleOutputTypes = [OutputType.WLED];
-
-    public meshId: string = "";
-    public numLeds: number = 60;
-
-    public get isValid() {
-        return !!this.outputId && !!this.meshId;
-    }
+export class LedStripFixture extends BaseFixture<Color[], LedStripFixtureConfiguration> {
+    public override readonly type = FixtureType.LED_STRIP;
+    public override readonly settingsComponent = markRaw(LedStripFixtureSettings);
 
     constructor() {
-        super(StageFixtureType.LED_STRIP, "LED Strip");
+        super([[0, 0, 0]], { numLeds: 1 });
+        this.name = "LED Strip";
     }
 
-    public createThreeInstance(scene: THREE.Scene) {
-        return new ThreeLedStripFixture(this, scene);
-    }
-
-    public saveState(): LedStripStageFixtureState {
-        return {
-            meshId: this.meshId,
-            numLeds: this.numLeds,
-        };
-    }
-    public loadState(state: LedStripStageFixtureState): void {
-        this.meshId = state.meshId;
-        this.numLeds = state.numLeds;
+    public override setValue(v: Color[]) {
+        if (v.length !== this.config.numLeds) {
+            v = scaleColorArray(v, this.config.numLeds);
+        }
+        super.setValue(v);
     }
 }

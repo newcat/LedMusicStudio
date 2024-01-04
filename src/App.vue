@@ -1,27 +1,21 @@
 <template>
     <main>
         <div id="app-container">
-            <c-toolbar @newProject="newProject" @load="load" @save="save" @saveAs="saveAs" @showSettings="showSettings = true"></c-toolbar>
+            <Toolbar
+                v-model:view="currentView"
+                @newProject="newProject"
+                @load="load"
+                @save="save"
+                @saveAs="saveAs"
+                @showSettings="showSettings = true"
+            />
             <div class="content">
-                <splitpanes>
-                    <pane min-size="10" size="15">
-                        <c-library></c-library>
-                    </pane>
-                    <pane>
-                        <splitpanes horizontal>
-                            <pane>
-                                <c-unified-editor class="fill-height"></c-unified-editor>
-                            </pane>
-                            <pane>
-                                <c-timeline></c-timeline>
-                            </pane>
-                        </splitpanes>
-                    </pane>
-                </splitpanes>
+                <Programming v-show="currentView === 'PROGRAMMING'" />
+                <Stage v-show="currentView === 'STAGE'" />
             </div>
         </div>
-        <c-settings v-model="showSettings"></c-settings>
-        <c-loading-dialog v-model="showLoadingDialog"></c-loading-dialog>
+        <Settings v-model="showSettings" />
+        <LoadingDialog v-model="showLoadingDialog" />
         <Toast />
     </main>
 </template>
@@ -31,15 +25,11 @@ import { ref } from "vue";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 
-// @ts-ignore
-import { Splitpanes, Pane } from "splitpanes";
-
-import CLibrary from "@/library/Library.vue";
-import CSettings from "@/components/Settings.vue";
-import CToolbar from "@/components/MainToolbar.vue";
-import CLoadingDialog from "@/components/LoadingDialog.vue";
-import CUnifiedEditor from "@/components/UnifiedEditor.vue";
-import CTimeline from "@/timeline/Timeline.vue";
+import Settings from "@/components/Settings.vue";
+import Toolbar from "@/components/MainToolbar.vue";
+import LoadingDialog from "@/components/LoadingDialog.vue";
+import Programming from "./Programming.vue";
+import Stage from "./stage/components/Stage.vue";
 
 import { useGlobalState } from "@/globalState";
 import { TimelineProcessor } from "@/timeline";
@@ -51,6 +41,7 @@ const toast = useToast();
 const showSettings = ref(false);
 const showLoadingDialog = ref(false);
 const processor = ref(new TimelineProcessor());
+const currentView = ref<"PROGRAMMING" | "STAGE">("STAGE");
 
 (window as any).globalState = globalState;
 (window as any).processor = processor;
@@ -153,10 +144,6 @@ main {
 
 .content {
     padding: 1rem;
-    height: 100%;
-}
-
-.n-config-provider {
     height: 100%;
 }
 </style>
