@@ -5,6 +5,7 @@ import { ThreeBaseFixture } from "./base.three";
 
 export enum StageFixtureType {
     LED_STRIP = "Led Strip",
+    SPOT = "Spot",
 }
 
 export abstract class BaseStageFixture<S = unknown> {

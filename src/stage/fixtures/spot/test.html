@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Document</title>
+
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+                }
+            }
+        </script>
+
+        <style>
+            html,
+            body {
+                margin: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <script>
+            const rawStageScene = {
+                metadata: {
+                    version: 4.6,
+                    type: "Object",
+                    generator: "Object3D.toJSON",
+                },
+                geometries: [
+                    {
+                        uuid: "71128041-84c0-4383-8935-5b088e406b41",
+                        type: "PlaneGeometry",
+                        width: 1,
+                        height: 1,
+                        widthSegments: 1,
+                        heightSegments: 1,
+                    },
+                    {
+                        uuid: "3ce8ea84-f431-4e14-80da-8070e588bb5f",
+                        type: "PlaneGeometry",
+                        width: 1,
+                        height: 1,
+                        widthSegments: 1,
+                        heightSegments: 1,
+                    },
+                    {
+                        uuid: "71cfb2de-23ed-4bde-bbb7-554600e52fbe",
+                        type: "PlaneGeometry",
+                        width: 1,
+                        height: 1,
+                        widthSegments: 1,
+                        heightSegments: 1,
+                    },
+                    {
+                        uuid: "51cccebe-2b7a-4ca2-9ed4-108a88eddfe9",
+                        type: "BoxGeometry",
+                        width: 1,
+                        height: 1,
+                        depth: 1,
+                        widthSegments: 1,
+                        heightSegments: 1,
+                        depthSegments: 1,
+                    },
+                ],
+                materials: [
+                    {
+                        uuid: "fe54779d-f986-4197-b799-c74c3311db1e",
+                        type: "MeshStandardMaterial",
+                        color: 16777215,
+                        roughness: 1,
+                        metalness: 0,
+                        emissive: 0,
+                        envMapIntensity: 1,
+                        blendColor: 0,
+                    },
+                    {
+                        uuid: "727c9c2e-cbb2-467c-9f0e-1e15bb5522ff",
+                        type: "MeshStandardMaterial",
+                        color: 16777215,
+                        roughness: 1,
+                        metalness: 0,
+                        emissive: 0,
+                        envMapIntensity: 1,
+                        blendColor: 0,
+                    },
+                    {
+                        uuid: "09fe0119-1e94-42da-a22a-85672de0911b",
+                        type: "MeshStandardMaterial",
+                        color: 16777215,
+                        roughness: 1,
+                        metalness: 0,
+                        emissive: 0,
+                        envMapIntensity: 1,
+                        blendColor: 0,
+                    },
+                    {
+                        uuid: "42fea22f-1bc3-4f01-9e9c-e9aeff3dcf43",
+                        type: "MeshStandardMaterial",
+                        color: 16777215,
+                        roughness: 1,
+                        metalness: 0,
+                        emissive: 0,
+                        envMapIntensity: 1,
+                        blendColor: 0,
+                    },
+                ],
+                object: {
+                    uuid: "5e925b56-a1bf-461b-a3fd-57da91754def",
+                    type: "Scene",
+                    name: "Scene",
+                    layers: 1,
+                    matrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+                    up: [0, 1, 0],
+                    children: [
+                        {
+                            uuid: "07c28597-7f89-44ef-800e-f4500815c020",
+                            type: "Mesh",
+                            name: "Plane",
+                            layers: 1,
+                            matrix: [
+                                10, 0, 0, 0, 0, -2.220446049250313e-15, 10.000000000000002, 0, 0, -1.0000000000000002,
+                                -2.220446049250313e-16, 0, 0, 4, 0, 1,
+                            ],
+                            up: [0, 1, 0],
+                            geometry: "71128041-84c0-4383-8935-5b088e406b41",
+                            material: "fe54779d-f986-4197-b799-c74c3311db1e",
+                        },
+                        {
+                            uuid: "0eb68855-0dfd-44fc-9aa5-069ce15ee511",
+                            type: "PerspectiveCamera",
+                            name: "PerspectiveCamera",
+                            layers: 1,
+                            matrix: [
+                                -4.440892098500626e-16, 0.006981260297961972, 0.9999756307053952, 0, 0, 0.9999756307053947,
+                                -0.006981260297961972, 0, -1.0000000000000004, 0, -4.440892098500626e-16, 0, -7, 2, 0, 1,
+                            ],
+                            up: [0, 1, 0],
+                            fov: 35,
+                            zoom: 1,
+                            near: 0.1,
+                            far: 2000,
+                            focus: 10,
+                            aspect: 1.8123496391339213,
+                            filmGauge: 35,
+                            filmOffset: 0,
+                        },
+                        {
+                            uuid: "fbc44a79-a22b-48aa-ba60-3e9dc41936e1",
+                            type: "Mesh",
+                            name: "LedStrip1",
+                            userData: {
+                                type: "ledStrip",
+                            },
+                            layers: 1,
+                            matrix: [
+                                -4.413229110132097e-15, 0, 9.937708487945772, 0, 0, 0, 0, 0, 0, 1.0000000000000004, -4.440892098500626e-16,
+                                0, 4.895443785916715, 3.2700306411167452, 0, 1,
+                            ],
+                            up: [0, 1, 0],
+                            geometry: "3ce8ea84-f431-4e14-80da-8070e588bb5f",
+                            material: "727c9c2e-cbb2-467c-9f0e-1e15bb5522ff",
+                        },
+                        {
+                            uuid: "a14c5243-e13d-4ffe-ac23-2e6628acd494",
+                            type: "Mesh",
+                            name: "Plane",
+                            layers: 1,
+                            matrix: [10, 0, 0, 0, 0, 4, 0, 0, 0, 0, 1, 0, 0, 2, -5, 1],
+                            up: [0, 1, 0],
+                            geometry: "71cfb2de-23ed-4bde-bbb7-554600e52fbe",
+                            material: "09fe0119-1e94-42da-a22a-85672de0911b",
+                        },
+                        {
+                            uuid: "2f5efbe8-4b52-4579-9b58-0b6be45a10c9",
+                            type: "Mesh",
+                            name: "Plane",
+                            layers: 1,
+                            matrix: [
+                                -2.220446049250313e-15, 0, 10.000000000000002, 0, 0, 4, 0, 0, -1.0000000000000002, 0,
+                                -2.220446049250313e-16, 0, 5, 2, 0, 1,
+                            ],
+                            up: [0, 1, 0],
+                            geometry: "71cfb2de-23ed-4bde-bbb7-554600e52fbe",
+                            material: "09fe0119-1e94-42da-a22a-85672de0911b",
+                        },
+                        {
+                            uuid: "719e6aee-e7b4-4405-8c79-3bdb4380034a",
+                            type: "Mesh",
+                            name: "Plane",
+                            layers: 1,
+                            matrix: [-10, 0, -1.2246467991473533e-15, 0, 0, 4, 0, 0, 1.2246467991473532e-16, 0, -1, 0, 0, 2, 5, 1],
+                            up: [0, 1, 0],
+                            geometry: "71cfb2de-23ed-4bde-bbb7-554600e52fbe",
+                            material: "09fe0119-1e94-42da-a22a-85672de0911b",
+                        },
+                        {
+                            uuid: "33e3763b-ccaa-4282-be54-d5ad8ea67f64",
+                            type: "Mesh",
+                            name: "Plane",
+                            layers: 1,
+                            matrix: [
+                                10, 0, 0, 0, 0, -2.220446049250313e-15, -10.000000000000002, 0, 0, 1.0000000000000002,
+                                -2.220446049250313e-16, 0, 0, 0, 0, 1,
+                            ],
+                            up: [0, 1, 0],
+                            geometry: "71128041-84c0-4383-8935-5b088e406b41",
+                            material: "fe54779d-f986-4197-b799-c74c3311db1e",
+                        },
+                        {
+                            uuid: "33020121-ff96-42df-9112-dbe55721a786",
+                            type: "Mesh",
+                            name: "Box",
+                            layers: 1,
+                            matrix: [
+                                0.24629868470435196, 0, 0, 0, 0, 0.18771836271194772, 0, 0, 0, 0, 10.412265495295939, 0, 4.92161195903984,
+                                3.145758481082761, 0, 1,
+                            ],
+                            up: [0, 1, 0],
+                            geometry: "51cccebe-2b7a-4ca2-9ed4-108a88eddfe9",
+                            material: "42fea22f-1bc3-4f01-9e9c-e9aeff3dcf43",
+                        },
+                    ],
+                },
+            };
+        </script>
+
+        <script type="module">
+            import * as THREE from "three";
+            import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+            const loader = new THREE.ObjectLoader();
+            const scene = loader.parse(rawStageScene);
+            const camera = scene.children.find((child) => child.type === "PerspectiveCamera");
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            scene.fog = new THREE.FogExp2(0xffffff, 0.02);
+
+            const ptLight = new THREE.PointLight(0xffffff, 1);
+            ptLight.position.set(0, 3, 3);
+            scene.add(ptLight);
+
+            const vertexShader = `
+                varying vec3 vNormal;
+                varying vec3 vWorldPosition;
+
+                void main() {
+                    // compute intensity
+                    vNormal = normalize(normalMatrix * normal);
+                    vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                    vWorldPosition = worldPosition.xyz;
+
+                    // set gl_Position
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }`;
+            const fragmentShader = `
+                varying vec3       vNormal;
+                varying vec3       vWorldPosition;
+                uniform vec3       lightColor;
+                uniform vec3       spotPosition;
+                uniform float      attenuation;
+                uniform float      anglePower;
+
+                void main() {
+                    float intensity;
+
+                    intensity = distance(vWorldPosition, spotPosition)/attenuation;
+                    intensity = 1.0 - clamp(intensity, 0.0, 1.0);
+                        
+                    vec3 normal = vec3(vNormal.x, vNormal.y, abs(vNormal.z));
+                    float angleIntensity = pow(dot(normal, vec3(0.0, 0.0, 1.0)), anglePower);
+                    intensity = intensity * angleIntensity;
+
+                    gl_FragColor = vec4( lightColor, intensity);
+                }`;
+            const material = new THREE.ShaderMaterial({
+                uniforms: {
+                    attenuation: { value: 4.4 },
+                    anglePower: { value: 1.5 },
+                    spotPosition: { value: new THREE.Vector3(0, 0, 0) },
+                    lightColor: { value: new THREE.Color("cyan") },
+                },
+                vertexShader: vertexShader,
+                fragmentShader: fragmentShader,
+                side: THREE.FrontSide,
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                depthWrite: false,
+            });
+
+            const testMaterial = new THREE.MeshStandardMaterial({ color: "red" });
+            testMaterial.side = THREE.DoubleSide;
+
+            const geometry = new THREE.CylinderGeometry(0.1, 1.5, 15, 32 * 2, 20, false);
+            geometry.applyMatrix4(new THREE.Matrix4().makeTranslation(0, -geometry.parameters.height / 2, 0));
+            geometry.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(4, 2, 3);
+            mesh.lookAt(new THREE.Vector3(0, 0, 0));
+            material.uniforms.lightColor.value.set("white");
+            material.uniforms.spotPosition.value = mesh.position;
+            scene.add(mesh);
+
+            const spotlight = new THREE.SpotLight(0xffffff, 1, 100, Math.PI / 22, 0.9, 1);
+            const spotlightTarget = new THREE.Object3D();
+            spotlight.position.set(4, 2, 3);
+            spotlight.target = spotlightTarget;
+            scene.add(spotlight);
+            scene.add(spotlightTarget);
+            const spotlightHelper = new THREE.SpotLightHelper(spotlight);
+            scene.add(spotlightHelper);
+
+            const animate = function () {
+                requestAnimationFrame(animate);
+                const angle = 0.0002 * Math.PI * 2 * Date.now();
+                const target = new THREE.Vector3(1 * Math.cos(angle), 0, 1 * Math.sin(angle));
+                mesh.lookAt(target);
+                spotlightTarget.position.set(target.x, target.y, target.z);
+                spotlightHelper.update();
+                renderer.render(scene, camera);
+            };
+
+            animate();
+        </script>
+    </body>
+</html>

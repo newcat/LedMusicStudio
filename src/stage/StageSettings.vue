@@ -66,7 +66,7 @@ import LabelledInputText from "@/components/LabelledInputText.vue";
 import LabelledFormField from "@/components/LabelledFormField.vue";
 
 import { StageLibraryItem } from "./stage.libraryItem";
-import { BaseStageFixture, LedStripStageFixture, StageFixtureType } from "./fixtures";
+import { BaseStageFixture, LedStripStageFixture, SpotStageFixture, StageFixtureType } from "./fixtures";
 import { isOutputLibraryItem } from "@/utils";
 
 const props = defineProps<{
@@ -82,6 +82,7 @@ const menu = ref<Menu | null>(null);
 
 const addFixtureOptions: MenuProps["model"] = [
     { label: "LED Strip", icon: "mdi mdi-led-on", command: () => addFixture(StageFixtureType.LED_STRIP) },
+    { label: "Spot", icon: "mdi mdi-spotlight", command: () => addFixture(StageFixtureType.SPOT) },
 ];
 const outputOptions = computed(() =>
     library.items.filter(
@@ -127,6 +128,9 @@ function addFixture(type: StageFixtureType) {
     switch (type) {
         case StageFixtureType.LED_STRIP:
             newFixture = new LedStripStageFixture();
+            break;
+        case StageFixtureType.SPOT:
+            newFixture = new SpotStageFixture();
             break;
         default:
             throw new Error(`Unknown fixture type ${type}`);

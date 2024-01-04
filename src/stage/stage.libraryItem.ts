@@ -2,7 +2,7 @@ import { markRaw } from "vue";
 import { serialize, deserialize } from "bson";
 import { LibraryItem, LibraryItemType } from "@/library";
 import { StageScene } from "./stageScene";
-import { BaseStageFixture, LedStripStageFixture, StageFixtureType } from "./fixtures";
+import { BaseStageFixture, LedStripStageFixture, SpotStageFixture, StageFixtureType } from "./fixtures";
 
 interface FixtureState {
     type: StageFixtureType;
@@ -82,6 +82,8 @@ export class StageLibraryItem extends LibraryItem {
         switch (type) {
             case StageFixtureType.LED_STRIP:
                 return new LedStripStageFixture();
+            case StageFixtureType.SPOT:
+                return new SpotStageFixture();
             default:
                 throw new Error(`Unknown fixture type ${type}`);
         }

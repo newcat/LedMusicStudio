@@ -53,6 +53,12 @@ class SelectFixtureInterface extends SelectInterface {
     }
 }
 
+class DmxChannelInterface extends IntegerInterface {
+    public constructor(name: string) {
+        super(name, 0, 0, 255);
+    }
+}
+
 export const DmxOutputNode = defineDynamicNode({
     type: "Dmx Output",
     inputs: {
@@ -83,11 +89,27 @@ export const DmxOutputNode = defineDynamicNode({
         const fixtureInstance = dmxOutput.fixtures.find((f) => f.id === fixture)!;
 
         const inputs: DynamicNodeDefinition = {};
-        for (const channel of fixtureInstance.channelNames) {
-            inputs[channel] = () => new IntegerInterface(channel, 0, 0, 255);
+        for (let i = 0; i < fixtureInstance.channelNames.length; i++) {
+            inputs[`channel_${i}`] = () => new DmxChannelInterface(fixtureInstance.channelNames[i]);
         }
 
         return { inputs };
+    },
+    calculate({ output, fixture, ...channels }) {
+        const library = useLibrary();
+        const outputItem = library.items.find((it) => it.id === output)! as OutputLibraryItem;
+        const dmxOutput = outputItem.outputInstance as DmxOutput;
+        const fixtureInstance = dmxOutput.fixtures.find((f) => f.id === fixture)!;
+        const startChannel = fixtureInstance.startChannel;
+
+        const data: IDmxOutputData = {
+            channels: new Map(),
+        };
+        for (const [channel, value] of Object.entries(channels)) {
+            data.channels.set(startChannel + parseInt(channel.replace("channel_", "")), value);
+        }
+
+        return { outputId: output, data };
     },
     onDestroy() {
         this.inputs.output.events.updated.unsubscribe((this as any).token);
