@@ -22,13 +22,11 @@ import AutomationPreview from "@/automation/AutomationPreview.vue";
 import GraphPreview from "@/graph/GraphPreview.vue";
 import PatternPreview from "@/pattern/PatternPreview.vue";
 
-const ITEM_COMPONENT_MAPPING: Record<LibraryItemType, ComponentOptions<any> | null> = markRaw({
+const ITEM_COMPONENT_MAPPING: Record<LibraryItemType, ComponentOptions<any>> = markRaw({
     [LibraryItemType.AUDIO]: AudioPreview,
     [LibraryItemType.GRAPH]: GraphPreview,
     [LibraryItemType.AUTOMATION]: AutomationPreview,
     [LibraryItemType.PATTERN]: PatternPreview,
-    [LibraryItemType.OUTPUT]: null,
-    [LibraryItemType.STAGE]: null,
 });
 
 const props = defineProps({

@@ -1,20 +1,41 @@
+import { markRaw } from "vue";
 import * as THREE from "three";
 
-import { IDmxOutputData } from "@/output/dmx/dmx.output";
+import { BaseFixture, DmxFixture, FixtureType } from "@/stage/fixtures";
+import { BaseVisualization, VisualizationType } from "../base.visualization";
+import SpotVisualizationSettings from "./SpotVisualizationSettings.vue";
+
 import fragmentShader from "../../shaders/volumetricSpot.frag?raw";
 import vertexShader from "../../shaders/volumetricSpot.vert?raw";
-import { SpotStageFixture } from "./spot.fixture";
-import { ThreeBaseFixture } from "../base.three";
 
-export class ThreeSpotFixture extends ThreeBaseFixture {
+export interface SpotVisualizationConfig {
+    position: [number, number, number];
+    target: [number, number, number];
+    colorChannels: [number, number, number];
+}
+
+export class SpotVisualization extends BaseVisualization<DmxFixture, SpotVisualizationConfig> {
+    public static isCompatibleFixture(fixture: BaseFixture): fixture is DmxFixture {
+        return fixture.type === FixtureType.DMX;
+    }
+
+    public readonly compatibleFixtures = [FixtureType.DMX];
+    public readonly type = VisualizationType.SPOT;
+
+    public override readonly settingsComponent = markRaw(SpotVisualizationSettings);
+
     private volumeGeometry: THREE.CylinderGeometry;
     private volumeMesh: THREE.Mesh;
     private volumeMaterial: THREE.ShaderMaterial;
     private spotlight: THREE.SpotLight;
     private spotlightTarget: THREE.Object3D;
 
-    constructor(private readonly fixture: SpotStageFixture, scene: THREE.Scene) {
-        super();
+    constructor(fixture: DmxFixture) {
+        super(fixture, {
+            position: [0, 0, 0],
+            target: [0, 0, 0],
+            colorChannels: [0, 0, 0],
+        });
 
         this.volumeMaterial = new THREE.ShaderMaterial({
             uniforms: {
@@ -31,8 +52,8 @@ export class ThreeSpotFixture extends ThreeBaseFixture {
             depthWrite: false,
         });
 
-        const spotPosition = new THREE.Vector3(fixture.position[0], fixture.position[1], fixture.position[2]);
-        const targetPosition = new THREE.Vector3(fixture.target[0], fixture.target[1], fixture.target[2]);
+        const spotPosition = new THREE.Vector3(this.config.position[0], this.config.position[1], this.config.position[2]);
+        const targetPosition = new THREE.Vector3(this.config.target[0], this.config.target[1], this.config.target[2]);
 
         this.volumeGeometry = new THREE.CylinderGeometry(0.1, 1.5, 15, 32 * 2, 20, true);
         this.volumeGeometry.applyMatrix4(new THREE.Matrix4().makeTranslation(0, -this.volumeGeometry.parameters.height / 2, 0));
@@ -53,23 +74,26 @@ export class ThreeSpotFixture extends ThreeBaseFixture {
         this.add(this.spotlightTarget);
     }
 
-    public updateData(outputData: Map<string, any>) {
-        const data = outputData.get(this.fixture.outputId) as IDmxOutputData | undefined;
-        if (!data) {
-            return;
-        }
+    public dispose() {
+        this.remove(this.volumeMesh);
+        this.remove(this.spotlight);
+        this.remove(this.spotlightTarget);
+        this.volumeGeometry.dispose();
+        this.volumeMaterial.dispose();
+        this.spotlight.dispose();
 
-        const red = data.channels.get(this.fixture.colorChannels[0]) ?? 0;
-        const green = data.channels.get(this.fixture.colorChannels[1]) ?? 0;
-        const blue = data.channels.get(this.fixture.colorChannels[2]) ?? 0;
+        super.dispose();
+    }
+
+    protected onFixtureConfigUpdate(): void {}
+
+    protected onFixtureDataUpdate(): void {
+        const data = this.fixture.value;
+        const red = data[this.config.colorChannels[0]] ?? 0;
+        const green = data[this.config.colorChannels[1]] ?? 0;
+        const blue = data[this.config.colorChannels[2]] ?? 0;
         const color = new THREE.Color(red / 255, green / 255, blue / 255);
         this.volumeMaterial.uniforms.lightColor.value = color;
         this.spotlight.color = color;
-    }
-
-    public override dispose(): void {
-        this.remove();
-        this.volumeMaterial.dispose();
-        this.spotlight.dispose();
     }
 }

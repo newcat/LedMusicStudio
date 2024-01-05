@@ -8,12 +8,6 @@ import { useResizeObserver, useThrottleFn } from "@vueuse/core";
 import * as THREE from "three";
 import Stats from "three/examples/jsm/libs/stats.module.js";
 
-import { StageLibraryItem } from "./stage.libraryItem";
-
-const props = defineProps<{
-    stage: StageLibraryItem;
-}>();
-
 const stageViewEl = ref<HTMLElement>();
 useResizeObserver(stageViewEl, useThrottleFn(onResize, 100, true));
 
@@ -48,13 +42,12 @@ function render() {
     if (continueAnimation) {
         requestAnimationFrame(render);
     }
-    if (!props.stage.scene) {
-        return;
-    }
+    // TODO
+    /*
     stats.begin();
-    props.stage.scene.updateFixtureData();
     renderer.render(props.stage.scene.scene, props.stage.scene.camera);
     stats.end();
+    */
 }
 
 onMounted(() => {

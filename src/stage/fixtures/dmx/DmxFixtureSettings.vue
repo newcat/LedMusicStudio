@@ -51,33 +51,35 @@ import { DmxFixture } from "./dmx.fixture";
 import ChooseFixtureDialog from "./ChooseFixtureDialog.vue";
 import { Fixture as OpenFixtureDefinition } from "./open-fixture";
 
-const fixture = defineModel<DmxFixture>({ required: true });
+const props = defineProps<{
+    fixture: DmxFixture;
+}>();
 
 const showFixtureDialog = ref(false);
 
 function setFixture(definition: OpenFixtureDefinition) {
-    fixture.value.setConfig({
-        ...fixture.value.config,
+    props.fixture.setConfig({
+        ...props.fixture.config,
         definition,
         mode: definition.modes[0],
     });
 }
 
 function setStartChannel(startChannel: number) {
-    fixture.value.setConfig({
-        ...fixture.value.config,
+    props.fixture.setConfig({
+        ...props.fixture.config,
         startChannel,
     });
 }
 
 function setMode(mode: OpenFixtureDefinition["modes"][number]) {
-    fixture.value.setConfig({
-        ...fixture.value.config,
+    props.fixture.setConfig({
+        ...props.fixture.config,
         mode,
     });
 }
 
 function openOflPage() {
-    window.open(fixture.value.config.definition!.oflURL as string, "_blank");
+    window.open(props.fixture.config.definition!.oflURL as string, "_blank");
 }
 </script>

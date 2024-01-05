@@ -7,7 +7,6 @@ import { AudioLibraryItem } from "@/audio";
 import { AutomationLibraryItem } from "@/automation";
 import { GraphLibraryItem } from "@/graph";
 import { PatternLibraryItem } from "@/pattern";
-import { OutputLibraryItem } from "@/output";
 import { LibraryItem, LibraryItemType } from "./libraryItem";
 
 interface ILibraryState {

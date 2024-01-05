@@ -6,7 +6,7 @@
                 <Menu ref="menu" :model="addFixtureOptions" :popup="true"></Menu>
             </div>
         </div>
-        <Listbox v-model="selectedFixture" :options="stage.fixtures" empty-message="No fixtures added.">
+        <Listbox v-model="selectedFixture" :options="stage.fixtures.getArray()" empty-message="No fixtures added.">
             <template #option="{ option }">
                 <div class="flex align-items-center">
                     <i v-if="!option.isValid" class="mdi mdi-alert mr-4" title="Please set all necessary options to use this fixture"></i>
@@ -26,42 +26,23 @@
                 </button>
             </template>
 
-            <div v-if="selectedFixture" class="fixture-settings">
-                <div>
-                    <Chip>{{ selectedFixture.type }}</Chip>
-                </div>
-                <LabelledInputText v-model="selectedFixture.name">Name</LabelledInputText>
-                <component v-if="selectedFixture.settingsComponent" :is="selectedFixture.settingsComponent" v-model="selectedFixture" />
-
-                <Divider />
-
-                <LabelledFormField label="Controller">
-                    <Dropdown v-model="controllerId" :options="availableControllers" option-label="name" option-value="id" />
-                </LabelledFormField>
-            </div>
+            <FixtureSettings v-if="selectedFixture" :fixture="selectedFixture" />
         </Panel>
     </div>
 </template>
 
 <script setup lang="ts">
-import { Ref, computed, ref } from "vue";
+import { Ref, ref } from "vue";
 import Button from "primevue/button";
 import Listbox from "primevue/listbox";
 import Panel from "primevue/panel";
-import Chip from "primevue/chip";
 import Menu, { MenuProps } from "primevue/menu";
-import Divider from "primevue/divider";
-import Dropdown from "primevue/dropdown";
-import { useToast } from "primevue/usetoast";
-
-import LabelledInputText from "@/components/LabelledInputText.vue";
-import LabelledFormField from "@/components/LabelledFormField.vue";
 
 import { FixtureType, BaseFixture, LedStripFixture, DmxFixture } from "../fixtures";
 import { useStage } from "../stage";
+import FixtureSettings from "./FixtureSettings.vue";
 
 const stage = useStage();
-const toast = useToast();
 
 const selectedFixture = ref<BaseFixture | null>(null) as Ref<BaseFixture | null>;
 const menu = ref<Menu | null>(null);
@@ -70,40 +51,6 @@ const addFixtureOptions: MenuProps["model"] = [
     { label: "LED Strip", icon: "mdi mdi-led-on", command: () => addFixture(FixtureType.LED_STRIP) },
     { label: "DMX", icon: "mdi mdi-audio-input-xlr", command: () => addFixture(FixtureType.DMX) },
 ];
-
-const controllerId = computed<string>({
-    get: () => {
-        if (!selectedFixture.value) {
-            return "NONE";
-        }
-        const id = stage.controllers.find((controller) => controller.controlledFixtures.includes(selectedFixture.value!))?.id ?? "NONE";
-        return id;
-    },
-    set: (value) => {
-        try {
-            const oldController = stage.controllers.find((c) => c.id === controllerId.value);
-            oldController?.removeFixture(selectedFixture.value!);
-            const newController = stage.controllers.find((c) => c.id === value);
-            newController?.addFixture(selectedFixture.value!);
-        } catch (err) {
-            toast.add({
-                severity: "warn",
-                closable: true,
-                summary: "Could not assign controller",
-                detail: err instanceof Error ? err.message : String(err),
-                life: 4000,
-            });
-        }
-    },
-});
-
-const availableControllers = computed(() => {
-    const controllers: Array<{ name: string; id: string }> = [{ id: "NONE", name: "None" }];
-    if (selectedFixture.value) {
-        controllers.push(...stage.controllers.filter((controller) => controller.compatibleFixtures.includes(selectedFixture.value!.type)));
-    }
-    return controllers;
-});
 
 function addFixture(type: FixtureType) {
     let newFixture: BaseFixture;
@@ -117,7 +64,7 @@ function addFixture(type: FixtureType) {
         default:
             throw new Error(`Unknown fixture type ${type}`);
     }
-    stage.fixtures.push(newFixture);
+    stage.fixtures.set(newFixture.id, newFixture);
 }
 
 function removeSelectedFixture() {
@@ -125,7 +72,7 @@ function removeSelectedFixture() {
         return;
     }
 
-    stage.fixtures = stage.fixtures.filter((fixture) => fixture !== selectedFixture.value);
+    stage.fixtures.delete(selectedFixture.value.id);
     selectedFixture.value = null;
 }
 </script>

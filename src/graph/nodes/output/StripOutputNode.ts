@@ -1,43 +1,39 @@
 import { Color } from "@/graph/colors";
 import { ColorArrayInterface, PreviewInterface } from "@/graph/interfaces";
-import { OutputType } from "@/output";
 import { CalculateFunction, NodeInterface } from "@baklavajs/core";
-import { SelectInterface } from "@baklavajs/renderer-vue";
 import { BaseOutputNode, BaseOutputNodeInputs, BaseOutputNodeOutputs } from "./BaseOutputNode";
-
-interface IStripOutputData {
-    colors: Color[];
-}
+import { SelectFixtureInterface } from "@/graph/interfaces/SelectFixtureInterface";
+import { FixtureType } from "@/stage";
 
 interface Inputs extends BaseOutputNodeInputs {
     colors: Color[];
 }
 
-interface Outputs extends BaseOutputNodeOutputs<IStripOutputData> {
+interface Outputs extends BaseOutputNodeOutputs<Color[]> {
     preview: Color[];
 }
 
-export class StripOutputNode extends BaseOutputNode<IStripOutputData, Inputs, Outputs> {
+export class StripOutputNode extends BaseOutputNode<Color[], Inputs, Outputs> {
     public type = "Strip Output";
-    public title = this.type;
+    public _title = this.type;
 
     public inputs = {
-        output: new SelectInterface("Output", "", []).setPort(false),
+        fixtureId: new SelectFixtureInterface([FixtureType.LED_STRIP]).setPort(false),
         colors: new ColorArrayInterface("Color"),
     };
 
     public outputs = {
         preview: new PreviewInterface("Preview"),
-        outputId: new NodeInterface<string | undefined>("OutputId", undefined).setHidden(true),
-        data: new NodeInterface<IStripOutputData | undefined>("Data", undefined).setHidden(true),
+        fixtureId: new NodeInterface<string>("FixtureId", "").setHidden(true),
+        data: new NodeInterface<Color[]>("Data", []).setHidden(true),
     };
 
     public constructor() {
-        super([OutputType.DUMMY, OutputType.WLED, OutputType.RAZER_CHROMA]);
+        super();
         this.initializeIo();
     }
 
-    public calculate: CalculateFunction<Inputs, Outputs> = (inputs) => {
-        return { preview: inputs.colors, ...this.afterCalculate(inputs, { colors: inputs.colors }) };
+    public calculate: CalculateFunction<Inputs, Outputs> = ({ fixtureId, colors }) => {
+        return { preview: colors, data: colors, fixtureId };
     };
 }

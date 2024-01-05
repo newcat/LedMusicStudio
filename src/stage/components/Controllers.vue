@@ -6,7 +6,7 @@
                 <Menu ref="menu" :model="addControllerOptions" :popup="true"></Menu>
             </div>
         </div>
-        <Listbox v-model="selectedController" :options="stage.controllers" empty-message="No controllers added.">
+        <Listbox v-model="selectedController" :options="stage.controllers.getArray()" empty-message="No controllers added.">
             <template #option="{ option }">
                 <div class="flex align-items-center">
                     <i
@@ -94,7 +94,7 @@ function addController(type: ControllerType) {
         default:
             throw new Error(`Unknown controller type ${type}`);
     }
-    stage.controllers.push(newController);
+    stage.controllers.set(newController.id, newController);
 }
 
 function removeSelectedController() {
@@ -102,7 +102,7 @@ function removeSelectedController() {
         return;
     }
 
-    stage.controllers = stage.controllers.filter((controller) => controller !== selectedController.value);
+    stage.controllers.delete(selectedController.value.id);
     selectedController.value = null;
 }
 </script>

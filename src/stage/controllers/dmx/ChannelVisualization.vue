@@ -3,12 +3,14 @@
         <div class="channels">
             <div
                 v-for="fixture in fixtures"
-                v-tooltip.top="`${fixture.name} (${fixture.startChannel} - ${fixture.startChannel + fixture.usedChannels.length - 1})`"
+                v-tooltip.top="
+                    `${fixture.name} (${fixture.config.startChannel} - ${fixture.config.startChannel + fixture.usedChannels.length - 1})`
+                "
                 class="fixture"
                 :class="{ '--selected': selectedFixture === fixture }"
                 :style="{
-                    'grid-column-start': fixture.startChannel,
-                    'grid-column-end': fixture.startChannel + fixture.usedChannels.length,
+                    'grid-column-start': fixture.config.startChannel,
+                    'grid-column-end': fixture.config.startChannel + fixture.usedChannels.length,
                 }"
                 @click="emit('update:selectedFixture', fixture)"
             ></div>
@@ -29,7 +31,7 @@ export default defineComponent({
 
 <script setup lang="ts">
 import Panel from "primevue/panel";
-import { DmxFixture } from "./fixture";
+import { DmxFixture } from "../../fixtures";
 
 defineProps<{
     fixtures: DmxFixture[];

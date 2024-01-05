@@ -8,5 +8,8 @@
 import InputNumber from "primevue/inputnumber";
 import LabelledFormField from "@/components/LabelledFormField.vue";
 import { LedStripFixture } from "./ledStrip.fixture";
-const fixture = defineModel<LedStripFixture>({ required: true });
+
+defineProps<{
+    fixture: LedStripFixture;
+}>();
 </script>

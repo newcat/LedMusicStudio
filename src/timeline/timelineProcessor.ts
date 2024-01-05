@@ -1,5 +1,4 @@
 import type { Item } from "@/timeline";
-import type { BaseOutput, OutputLibraryItem } from "@/output";
 
 import { watchEffect } from "vue";
 import { BaklavaEvent } from "@baklavajs/events";
@@ -10,9 +9,9 @@ import { GraphLibraryItem } from "@/graph";
 import { AutomationLibraryItem } from "@/automation";
 import { LibraryItemType, useLibrary } from "@/library";
 import { INote, PatternLibraryItem } from "@/pattern";
-import { StageLibraryItem } from "@/stage";
 import { ICalculationData } from "@/graph";
 import { useGlobalState } from "@/globalState";
+import { useStage } from "@/stage/stage";
 
 export class TimelineProcessor {
     public trackValues = new Map<string, number | INote[]>(); // maps trackId -> value
@@ -24,6 +23,7 @@ export class TimelineProcessor {
 
     private readonly globalState = useGlobalState();
     private readonly library = useLibrary();
+    private readonly stage = useStage();
 
     private timer?: ReturnType<typeof setInterval>;
     private observers: Array<() => void> = [];
@@ -100,11 +100,10 @@ export class TimelineProcessor {
             frequencyData: audioData.frequencyData,
             trackValues: this.trackValues,
         };
-        const outputMap: Map<BaseOutput, any> = new Map();
         const graphs = currentActiveItems.filter((i) => this.isType(i, LibraryItemType.GRAPH));
         for (const g of graphs) {
             try {
-                await this.processGraph(g, unit, calculationData, outputMap);
+                await this.processGraph(g, unit, calculationData);
                 if (g.libraryItem.error) {
                     g.libraryItem.error = false;
                 }
@@ -114,17 +113,7 @@ export class TimelineProcessor {
             }
         }
 
-        const stages = this.library.items.filter((i) => i.type === LibraryItemType.STAGE) as StageLibraryItem[];
-        const outputs = this.library.items.filter((i) => i.type === LibraryItemType.OUTPUT) as OutputLibraryItem[];
-        for (const o of outputs) {
-            const outputData = outputMap.get(o.outputInstance);
-            await o.outputInstance.onData(outputData);
-            stages.forEach((s) => s.onOutputData(o.id, outputData));
-        }
-        for (const o of outputs) {
-            await o.outputInstance.send();
-        }
-
+        this.stage.afterFrame();
         this.metronome?.tick(unit);
     }
 
@@ -167,25 +156,17 @@ export class TimelineProcessor {
         return item.libraryItem.type === type;
     }
 
-    private async processGraph(
-        item: Item,
-        unit: number,
-        calculationData: ICalculationData,
-        outputMap: Map<BaseOutput, any>
-    ): Promise<void> {
+    private async processGraph(item: Item, unit: number, calculationData: ICalculationData): Promise<void> {
         const graph = item.libraryItem as GraphLibraryItem;
         graph.keyframeManager.applyKeyframes(unit - item.start);
         const results = (await graph.editor.enginePlugin.runOnce(calculationData))!;
         applyResult(results, graph.editor.editor);
         results.forEach((intfValues) => {
-            if (!intfValues.has("outputId")) {
+            if (!intfValues.has("fixtureId")) {
                 return;
             }
-            const output = this.library.getItemById<OutputLibraryItem>(intfValues.get("outputId"))?.outputInstance;
-            if (output) {
-                const data = intfValues.get("data");
-                outputMap.set(output, data);
-            }
+            const fixture = this.stage.fixtures.get(intfValues.get("fixtureId"));
+            fixture?.setValue(intfValues.get("data"));
         });
     }
 
