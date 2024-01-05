@@ -7,6 +7,11 @@ export enum VisualizationType {
     SPOT = "Spot",
 }
 
+export interface VisualizationState<C = unknown> {
+    type: VisualizationType;
+    config: C;
+}
+
 export abstract class BaseVisualization<F extends BaseFixture = BaseFixture, C = unknown> extends THREE.Group {
     public abstract readonly compatibleFixtures: FixtureType[];
     public abstract readonly type: VisualizationType;
@@ -41,5 +46,16 @@ export abstract class BaseVisualization<F extends BaseFixture = BaseFixture, C =
 
     public setConfig(c: C) {
         this._config = c;
+    }
+
+    public save(): VisualizationState<C> {
+        return {
+            type: this.type,
+            config: this.config,
+        };
+    }
+
+    public load(state: VisualizationState<C>) {
+        this.setConfig(state.config);
     }
 }

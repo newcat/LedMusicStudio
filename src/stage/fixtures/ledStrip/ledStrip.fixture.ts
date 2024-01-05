@@ -13,6 +13,10 @@ export class LedStripFixture extends BaseFixture<Color[], LedStripFixtureConfigu
     public override readonly type = FixtureType.LED_STRIP;
     public override readonly settingsComponent = markRaw(LedStripFixtureSettings);
 
+    public get validationErrors(): string[] {
+        return [];
+    }
+
     constructor() {
         super([[0, 0, 0]], { numLeds: 1 });
         this.name = "LED Strip";

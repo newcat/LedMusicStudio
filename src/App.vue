@@ -33,6 +33,7 @@ import { Programming, Stage, Visualization } from "@/views";
 
 import { useGlobalState } from "@/globalState";
 import { TimelineProcessor } from "@/timeline";
+import { useStage } from "@/stage";
 import { showOpenDialog, showSaveDialog, readFile, writeFile } from "@/native";
 import { useErrorHandler } from "@/utils";
 
@@ -47,6 +48,7 @@ const currentView = ref<"PROGRAMMING" | "STAGE" | "VISUALIZATION">("STAGE");
 
 (window as any).globalState = globalState;
 (window as any).processor = processor;
+(window as any).stage = useStage();
 
 newProject();
 

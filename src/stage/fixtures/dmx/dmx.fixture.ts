@@ -13,13 +13,13 @@ export class DmxFixture extends BaseFixture<number[], DmxFixtureConfiguration> {
     public override readonly type = FixtureType.DMX;
     public override readonly settingsComponent = markRaw(DmxFixtureSettings);
 
-    public constructor() {
-        super([], {
-            definition: null,
-            startChannel: 1,
-            mode: null,
-        });
-        this.name = "DMX Fixture";
+    public get validationErrors(): string[] {
+        if (!this.config.definition) {
+            return ["Please select a fixture"];
+        } else if (!this.config.mode) {
+            return ["Please select a mode"];
+        }
+        return [];
     }
 
     public get channelNames(): string[] {
@@ -55,5 +55,14 @@ export class DmxFixture extends BaseFixture<number[], DmxFixtureConfiguration> {
 
     public get usedChannels(): number[] {
         return this.channelNames.map((c, i) => this.config.startChannel + i);
+    }
+
+    public constructor() {
+        super([], {
+            definition: null,
+            startChannel: 1,
+            mode: null,
+        });
+        this.name = "DMX Fixture";
     }
 }

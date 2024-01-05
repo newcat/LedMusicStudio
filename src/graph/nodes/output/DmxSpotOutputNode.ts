@@ -2,6 +2,7 @@ import { NodeInterface, defineDynamicNode, DynamicNodeDefinition } from "baklava
 import { IntegerInterface } from "@/graph/interfaces";
 import { SelectFixtureInterface } from "@/graph/interfaces/SelectFixtureInterface";
 import { DmxFixture, FixtureType, useStage } from "@/stage";
+import { watch } from "vue";
 
 class DmxChannelInterface extends IntegerInterface {
     public constructor(name: string) {
@@ -12,7 +13,7 @@ class DmxChannelInterface extends IntegerInterface {
 export const DmxOutputNode = defineDynamicNode({
     type: "Dmx Output",
     inputs: {
-        fixtureId: () => new SelectFixtureInterface("Output", [FixtureType.DMX]),
+        fixtureId: () => new SelectFixtureInterface([FixtureType.DMX]),
     },
     outputs: {
         outputId: () => new NodeInterface<string | undefined>("OutputId", undefined).setHidden(true),
@@ -26,6 +27,7 @@ export const DmxOutputNode = defineDynamicNode({
         const stage = useStage();
         const fixture = stage.fixtures.get(fixtureId) as DmxFixture;
         if (!fixture) {
+            console.warn("Could not find fixture with id", fixtureId);
             return {};
         }
 

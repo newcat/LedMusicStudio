@@ -8,8 +8,16 @@ export enum ControllerType {
     RAZER_CHROMA = "Razer Chroma",
 }
 
+export interface ControllerState<C = unknown> {
+    id: string;
+    type: ControllerType;
+    name: string;
+    config: C;
+    controlledFixtureIds: string[];
+}
+
 export abstract class BaseController<C = unknown, F extends BaseFixture = BaseFixture> {
-    public readonly id = uuidv4();
+    public id = uuidv4();
     public abstract readonly type: ControllerType;
     public abstract readonly compatibleFixtures: FixtureType[];
 
@@ -42,6 +50,30 @@ export abstract class BaseController<C = unknown, F extends BaseFixture = BaseFi
 
     public removeFixture(f: F) {
         this._controlledFixtures = this._controlledFixtures.filter((fixture) => fixture.id !== f.id);
+    }
+
+    public save(): ControllerState<C> {
+        return {
+            id: this.id,
+            type: this.type,
+            name: this.name,
+            config: this.config,
+            controlledFixtureIds: this.controlledFixtures.map((f) => f.id),
+        };
+    }
+
+    public load(state: ControllerState<C>, fixtures: Map<string, BaseFixture>) {
+        this.id = state.id;
+        this.name = state.name;
+        this.setConfig(state.config);
+        for (const fixtureId of state.controlledFixtureIds) {
+            const fixture = fixtures.get(fixtureId);
+            if (!fixture) {
+                console.warn(`Could not find fixture with id ${fixtureId} for controller ${this.name}`);
+                continue;
+            }
+            this.addFixture(fixture as F);
+        }
     }
 
     public abstract send(): void | Promise<void>;

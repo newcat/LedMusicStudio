@@ -75,7 +75,6 @@ export class LedStripVisualization extends BaseVisualization<LedStripFixture, Le
             this.add(led);
             this.leds.push(led);
         }
-        console.log("Generated", this.leds.length, "LEDs");
     }
 
     private disposeLeds() {

@@ -9,7 +9,11 @@
         <Listbox v-model="selectedFixture" :options="stage.fixtures.getArray()" empty-message="No fixtures added.">
             <template #option="{ option }">
                 <div class="flex align-items-center">
-                    <i v-if="!option.isValid" class="mdi mdi-alert mr-4" title="Please set all necessary options to use this fixture"></i>
+                    <i
+                        v-if="option.validationErrors.length > 0"
+                        class="mdi mdi-alert mr-4"
+                        title="Please set all necessary options to use this fixture"
+                    ></i>
                     <div>{{ option.name }}</div>
                 </div>
             </template>
@@ -26,7 +30,7 @@
                 </button>
             </template>
 
-            <FixtureSettings v-if="selectedFixture" :fixture="selectedFixture" />
+            <FixtureSettings v-if="selectedFixture" :key="selectedFixture.id" :fixture="selectedFixture" />
         </Panel>
     </div>
 </template>
@@ -38,9 +42,10 @@ import Listbox from "primevue/listbox";
 import Panel from "primevue/panel";
 import Menu, { MenuProps } from "primevue/menu";
 
-import { FixtureType, BaseFixture, LedStripFixture, DmxFixture } from "../fixtures";
+import { FixtureType, BaseFixture } from "../fixtures";
 import { useStage } from "../stage";
 import FixtureSettings from "./FixtureSettings.vue";
+import { createFixture } from "../fixtures/factory";
 
 const stage = useStage();
 
@@ -53,17 +58,7 @@ const addFixtureOptions: MenuProps["model"] = [
 ];
 
 function addFixture(type: FixtureType) {
-    let newFixture: BaseFixture;
-    switch (type) {
-        case FixtureType.LED_STRIP:
-            newFixture = new LedStripFixture();
-            break;
-        case FixtureType.DMX:
-            newFixture = new DmxFixture();
-            break;
-        default:
-            throw new Error(`Unknown fixture type ${type}`);
-    }
+    const newFixture = createFixture(type);
     stage.fixtures.set(newFixture.id, newFixture);
 }
 

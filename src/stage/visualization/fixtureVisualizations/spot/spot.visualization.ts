@@ -85,9 +85,15 @@ export class SpotVisualization extends BaseVisualization<DmxFixture, SpotVisuali
         super.dispose();
     }
 
+    public override setConfig(c: SpotVisualizationConfig) {
+        super.setConfig(c);
+        this.applyConfig();
+    }
+
     protected onFixtureConfigUpdate(): void {}
 
     protected onFixtureValueUpdate(): void {
+        return;
         const data = this.fixture.value;
         const red = data[this.config.colorChannels[0]] ?? 0;
         const green = data[this.config.colorChannels[1]] ?? 0;
@@ -95,5 +101,17 @@ export class SpotVisualization extends BaseVisualization<DmxFixture, SpotVisuali
         const color = new THREE.Color(red / 255, green / 255, blue / 255);
         this.volumeMaterial.uniforms.lightColor.value = color;
         this.spotlight.color = color;
+    }
+
+    private applyConfig() {
+        const spotPosition = new THREE.Vector3(this.config.position[0], this.config.position[1], this.config.position[2]);
+        const targetPosition = new THREE.Vector3(this.config.target[0], this.config.target[1], this.config.target[2]);
+
+        this.volumeMesh.position.copy(spotPosition);
+        this.volumeMesh.lookAt(targetPosition);
+        this.volumeMaterial.uniforms.spotPosition.value = this.volumeMesh.position;
+
+        this.spotlight.position.copy(spotPosition);
+        this.spotlightTarget.position.copy(targetPosition);
     }
 }

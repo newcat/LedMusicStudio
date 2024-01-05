@@ -46,9 +46,16 @@ import LabelledFormField from "@/components/LabelledFormField.vue";
 import { useEditClone } from "@/utils";
 import { SpotVisualization } from "./spot.visualization";
 
-const visualization = defineModel<SpotVisualization>({ required: true });
+const props = defineProps<{
+    visualization: SpotVisualization;
+}>();
 
-const { clone: config, dirty, save } = useEditClone(toRef(visualization.value, "config"));
+const { clone: config, dirty } = useEditClone(toRef(props.visualization, "config"));
+
+const save = () => {
+    props.visualization.setConfig(config.value);
+    dirty.value = false;
+};
 </script>
 
 <style scoped></style>

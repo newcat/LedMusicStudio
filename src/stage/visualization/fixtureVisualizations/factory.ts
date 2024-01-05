@@ -1,9 +1,9 @@
 import { BaseFixture } from "@/stage/fixtures";
-import { VisualizationType } from "./base.visualization";
+import { BaseVisualization, VisualizationType } from "./base.visualization";
 import { LedStripVisualization } from "./ledStrip/ledStrip.visualization";
 import { SpotVisualization } from "./spot/spot.visualization";
 
-export function createFixtureVisualization(type: VisualizationType, fixture: BaseFixture) {
+export function createFixtureVisualization(type: VisualizationType, fixture: BaseFixture): BaseVisualization {
     switch (type) {
         case VisualizationType.LED_STRIP:
             if (!LedStripVisualization.isCompatibleFixture(fixture)) {

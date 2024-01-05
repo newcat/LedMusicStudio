@@ -65,7 +65,8 @@ import Divider from "primevue/divider";
 import LabelledInputText from "@/components/LabelledInputText.vue";
 
 import { useStage } from "../stage";
-import { BaseController, ControllerType, DmxController, WledController } from "../controllers";
+import { BaseController, ControllerType } from "../controllers";
+import { createController } from "../controllers/factory";
 
 const stage = useStage();
 
@@ -79,21 +80,7 @@ const addControllerOptions: MenuProps["model"] = [
 ];
 
 function addController(type: ControllerType) {
-    let newController: BaseController;
-    switch (type) {
-        case ControllerType.WLED:
-            newController = new WledController();
-            break;
-        case ControllerType.DMX:
-            newController = new DmxController();
-            break;
-        case ControllerType.RAZER_CHROMA:
-            // TODO newController = new RazerChromaController();
-            throw new Error("TODO");
-            break;
-        default:
-            throw new Error(`Unknown controller type ${type}`);
-    }
+    const newController = createController(type);
     stage.controllers.set(newController.id, newController);
 }
 

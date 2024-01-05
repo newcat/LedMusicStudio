@@ -1,6 +1,14 @@
 <template>
     <div class="fixture-settings">
         <div>
+            <Message v-if="fixture.validationErrors.length > 0" severity="warn" :closable="false">
+                <ul class="m-0">
+                    <li v-for="error in fixture.validationErrors">{{ error }}</li>
+                </ul>
+            </Message>
+        </div>
+
+        <div>
             <Chip>{{ fixture.type }}</Chip>
         </div>
         <LabelledInputText v-model="fixture.name">Name</LabelledInputText>
@@ -28,6 +36,7 @@ import { computed } from "vue";
 import Chip from "primevue/chip";
 import Dropdown from "primevue/dropdown";
 import Divider from "primevue/divider";
+import Message from "primevue/message";
 
 import { useErrorHandler } from "@/utils";
 import LabelledInputText from "@/components/LabelledInputText.vue";
