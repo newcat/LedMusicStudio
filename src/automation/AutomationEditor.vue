@@ -67,7 +67,7 @@
 
             <!-- points ----->
             <circle
-                v-for="(p, i) in points"
+                v-for="p in points"
                 @mousedown="mousedown(p.id)"
                 :key="p.id + '-point'"
                 :class="{ '--dragged': draggedPoint === p }"

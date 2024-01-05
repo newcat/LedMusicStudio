@@ -3,6 +3,7 @@
         <div class="channels">
             <div
                 v-for="fixture in fixtures"
+                :key="fixture.id"
                 v-tooltip.top="
                     `${fixture.name} (${fixture.config.startChannel} - ${fixture.config.startChannel + fixture.usedChannels.length - 1})`
                 "

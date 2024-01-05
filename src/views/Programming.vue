@@ -17,7 +17,6 @@
 </template>
 
 <script setup lang="ts">
-// @ts-ignore
 import { Splitpanes, Pane } from "splitpanes";
 
 import Library from "@/library/Library.vue";

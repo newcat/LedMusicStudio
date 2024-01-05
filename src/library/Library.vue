@@ -118,10 +118,6 @@ function addItem(key: LibraryItemType) {
     }
     library.addItem(reactive(new item()));
 }
-
-function addOutput(output: LibraryItem) {
-    library.addItem(reactive(output));
-}
 </script>
 
 <style scoped>

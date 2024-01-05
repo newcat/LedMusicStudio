@@ -1,6 +1,6 @@
 <template>
     <svg class="pattern-preview" :viewBox="viewBox" preserveAspectRatio="none">
-        <template v-for="(n, i) in notes">
+        <template v-for="(n, i) in notes" :key="i">
             <line stroke="white" :x1="n.start" :x2="n.end" :y1="n.value" :y2="n.value"></line>
         </template>
     </svg>
@@ -8,15 +8,13 @@
 
 <script setup lang="ts">
 import type { PatternLibraryItem } from "./pattern.libraryItem";
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import { Item } from "@/timeline";
 
 const props = defineProps({
     item: { type: Object as () => Item, required: true },
     unitWidth: { type: Number, required: true },
 });
-
-const resizeObserver = ref<ResizeObserver | null>(null);
 
 const libraryItem = computed(() => {
     return props.item.libraryItem as PatternLibraryItem;

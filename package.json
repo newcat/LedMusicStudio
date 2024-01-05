@@ -15,11 +15,13 @@
         "build:for:electron": "vue-tsc --noEmit && cross-env ELECTRON=true vite build",
         "app:build": "yarn build:for:electron && yarn build:electron && yarn electron:builder",
         "build:wasm": "wasm-pack build ./src/rust --target web",
-        "build:electron": "tsc -p tsconfig.main.json && node ./postbuild.mjs"
+        "build:electron": "tsc -p tsconfig.main.json && node ./postbuild.mjs",
+        "lint": "eslint --ext .js,.ts,.vue src"
     },
     "dependencies": {
         "@ckpack/vue-color": "^1.5.0",
         "@mdi/font": "^7.4.47",
+        "@types/splitpanes": "^2.2.6",
         "@vueuse/core": "^10.7.1",
         "axios": "^1.6.3",
         "baklavajs": "^2.3.0",
@@ -44,6 +46,8 @@
         "@types/offscreencanvas": "^2019.7.3",
         "@types/three": "^0.160.0",
         "@types/uuid": "^9.0.7",
+        "@typescript-eslint/eslint-plugin": "latest",
+        "@typescript-eslint/parser": "latest",
         "@vitejs/plugin-vue": "^5.0.2",
         "autoprefixer": "^10.4.16",
         "concurrently": "^8.2.2",
@@ -51,6 +55,8 @@
         "electron": "^28.1.0",
         "electron-builder": "^24.10.0",
         "electron-devtools-installer": "^3.2.0",
+        "eslint": "latest",
+        "eslint-plugin-vue": "latest",
         "postcss": "^8.4.32",
         "rollup-plugin-visualizer": "^5.12.0",
         "sass": "^1.69.6",

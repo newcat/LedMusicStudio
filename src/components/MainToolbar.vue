@@ -40,6 +40,8 @@ const connectionStateToSeverity = computed(() => {
             return "warning";
         case "DISCONNECTED":
             return "danger";
+        default:
+            throw new Error("Unknown connection status");
     }
 });
 
@@ -55,6 +57,8 @@ const tooltipText = computed(() => {
             return "Connecting to bridge...";
         case "DISCONNECTED":
             return "Connect to bridge";
+        default:
+            throw new Error("Unknown connection status");
     }
 });
 

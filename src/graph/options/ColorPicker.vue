@@ -13,7 +13,6 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-// @ts-ignore
 import { Chrome as CpChrome } from "@ckpack/vue-color";
 import { onClickOutside } from "@vueuse/core";
 

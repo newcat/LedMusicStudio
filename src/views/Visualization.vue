@@ -10,7 +10,6 @@
 </template>
 
 <script setup lang="ts">
-// @ts-ignore
 import { Splitpanes, Pane } from "splitpanes";
 
 import Timeline from "@/timeline/Timeline.vue";

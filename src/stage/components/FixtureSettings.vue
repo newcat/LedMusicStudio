@@ -3,7 +3,7 @@
         <div>
             <Message v-if="fixture.validationErrors.length > 0" severity="warn" :closable="false">
                 <ul class="m-0">
-                    <li v-for="error in fixture.validationErrors">{{ error }}</li>
+                    <li v-for="error in fixture.validationErrors" :key="error">{{ error }}</li>
                 </ul>
             </Message>
         </div>

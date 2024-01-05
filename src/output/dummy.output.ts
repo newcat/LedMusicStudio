@@ -10,7 +10,7 @@ export class DummyOutput extends BaseOutput<void, unknown> {
         // do nothing
     }
     public toObject(): void {}
-    public fromObject(state: void): Promise<void> {
+    public fromObject(): Promise<void> {
         return Promise.resolve();
     }
 }

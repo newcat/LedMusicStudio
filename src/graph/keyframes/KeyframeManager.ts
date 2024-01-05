@@ -27,7 +27,7 @@ interface NodeInterfaceWithType extends NodeInterface {
 
 type InterpolationFunction<V extends keyof VALUE_TYPES> = (a: VALUE_TYPES[V], b: VALUE_TYPES[V], f: number) => VALUE_TYPES[V];
 const INTERPOLATION_FUNCTIONS: { [V in keyof VALUE_TYPES]: InterpolationFunction<V> } = {
-    boolean: (a, b, f) => a,
+    boolean: (a) => a,
     color_single: (a, b, f) => mix(a, b, f),
     color_array: (a, b, f) => {
         const length = Math.max(a.length, b.length);
@@ -42,13 +42,14 @@ const INTERPOLATION_FUNCTIONS: { [V in keyof VALUE_TYPES]: InterpolationFunction
         return result;
     },
     number: (a, b, f) => a * (1.0 - f) + b * f,
-    unknown: (a, b, f) => a,
+    unknown: (a) => a,
 };
 
 export class KeyframeManager {
     public keyframes: Map<string, InterfaceKeyframes> = new Map();
 
     public constructor(private readonly item: GraphLibraryItem) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         item.editor.editor.graphEvents.removeNode.subscribe(this, (node) => {
             // TODO: Remove all keyframes for all interfaces of this node
         });

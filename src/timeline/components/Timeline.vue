@@ -25,8 +25,8 @@
                 @mouseleave="onTrackMouseleave()"
                 @mousemove="onTrackMouseMove"
                 @drag-start="onDragStart"
-                @dragover.native="$event.preventDefault()"
-                @drop.native.capture="drop(t, $event)"
+                @dragover="$event.preventDefault()"
+                @drop.capture="drop(t, $event)"
             ></track-view>
         </div>
     </div>
@@ -80,10 +80,6 @@ const contentStyles = computed(() => {
     };
 });
 
-const disableItemPointerEvents = computed(() => {
-    return isDragging.value;
-});
-
 const tracks = computed(() => {
     return timeline.tracks as Track[];
 });
@@ -103,7 +99,10 @@ const markers = computed(() => {
         return [];
     }
     const markers: IMarker[] = [];
-    const maxUnit = Math.max(pixelToUnit(timelineElBounds.width.value - timeline.headerWidth - 10), lastItemEnd.value + globalState.snapUnits);
+    const maxUnit = Math.max(
+        pixelToUnit(timelineElBounds.width.value - timeline.headerWidth - 10),
+        lastItemEnd.value + globalState.snapUnits
+    );
 
     for (let unit = 0; unit < maxUnit; unit += markerSpacing.value.space) {
         const x = unitToPixel(unit);

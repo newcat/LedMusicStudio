@@ -2,7 +2,6 @@ import { NodeInterface, defineDynamicNode, DynamicNodeDefinition } from "baklava
 import { IntegerInterface } from "@/graph/interfaces";
 import { SelectFixtureInterface } from "@/graph/interfaces/SelectFixtureInterface";
 import { DmxFixture, FixtureType, useStage } from "@/stage";
-import { watch } from "vue";
 
 class DmxChannelInterface extends IntegerInterface {
     public constructor(name: string) {
