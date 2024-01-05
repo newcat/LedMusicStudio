@@ -5,6 +5,7 @@ import { useBridge } from "@/bridge";
 import { LedStripFixture } from "../../fixtures/ledStrip/ledStrip.fixture";
 import { BaseController, ControllerType } from "../base.controller";
 import WledControllerSettings from "./WledControllerSettings.vue";
+import { FixtureType } from "@/stage/fixtures";
 
 interface WledControllerConfiguration {
     host: string;
@@ -15,6 +16,7 @@ interface WledControllerConfiguration {
 export class WledController extends BaseController<WledControllerConfiguration, LedStripFixture> {
     private readonly bridge = useBridge();
     public override readonly type = ControllerType.WLED;
+    public override readonly compatibleFixtures = [FixtureType.LED_STRIP];
     public override readonly settingsComponent = markRaw(WledControllerSettings);
 
     constructor() {

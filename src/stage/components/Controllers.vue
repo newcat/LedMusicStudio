@@ -44,6 +44,10 @@
                     :is="selectedController.settingsComponent"
                     v-model="selectedController"
                 />
+
+                <Divider />
+
+                <div>Controlled fixtures: {{ selectedController.controlledFixtures.map((f) => f.name).join(", ") }}</div>
             </div>
         </Panel>
     </div>
@@ -56,6 +60,7 @@ import Listbox from "primevue/listbox";
 import Panel from "primevue/panel";
 import Chip from "primevue/chip";
 import Menu, { MenuProps } from "primevue/menu";
+import Divider from "primevue/divider";
 
 import LabelledInputText from "@/components/LabelledInputText.vue";
 

@@ -59,6 +59,7 @@ function setFixture(definition: OpenFixtureDefinition) {
     fixture.value.setConfig({
         ...fixture.value.config,
         definition,
+        mode: definition.modes[0],
     });
 }
 

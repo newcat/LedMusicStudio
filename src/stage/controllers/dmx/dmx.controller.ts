@@ -3,7 +3,7 @@ import { markRaw } from "vue";
 import { BaseOutputConfiguration } from "lms_bridge/BaseOutputConfiguration";
 import { useBridge } from "@/bridge";
 import { BaseController, ControllerType } from "../base.controller";
-import { DmxFixture } from "../../fixtures";
+import { DmxFixture, FixtureType } from "../../fixtures";
 import DmxControllerSettings from "./DmxControllerSettings.vue";
 
 interface DmxControllerConfiguration {
@@ -13,6 +13,7 @@ interface DmxControllerConfiguration {
 export class DmxController extends BaseController<DmxControllerConfiguration, DmxFixture> {
     private readonly bridge = useBridge();
     public override readonly type = ControllerType.DMX;
+    public override readonly compatibleFixtures = [FixtureType.DMX];
     public override readonly settingsComponent = markRaw(DmxControllerSettings);
 
     public constructor() {

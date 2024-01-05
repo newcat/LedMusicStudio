@@ -15,18 +15,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref } from "vue";
 import TabMenu, { TabMenuProps } from "primevue/tabmenu";
 import Card from "primevue/card";
 
 import Fixtures from "./Fixtures.vue";
 import Controllers from "./Controllers.vue";
+import Visualization from "./Visualization.vue";
 
 const selectedTab = ref(0);
-
-watch(selectedTab, (newVal) => {
-    console.log("Selected tab", newVal);
-});
 
 const menuItems: TabMenuProps["model"] = [
     { label: "Fixtures", icon: "mdi mdi-lamp" },

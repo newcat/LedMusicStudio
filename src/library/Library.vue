@@ -32,7 +32,6 @@
                 <input ref="fileinput" type="file" @change="loadAudio" style="display: none" />
             </template>
         </Card>
-        <SelectOutputTypeDialog v-model="showSelectOutputTypeDialog" @create-output="addOutput" />
     </div>
 </template>
 
@@ -52,13 +51,11 @@ import { LibraryItemType, LibraryItem, LibraryItemTypeIcons, LibraryItemTypeLabe
 import { useLibrary } from "./libraryModel";
 
 import LibraryItemView from "./LibraryItem.vue";
-import SelectOutputTypeDialog from "@/output/SelectOutputTypeDialog.vue";
 
 const library = useLibrary();
 
 const fileinput = ref<HTMLInputElement | null>(null);
 const menu = ref<Menu | null>(null);
-const showSelectOutputTypeDialog = ref(false);
 
 const getMenuItem = (type: LibraryItemType) => ({
     label: LibraryItemTypeLabels[type],
