@@ -42,6 +42,10 @@ export class WledController extends BaseController<WledControllerConfiguration, 
 
         const fixture = this.controlledFixtures[0];
         const colors = fixture.value;
+        if (!colors || colors.length !== fixture.config.numLeds) {
+            return;
+        }
+
         const buff = new Array(3 * fixture.config.numLeds + 2);
 
         buff[0] = 2; // Use DRGB protocol

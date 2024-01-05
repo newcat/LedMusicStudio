@@ -16,7 +16,7 @@ export const DmxOutputNode = defineDynamicNode({
         fixtureId: () => new SelectFixtureInterface([FixtureType.DMX]),
     },
     outputs: {
-        outputId: () => new NodeInterface<string | undefined>("OutputId", undefined).setHidden(true),
+        fixtureId: () => new NodeInterface<string>("FixtureId", "").setHidden(true),
         data: () => new NodeInterface<number[]>("Data", []).setHidden(true),
     },
     onUpdate({ fixtureId }) {
@@ -38,13 +38,16 @@ export const DmxOutputNode = defineDynamicNode({
 
         return { inputs };
     },
-    calculate({ output, fixture, ...channels }) {
+    calculate({ fixtureId, ...channels }) {
         const data = [];
         for (const [channel, value] of Object.entries(channels)) {
+            if (!channel.startsWith("channel_")) {
+                continue;
+            }
             const channelOffset = parseInt(channel.replace("channel_", ""));
             data[channelOffset] = value;
         }
 
-        return { outputId: output, data };
+        return { fixtureId, data };
     },
 });

@@ -53,5 +53,12 @@ export const useStage = defineStore("stage", () => {
         visualization.value.load(state.visualization);
     }
 
-    return { fixtures, controllers, visualization, afterFrame, save, load };
+    function reset() {
+        fixtures.value = new ExtendedMap();
+        controllers.value = new ExtendedMap();
+        visualization.value?.dispose();
+        visualization.value = new StageVisualization(fixtures.value);
+    }
+
+    return { fixtures, controllers, visualization, afterFrame, save, load, reset };
 });

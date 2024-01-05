@@ -93,7 +93,6 @@ export class SpotVisualization extends BaseVisualization<DmxFixture, SpotVisuali
     protected onFixtureConfigUpdate(): void {}
 
     protected onFixtureValueUpdate(): void {
-        return;
         const data = this.fixture.value;
         const red = data[this.config.colorChannels[0]] ?? 0;
         const green = data[this.config.colorChannels[1]] ?? 0;

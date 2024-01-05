@@ -73,10 +73,19 @@ export class StageVisualization {
     }
 
     public load(state: StageVisualizationState) {
-        this.loadScene(state.baseScene);
+        if (state.baseScene) {
+            this.loadScene(state.baseScene);
+        }
         for (const [fixtureId, visualizationState] of Object.entries(state.visualizationStates)) {
             this.setVisualization(fixtureId, visualizationState.type, visualizationState);
         }
+    }
+
+    public dispose() {
+        for (const visualization of this.visualizations.values()) {
+            visualization.dispose();
+        }
+        this._visualizations.clear();
     }
 
     private updateFixtures() {
