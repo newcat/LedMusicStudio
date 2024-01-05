@@ -24,7 +24,7 @@ export abstract class BaseVisualization<F extends BaseFixture = BaseFixture, C =
         return this._config;
     }
 
-    public constructor(protected readonly fixture: F, initialConfig: C) {
+    public constructor(public readonly fixture: F, initialConfig: C) {
         super();
         this._config = initialConfig;
 

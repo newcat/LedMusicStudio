@@ -16,6 +16,29 @@ export class DmxController extends BaseController<DmxControllerConfiguration, Dm
     public override readonly compatibleFixtures = [FixtureType.DMX];
     public override readonly settingsComponent = markRaw(DmxControllerSettings);
 
+    public override get validationErrors(): string[] {
+        // check if the channels of any two fixtures overlap
+        const channels = new Map<number, string[]>();
+        for (const fixture of this.controlledFixtures) {
+            for (const channel of fixture.usedChannels) {
+                const arr = channels.get(channel) ?? [];
+                arr.push(fixture.name);
+                channels.set(channel, arr);
+            }
+        }
+        const errors: string[] = [];
+        for (const [channel, fixtures] of channels.entries()) {
+            if (fixtures.length > 1) {
+                errors.push(`Channel ${channel} is used by ${fixtures.join(", ")}`);
+            }
+        }
+
+        if (this.config.port === "") {
+            errors.push("No port selected");
+        }
+        return errors;
+    }
+
     public constructor() {
         super({ port: "" });
         this.name = "DMX Controller";

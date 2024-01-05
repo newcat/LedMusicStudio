@@ -10,7 +10,7 @@
             <template #option="{ option }">
                 <div class="flex align-items-center">
                     <i
-                        v-if="!option.isValid"
+                        v-if="option.validationErrors.length > 0"
                         class="mdi mdi-alert mr-4"
                         title="Please set all necessary options to use this controller"
                     ></i>
@@ -36,8 +36,17 @@
 
             <div v-if="selectedController" class="controller-settings">
                 <div>
+                    <Message v-if="selectedController.validationErrors.length > 0" severity="warn" :closable="false">
+                        <ul class="m-0">
+                            <li v-for="error in selectedController.validationErrors" :key="error">{{ error }}</li>
+                        </ul>
+                    </Message>
+                </div>
+
+                <div>
                     <Chip>{{ selectedController.type }}</Chip>
                 </div>
+
                 <LabelledInputText v-model="selectedController.name">Name</LabelledInputText>
                 <component
                     v-if="selectedController.settingsComponent"
@@ -61,6 +70,7 @@ import Panel from "primevue/panel";
 import Chip from "primevue/chip";
 import Menu, { MenuProps } from "primevue/menu";
 import Divider from "primevue/divider";
+import Message from "primevue/message";
 
 import LabelledInputText from "@/components/LabelledInputText.vue";
 

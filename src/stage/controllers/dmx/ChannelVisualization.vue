@@ -8,12 +8,10 @@
                     `${fixture.name} (${fixture.config.startChannel} - ${fixture.config.startChannel + fixture.usedChannels.length - 1})`
                 "
                 class="fixture"
-                :class="{ '--selected': selectedFixture === fixture }"
                 :style="{
                     'grid-column-start': fixture.config.startChannel,
                     'grid-column-end': fixture.config.startChannel + fixture.usedChannels.length,
                 }"
-                @click="emit('update:selectedFixture', fixture)"
             ></div>
         </div>
     </Panel>
@@ -36,11 +34,6 @@ import { DmxFixture } from "../../fixtures";
 
 defineProps<{
     fixtures: DmxFixture[];
-    selectedFixture: DmxFixture | null;
-}>();
-
-const emit = defineEmits<{
-    (e: "update:selectedFixture", fixture: DmxFixture): void;
 }>();
 </script>
 
@@ -54,13 +47,9 @@ const emit = defineEmits<{
 .fixture {
     height: 0.5rem;
     border-radius: 0.5rem;
-    background-color: var(--surface-d);
+    background-color: var(--primary-color);
     grid-row: 1;
     cursor: pointer;
     transition: background-color 0.1s linear;
-}
-
-.fixture.--selected {
-    background-color: var(--primary-color);
 }
 </style>

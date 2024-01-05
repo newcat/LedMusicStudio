@@ -36,6 +36,8 @@ export abstract class BaseController<C = unknown, F extends BaseFixture = BaseFi
         return this._controlledFixtures;
     }
 
+    public abstract get validationErrors(): string[];
+
     public constructor(initialConfig: C) {
         this._config = initialConfig;
     }

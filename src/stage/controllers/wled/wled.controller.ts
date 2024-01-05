@@ -19,6 +19,10 @@ export class WledController extends BaseController<WledControllerConfiguration, 
     public override readonly compatibleFixtures = [FixtureType.LED_STRIP];
     public override readonly settingsComponent = markRaw(WledControllerSettings);
 
+    public override get validationErrors(): string[] {
+        return [];
+    }
+
     constructor() {
         super({
             host: "127.0.0.1",

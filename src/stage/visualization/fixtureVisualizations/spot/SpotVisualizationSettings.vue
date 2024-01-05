@@ -23,13 +23,13 @@
     </div>
     <div class="flex gap-3">
         <LabelledFormField label="DMX Channel Red">
-            <InputNumber v-model="config.colorChannels[0]" />
+            <DmxChannelSelector v-model="config.colorChannels[0]" :fixture="props.visualization.fixture" />
         </LabelledFormField>
         <LabelledFormField label="DMX Channel Green">
-            <InputNumber v-model="config.colorChannels[1]" />
+            <DmxChannelSelector v-model="config.colorChannels[1]" :fixture="props.visualization.fixture" />
         </LabelledFormField>
         <LabelledFormField label="DMX Channel Blue">
-            <InputNumber v-model="config.colorChannels[2]" />
+            <DmxChannelSelector v-model="config.colorChannels[2]" :fixture="props.visualization.fixture" />
         </LabelledFormField>
     </div>
     <div>
@@ -45,6 +45,7 @@ import Button from "primevue/button";
 import LabelledFormField from "@/components/LabelledFormField.vue";
 import { useEditClone } from "@/utils";
 import { SpotVisualization } from "./spot.visualization";
+import DmxChannelSelector from "../DmxChannelSelector.vue";
 
 const props = defineProps<{
     visualization: SpotVisualization;

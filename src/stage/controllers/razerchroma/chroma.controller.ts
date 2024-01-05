@@ -10,6 +10,10 @@ export class RazerChromaController extends BaseController<Record<string, never>,
     private api = new ChromaApi();
     private isSending = false;
 
+    public override get validationErrors(): string[] {
+        return [];
+    }
+
     public constructor() {
         super({});
         this.api.initialize();

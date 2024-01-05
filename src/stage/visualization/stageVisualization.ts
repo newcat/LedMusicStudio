@@ -45,7 +45,6 @@ export class StageVisualization {
         }
         this._visualizations.set(fixtureId, newVisualization);
         this._scene?.add(newVisualization);
-        console.log("Added visualization for fixture", fixtureId);
     }
 
     public loadScene(baseScene: any) {
