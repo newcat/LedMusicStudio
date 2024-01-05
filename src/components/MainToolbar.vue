@@ -22,7 +22,7 @@ import Button from "primevue/button";
 import { useBridge } from "@/bridge";
 import { useGlobalState } from "@/globalState";
 
-const currentView = defineModel<"PROGRAMMING" | "STAGE">("view", { required: true });
+const currentView = defineModel<"PROGRAMMING" | "STAGE" | "VISUALIZATION">("view", { required: true });
 const emit = defineEmits(["newProject", "load", "save", "saveAs", "showSettings"]);
 
 const globalState = useGlobalState();
@@ -91,6 +91,10 @@ const menuItems = computed<MenubarProps["model"]>(() => [
     {
         label: "Visualization",
         icon: "mdi mdi-eye",
+        class: currentView.value === "VISUALIZATION" ? "p-highlight p-menuitem-active" : "",
+        command: () => {
+            currentView.value = "VISUALIZATION";
+        },
     },
 ]);
 </script>

@@ -1,45 +1,73 @@
 import * as THREE from "three";
-import { BaseStageFixture, ThreeBaseFixture } from "./fixtureVisualizations";
+import { BaseVisualization, VisualizationType } from "./fixtureVisualizations/base.visualization";
+import { BaseFixture } from "../fixtures";
+import { markRaw, watch } from "vue";
+import { createFixtureVisualization } from "./fixtureVisualizations/factory";
 
 export class StageVisualization {
-    public readonly scene: THREE.Scene;
-    public readonly camera: THREE.PerspectiveCamera;
+    private _scene: THREE.Scene | null = null;
+    private _camera: THREE.PerspectiveCamera | null = null;
+    private _visualizations: Map<string, BaseVisualization> = new Map();
 
-    public outputData: Map<string, any> = new Map();
-    private fixtureInstances: ThreeBaseFixture[] = [];
+    public get visualizations() {
+        return this._visualizations as ReadonlyMap<string, BaseVisualization>;
+    }
 
-    public constructor(public readonly baseScene: any) {
+    public get scene() {
+        return this._scene;
+    }
+
+    public get camera() {
+        return this._camera;
+    }
+
+    public constructor(private readonly fixtures: Map<string, BaseFixture>) {
+        watch(fixtures, () => this.updateFixtures(), { deep: true });
+    }
+
+    public setVisualization(fixtureId: string, visualizationType: VisualizationType | null) {
+        this.removeVisualization(fixtureId);
+
+        const fixture = this.fixtures.get(fixtureId);
+        if (!visualizationType || !fixture) {
+            return;
+        }
+
+        const newVisualization = createFixtureVisualization(visualizationType, fixture);
+        this._visualizations.set(fixtureId, newVisualization);
+    }
+
+    public loadScene(baseScene: any) {
         const loader = new THREE.ObjectLoader();
-        this.scene = loader.parse(baseScene) as THREE.Scene;
+        this._scene = markRaw(loader.parse(baseScene) as THREE.Scene);
 
-        this.camera = this.scene.children.find((child) => child.type === "PerspectiveCamera") as THREE.PerspectiveCamera;
+        this._camera = this._scene.children.find((child) => child.type === "PerspectiveCamera") as THREE.PerspectiveCamera;
         if (!this.camera) {
             throw new Error("No camera found in scene");
         }
-    }
 
-    public applyFixtures(fixtures: BaseStageFixture[]) {
-        for (const fixtureInstance of this.fixtureInstances) {
-            fixtureInstance.dispose();
-            this.scene.remove(fixtureInstance);
-        }
-
-        this.fixtureInstances = [];
-
-        for (const fixture of fixtures) {
-            if (!fixture.isValid) {
-                console.warn(`Fixture ${fixture.name} is not valid`, fixture);
-                continue;
-            }
-            const fixtureInstance = fixture.createThreeInstance(this.scene);
-            this.fixtureInstances.push(fixtureInstance);
-            this.scene.add(fixtureInstance);
+        for (const visualization of this.visualizations.values()) {
+            this._scene.add(visualization);
         }
     }
 
-    public updateFixtureData() {
-        for (const fixture of this.fixtureInstances) {
-            fixture.updateData(this.outputData);
+    private updateFixtures() {
+        const fixturesToRemove = new Set(this.visualizations.keys());
+        for (const fixture of this.fixtures.values()) {
+            fixturesToRemove.delete(fixture.id);
+        }
+
+        for (const fixtureId of fixturesToRemove) {
+            this.removeVisualization(fixtureId);
+        }
+    }
+
+    private removeVisualization(fixtureId: string) {
+        const visualization = this.visualizations.get(fixtureId);
+        if (visualization) {
+            this.scene?.remove(visualization);
+            visualization.dispose();
+            this._visualizations.delete(fixtureId);
         }
     }
 }

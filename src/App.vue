@@ -12,6 +12,7 @@
             <div class="content">
                 <Programming v-show="currentView === 'PROGRAMMING'" />
                 <Stage v-show="currentView === 'STAGE'" />
+                <Visualization v-show="currentView === 'VISUALIZATION'" />
             </div>
         </div>
         <Settings v-model="showSettings" />
@@ -28,20 +29,21 @@ import { useToast } from "primevue/usetoast";
 import Settings from "@/components/Settings.vue";
 import Toolbar from "@/components/MainToolbar.vue";
 import LoadingDialog from "@/components/LoadingDialog.vue";
-import Programming from "./Programming.vue";
-import Stage from "./stage/components/Stage.vue";
+import { Programming, Stage, Visualization } from "@/views";
 
 import { useGlobalState } from "@/globalState";
 import { TimelineProcessor } from "@/timeline";
 import { showOpenDialog, showSaveDialog, readFile, writeFile } from "@/native";
+import { useErrorHandler } from "@/utils";
 
 const globalState = useGlobalState();
 const toast = useToast();
+const errorHandler = useErrorHandler();
 
 const showSettings = ref(false);
 const showLoadingDialog = ref(false);
 const processor = ref(new TimelineProcessor());
-const currentView = ref<"PROGRAMMING" | "STAGE">("STAGE");
+const currentView = ref<"PROGRAMMING" | "STAGE" | "VISUALIZATION">("STAGE");
 
 (window as any).globalState = globalState;
 (window as any).processor = processor;
@@ -61,19 +63,10 @@ async function load(): Promise<void> {
     await globalState.reset();
     globalState.projectFilePath = p;
     showLoadingDialog.value = true;
-    try {
+    await errorHandler("Failed to load project", async () => {
         await globalState.load(buff);
-    } catch (err) {
-        console.error(err);
-        toast.add({
-            severity: "error",
-            closable: true,
-            summary: "Failed to load project",
-            detail: err instanceof Error ? err.message : String(err),
-            life: 6000,
-        });
-        showLoadingDialog.value = false;
-    }
+    });
+    showLoadingDialog.value = false;
 }
 
 async function save(): Promise<void> {
@@ -82,20 +75,12 @@ async function save(): Promise<void> {
             return;
         }
     }
-    try {
+
+    await errorHandler("Failed to save project", async () => {
         const state = globalState.save();
         await writeFile(globalState.projectFilePath, state);
         toast.add({ severity: "success", summary: "Saved", detail: "Project successfully saved", life: 2000 });
-    } catch (err) {
-        toast.add({
-            severity: "error",
-            closable: true,
-            summary: "Failed to save project",
-            detail: err instanceof Error ? err.message : String(err),
-            life: 6000,
-        });
-        showLoadingDialog.value = false;
-    }
+    });
 }
 
 async function saveAs(): Promise<void> {

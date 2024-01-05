@@ -19,9 +19,9 @@ import { ref } from "vue";
 import TabMenu, { TabMenuProps } from "primevue/tabmenu";
 import Card from "primevue/card";
 
-import Fixtures from "./Fixtures.vue";
-import Controllers from "./Controllers.vue";
-import Visualization from "./Visualization.vue";
+import Fixtures from "@/stage/components/Fixtures.vue";
+import Controllers from "@/stage/components/Controllers.vue";
+import Visualization from "@/stage/components/Visualization.vue";
 
 const selectedTab = ref(0);
 

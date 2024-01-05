@@ -1,4 +1,4 @@
-import { Component } from "vue";
+import { Component, watch } from "vue";
 import * as THREE from "three";
 import { BaseFixture, FixtureType } from "@/stage/fixtures";
 
@@ -22,10 +22,21 @@ export abstract class BaseVisualization<F extends BaseFixture = BaseFixture, C =
     public constructor(protected readonly fixture: F, initialConfig: C) {
         super();
         this._config = initialConfig;
+
+        watch(
+            () => fixture.config,
+            () => this.onFixtureConfigUpdate(),
+            { deep: true }
+        );
+        watch(
+            () => fixture.value,
+            () => this.onFixtureValueUpdate(),
+            { deep: true }
+        );
     }
 
     protected abstract onFixtureConfigUpdate(): void;
-    protected abstract onFixtureDataUpdate(): void;
+    protected abstract onFixtureValueUpdate(): void;
     public dispose() {}
 
     public setConfig(c: C) {

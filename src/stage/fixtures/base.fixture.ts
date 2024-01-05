@@ -1,6 +1,5 @@
 import { Component } from "vue";
 import { v4 as uuidv4 } from "uuid";
-import { BaseVisualization } from "../visualization/fixtureVisualizations/base.visualization";
 
 export enum FixtureType {
     LED_STRIP = "LED Strip",
@@ -12,8 +11,6 @@ export abstract class BaseFixture<V = unknown, C = unknown> {
     public abstract readonly type: FixtureType;
     public name: string = "Fixture";
     public readonly settingsComponent: Component | null = null;
-
-    public visualization: BaseVisualization | null = null;
 
     protected _value: V;
     protected _config: C;

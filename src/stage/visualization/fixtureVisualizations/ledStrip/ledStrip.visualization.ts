@@ -31,6 +31,12 @@ export class LedStripVisualization extends BaseVisualization<LedStripFixture, Le
             start: [0, 0, 0],
             end: [0, 0, 0],
         });
+        this.generateLeds();
+    }
+
+    public setConfig(c: LedStripVisualizationConfig): void {
+        super.setConfig(c);
+        this.generateLeds();
     }
 
     public dispose() {
@@ -42,7 +48,7 @@ export class LedStripVisualization extends BaseVisualization<LedStripFixture, Le
         this.generateLeds();
     }
 
-    protected onFixtureDataUpdate(): void {
+    protected onFixtureValueUpdate(): void {
         const data = this.fixture.value;
         if (!data || data.length === 0) {
             this.leds.forEach((led) => led.color.setRGB(0, 0, 0));
@@ -69,6 +75,7 @@ export class LedStripVisualization extends BaseVisualization<LedStripFixture, Le
             this.add(led);
             this.leds.push(led);
         }
+        console.log("Generated", this.leds.length, "LEDs");
     }
 
     private disposeLeds() {

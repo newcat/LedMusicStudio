@@ -10,6 +10,11 @@
 import Button from "primevue/button";
 
 import { readFile, showOpenDialog } from "@/native";
+import { useErrorHandler } from "@/utils";
+import { useStage } from "../stage";
+
+const errorHandler = useErrorHandler();
+const stage = useStage();
 
 async function loadScene() {
     const result = await showOpenDialog({ title: "Load Scene", filters: [{ name: "Stage Scene", extensions: ["json"] }] });
@@ -17,15 +22,17 @@ async function loadScene() {
         return;
     }
 
-    const timeoutSymbol = Symbol("timeout");
-    const rawData = await Promise.race([
-        readFile(result.filePaths[0], { encoding: "utf-8" }),
-        new Promise<symbol>((res) => setTimeout(res, 5000, timeoutSymbol)),
-    ]);
-    if (rawData === timeoutSymbol) {
-        throw new Error("Timeout while reading data");
-    }
+    errorHandler("Could not load scene", async () => {
+        const timeoutSymbol = Symbol("timeout");
+        const rawData = await Promise.race([
+            readFile(result.filePaths[0], { encoding: "utf-8" }),
+            new Promise<symbol>((res) => setTimeout(res, 5000, timeoutSymbol)),
+        ]);
+        if (rawData === timeoutSymbol) {
+            throw new Error("Timeout while reading data");
+        }
 
-    // TODO: props.stage.createScene(JSON.parse(rawData as string));
+        stage.visualization.loadScene(JSON.parse(rawData as string));
+    });
 }
 </script>

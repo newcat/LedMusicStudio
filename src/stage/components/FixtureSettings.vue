@@ -15,13 +15,11 @@
         <Divider />
 
         <LabelledFormField label="Visualization">
-            <Dropdown v-model="visualization" :options="visualizationTypes" option-label="label" option-value="value" />
+            <Dropdown v-model="visualizationType" :options="visualizationTypes" option-label="label" option-value="value" />
         </LabelledFormField>
-        <component
-            v-if="fixture.visualization?.settingsComponent"
-            :is="fixture.visualization.settingsComponent"
-            :visualization="fixture.visualization"
-        />
+        <template v-if="visualization">
+            <component v-if="visualization.settingsComponent" :is="visualization.settingsComponent" :visualization="visualization" />
+        </template>
     </div>
 </template>
 
@@ -30,20 +28,19 @@ import { computed } from "vue";
 import Chip from "primevue/chip";
 import Dropdown from "primevue/dropdown";
 import Divider from "primevue/divider";
-import { useToast } from "primevue/usetoast";
 
+import { useErrorHandler } from "@/utils";
 import LabelledInputText from "@/components/LabelledInputText.vue";
 import LabelledFormField from "@/components/LabelledFormField.vue";
 import { BaseFixture } from "../fixtures";
 import { useStage } from "../stage";
-import { createFixtureVisualization } from "../visualization/fixtureVisualizations/factory";
 import { VisualizationType } from "../visualization/fixtureVisualizations/base.visualization";
 
 const props = defineProps<{
     fixture: BaseFixture;
 }>();
 
-const toast = useToast();
+const errorHandler = useErrorHandler();
 const stage = useStage();
 
 const controllerId = computed<string>({
@@ -52,20 +49,12 @@ const controllerId = computed<string>({
         return id;
     },
     set: (value) => {
-        try {
+        errorHandler("Could not assign controller", () => {
             const oldController = stage.controllers.get(controllerId.value);
             oldController?.removeFixture(props.fixture);
             const newController = stage.controllers.get(value);
             newController?.addFixture(props.fixture);
-        } catch (err) {
-            toast.add({
-                severity: "warn",
-                closable: true,
-                summary: "Could not assign controller",
-                detail: err instanceof Error ? err.message : String(err),
-                life: 4000,
-            });
-        }
+        });
     },
 });
 
@@ -79,33 +68,18 @@ const availableControllers = computed(() => {
     return controllers;
 });
 
-const visualization = computed({
+const visualizationType = computed<VisualizationType | "NONE">({
     get() {
-        return props.fixture.visualization?.type ?? "NONE";
+        return stage.visualization.visualizations.get(props.fixture.id)?.type ?? "NONE";
     },
     set(newType) {
-        try {
-            if (props.fixture.visualization) {
-                // TODO: Remove old visualization from scene
-                props.fixture.visualization.dispose();
-            }
-
-            if (newType === "NONE") {
-                props.fixture.visualization = null;
-            } else {
-                props.fixture.visualization = createFixtureVisualization(newType, props.fixture);
-            }
-        } catch (err) {
-            toast.add({
-                severity: "warn",
-                closable: true,
-                summary: "Could not update visualizatino",
-                detail: err instanceof Error ? err.message : String(err),
-                life: 4000,
-            });
-        }
+        errorHandler("Could not update visualization", () => {
+            stage.visualization.setVisualization(props.fixture.id, newType === "NONE" ? null : newType);
+        });
     },
 });
+
+const visualization = computed(() => stage.visualization.visualizations.get(props.fixture.id));
 
 const visualizationTypes = computed(() => {
     const types: Array<{ label: string; value: "NONE" | VisualizationType }> = [
