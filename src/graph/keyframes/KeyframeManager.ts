@@ -11,9 +11,9 @@ interface VALUE_TYPES {
     unknown: unknown;
 }
 
-interface InterfaceKeyframes {
+export interface InterfaceKeyframes {
     valueType: keyof VALUE_TYPES;
-    keyframes: Array<Keyframe>;
+    keyframes: Keyframe[];
 }
 
 interface Keyframe {
@@ -104,6 +104,10 @@ export class KeyframeManager {
 
     public applyKeyframes(position: number) {
         for (const [interfaceId, interfaceKeyframes] of this.keyframes.entries()) {
+            if (interfaceKeyframes.keyframes.length === 0) {
+                continue;
+            }
+
             const value = this.getValueAtPosition(interfaceKeyframes, position);
             for (const graph of this.item.editor.editor.graphs) {
                 const ni = graph.findNodeInterface(interfaceId);

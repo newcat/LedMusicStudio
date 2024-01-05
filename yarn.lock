@@ -750,15 +750,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/bson@npm:^4.2.0":
-  version: 4.2.0
-  resolution: "@types/bson@npm:4.2.0"
-  dependencies:
-    bson: "*"
-  checksum: 55abf60c57b7f05655c210b386392636a299a7df18b89cec2cde0aa87374d97dd4ac9632226b0f6fe135d16ad4296ae5ddc782f6e9132d38c53dd26a6df8e704
-  languageName: node
-  linkType: hard
-
 "@types/cacheable-request@npm:^6.0.1":
   version: 6.0.3
   resolution: "@types/cacheable-request@npm:6.0.3"
@@ -1688,22 +1679,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"bson@npm:*":
-  version: 4.7.0
-  resolution: "bson@npm:4.7.0"
-  dependencies:
-    buffer: ^5.6.0
-  checksum: 83e7b64afdad5a505073a7e6206e7b345f59e7888fbcb1948fba72b6101a1baf58b7499314f8e24b650567665f7973eda048aabbb1ddcfbadfba7d6c6b0f5e83
-  languageName: node
-  linkType: hard
-
-"bson@npm:6.2.0":
-  version: 6.2.0
-  resolution: "bson@npm:6.2.0"
-  checksum: 950fccd2abd0ff5a1bd3637f4697631298f1538314994ab8c9e13f1c9851d0fd042b54fe8340e00151c2acee43917ea40e64b800ceeea811b00f2de3e900c77e
-  languageName: node
-  linkType: hard
-
 "buffer-crc32@npm:~0.2.3":
   version: 0.2.13
   resolution: "buffer-crc32@npm:0.2.13"
@@ -1725,7 +1700,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"buffer@npm:^5.1.0, buffer@npm:^5.6.0":
+"buffer@npm:^5.1.0":
   version: 5.7.1
   resolution: "buffer@npm:5.7.1"
   dependencies:
@@ -3582,7 +3557,6 @@ __metadata:
   dependencies:
     "@ckpack/vue-color": ^1.5.0
     "@mdi/font": ^7.4.47
-    "@types/bson": ^4.2.0
     "@types/chroma-js": ^2.4.3
     "@types/node": 20.10.6
     "@types/offscreencanvas": ^2019.7.3
@@ -3596,7 +3570,6 @@ __metadata:
     autoprefixer: ^10.4.16
     axios: ^1.6.3
     baklavajs: ^2.3.0
-    bson: 6.2.0
     chroma-js: ^2.4.2
     comlink: ^4.4.1
     concurrently: ^8.2.2

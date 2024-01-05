@@ -1,9 +1,12 @@
-import { serialize, deserialize } from "bson";
 import { LibraryItem, LibraryItemType } from "@/library";
 import { BaklavaEvent } from "@baklavajs/events";
 import { INote } from "./types";
 
-export class PatternLibraryItem extends LibraryItem {
+export interface PatternLibraryItemState {
+    notes: INote[];
+}
+
+export class PatternLibraryItem extends LibraryItem<PatternLibraryItemState> {
     public type = LibraryItemType.PATTERN;
     public name = "Note Pattern";
 
@@ -13,19 +16,14 @@ export class PatternLibraryItem extends LibraryItem {
         notesUpdated: new BaklavaEvent<void, this>(this),
     };
 
-    public serialize() {
-        return serialize({
-            id: this.id,
-            name: this.name,
+    public override save() {
+        return {
             notes: this.notes,
-        });
+        };
     }
 
-    public deserialize(buffer: Buffer): void {
-        const { id, name, notes } = deserialize(buffer);
-        this.id = id;
-        this.name = name;
-        this.notes = notes;
+    public override load(state: PatternLibraryItemState) {
+        this.notes = state.notes;
     }
 
     public getNotesAt(tick: number) {

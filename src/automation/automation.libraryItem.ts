@@ -1,4 +1,3 @@
-import { deserialize, serialize } from "bson";
 import { v4 as uuidv4 } from "uuid";
 import { LibraryItem, LibraryItemType } from "@/library";
 import { TICKS_PER_BEAT } from "@/constants";
@@ -13,7 +12,11 @@ export interface IAutomationPoint {
     type: AutomationPointType;
 }
 
-export class AutomationLibraryItem extends LibraryItem {
+export interface AutomationLibraryItemState {
+    points: IAutomationPoint[];
+}
+
+export class AutomationLibraryItem extends LibraryItem<AutomationLibraryItemState> {
     public type = LibraryItemType.AUTOMATION;
     public name = "Automation Clip";
 
@@ -68,19 +71,14 @@ export class AutomationLibraryItem extends LibraryItem {
         return 0;
     }
 
-    public serialize() {
-        return serialize({
-            id: this.id,
-            name: this.name,
+    public override save() {
+        return {
             points: this.points,
-        });
+        };
     }
 
-    public deserialize(buffer: Buffer): void {
-        const { id, name, points } = deserialize(buffer);
-        this.id = id;
-        this.name = name;
-        this.points = points;
+    public override load(state: AutomationLibraryItemState) {
+        this.points = state.points;
     }
 
     private linearInterpolation(unit: number, a: IAutomationPoint, b: IAutomationPoint) {

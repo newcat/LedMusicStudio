@@ -60,8 +60,7 @@ async function replaceAudioFile(item: AudioLibraryItem) {
     if (dialogResult.canceled) {
         return "";
     }
-    item.path = dialogResult.filePaths![0];
-    item.load();
+    item.load({ path: dialogResult.filePaths![0] });
 }
 
 let stopWatch: WatchStopHandle | null = null;

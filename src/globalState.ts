@@ -1,10 +1,9 @@
-import { serialize, deserialize, Binary } from "bson";
 import { ref } from "vue";
 import { defineStore } from "pinia";
 import { BaklavaEvent } from "@baklavajs/events";
 
 import { ITimelineState, useTimeline } from "@/timeline";
-import { useLibrary } from "./library";
+import { ILibraryState, useLibrary } from "./library";
 import { TICKS_PER_BEAT } from "./constants";
 import { StageState, useStage } from "./stage";
 
@@ -19,7 +18,7 @@ const defaults = {
 export interface SavedState {
     stage: StageState;
     timeline: ITimelineState;
-    library: Uint8Array | Binary;
+    library: ILibraryState;
     bpm: number;
     fps: number;
     volume: number;
@@ -78,13 +77,13 @@ export const useGlobalState = defineStore("globalState", () => {
             snapUnits: snapUnits.value,
             bridgeUrl: bridgeUrl.value,
         };
-        return serialize(state);
+        return JSON.stringify(state);
     }
 
-    async function load(serialized: Buffer) {
-        const data: SavedState = deserialize(serialized) as SavedState;
+    async function load(raw: string) {
+        const data: SavedState = JSON.parse(raw) as SavedState;
         stage.load(data.stage);
-        await library.load(data.library as Binary);
+        await library.load(data.library);
         timeline.load(data.timeline);
         bpm.value = data.bpm ?? defaults.bpm;
         fps.value = data.fps ?? defaults.fps;

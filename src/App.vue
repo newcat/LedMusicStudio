@@ -61,12 +61,12 @@ async function load(): Promise<void> {
     if (!p) {
         return;
     }
-    const buff = await readFile(p);
+    const raw = await readFile(p, { encoding: "utf-8" });
     await globalState.reset();
     globalState.projectFilePath = p;
     showLoadingDialog.value = true;
     await errorHandler("Failed to load project", async () => {
-        await globalState.load(buff);
+        await globalState.load(raw);
     });
     showLoadingDialog.value = false;
 }

@@ -95,7 +95,7 @@ async function loadAudio() {
     item.name = f[0].name;
     item.path = f[0].path;
     library.addItem(item);
-    await item.load();
+    await item.loadAudio();
 }
 
 function addItem(key: LibraryItemType) {

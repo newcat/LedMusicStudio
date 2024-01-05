@@ -28,7 +28,7 @@ export const LibraryItemTypeIcons: Record<LibraryItemType, string> = {
     [LibraryItemType.PATTERN]: "music",
 } as const;
 
-export abstract class LibraryItem {
+export abstract class LibraryItem<S = unknown> {
     public id: string = uuidv4();
 
     public abstract type: LibraryItemType;
@@ -37,9 +37,8 @@ export abstract class LibraryItem {
     public loading = false;
     public error = false;
 
-    public abstract serialize(): Uint8Array;
-    public abstract deserialize(buffer: Uint8Array): void;
+    public abstract save(): S;
+    public abstract load(state: S): void | Promise<void>;
 
-    public async load(): Promise<void> {}
     public async destroy(): Promise<void> {}
 }

@@ -1,4 +1,3 @@
-import { serialize, deserialize } from "bson";
 import { BaklavaEvent } from "@baklavajs/events";
 import { LibraryItem, LibraryItemType } from "@/library";
 import WaveformWorker from "./workerInstance";
@@ -15,7 +14,11 @@ export interface IWaveform {
     parts: IWaveformPart[];
 }
 
-export class AudioLibraryItem extends LibraryItem {
+export interface AudioLibraryItemState {
+    path: string;
+}
+
+export class AudioLibraryItem extends LibraryItem<AudioLibraryItemState> {
     public static sampleRate = 192000;
 
     public type = LibraryItemType.AUDIO;
@@ -28,7 +31,18 @@ export class AudioLibraryItem extends LibraryItem {
         loaded: new BaklavaEvent<void, this>(this),
     };
 
-    public override async load() {
+    public override save() {
+        return {
+            path: this.path,
+        };
+    }
+
+    public override async load(state: AudioLibraryItemState) {
+        this.path = state.path;
+        await this.loadAudio();
+    }
+
+    public async loadAudio() {
         this.loading = true;
         this.error = false;
 
@@ -55,21 +69,6 @@ export class AudioLibraryItem extends LibraryItem {
 
         this.loading = false;
         this.events.loaded.emit();
-    }
-
-    public serialize() {
-        return serialize({
-            id: this.id,
-            name: this.name,
-            path: this.path,
-        });
-    }
-
-    public deserialize(buffer: Uint8Array): void {
-        const { id, name, path } = deserialize(buffer);
-        this.id = id;
-        this.name = name;
-        this.path = path;
     }
 
     private async generateWaveform(): Promise<IWaveform> {

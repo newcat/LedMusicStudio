@@ -1,5 +1,4 @@
 import { reactive, Ref, ref } from "vue";
-import { serialize, deserialize, Binary } from "bson";
 import { defineStore } from "pinia";
 import { v4 as uuidv4 } from "uuid";
 import { BaklavaEvent } from "@baklavajs/events";
@@ -9,19 +8,14 @@ import { GraphLibraryItem } from "@/graph";
 import { PatternLibraryItem } from "@/pattern";
 import { LibraryItem, LibraryItemType } from "./libraryItem";
 
-interface ILibraryState {
+export interface ILibraryState {
     items: Array<{
+        id: string;
         type: LibraryItemType;
-        data: Uint8Array;
+        name: string;
+        state: unknown;
     }>;
 }
-
-const LOADING_ORDER: LibraryItemType[] = [
-    LibraryItemType.AUDIO,
-    LibraryItemType.AUTOMATION,
-    LibraryItemType.PATTERN,
-    LibraryItemType.GRAPH,
-];
 
 function createItemByType(type: LibraryItemType): LibraryItem | undefined {
     switch (type) {
@@ -48,38 +42,30 @@ export const useLibrary = defineStore("library", () => {
     const items = ref<LibraryItem[]>([]);
     const selectedItemId = ref<string | null>(null);
 
-    function save() {
-        const state: ILibraryState = {
+    function save(): ILibraryState {
+        return {
             items: items.value.map((i) => ({
+                id: i.id,
                 type: i.type,
-                data: i.serialize(),
+                name: i.name,
+                state: i.save(),
             })),
         };
-        return serialize(state);
     }
 
-    async function load(serialized: Binary) {
-        const newItemStates = deserialize(serialized.buffer) as ILibraryState;
-
-        for (const type of LOADING_ORDER) {
-            const itemsToLoad = newItemStates.items.filter((i) => i.type === type);
-            for (const item of itemsToLoad) {
-                const { data } = item;
-                const buffer = data.buffer as Buffer;
-                let libItem = createItemByType(type);
-                if (!libItem) {
-                    return;
-                }
-
-                libItem = reactive(libItem);
-                libItem.deserialize(buffer);
-                libItem.load();
-                items.value.push(libItem);
+    async function load(state: ILibraryState) {
+        for (const item of state.items) {
+            let libItem = createItemByType(item.type);
+            if (!libItem) {
+                console.warn(`Failed to create library item of type ${item.type} with id ${item.id}`);
+                continue;
             }
-        }
 
-        if (items.value.length !== newItemStates.items.length) {
-            console.error(`Expected to load ${newItemStates.items.length} items but loaded ${items.value.length} items`);
+            libItem = reactive(libItem);
+            libItem.id = item.id;
+            libItem.name = item.name;
+            libItem.load(item.state);
+            items.value.push(libItem);
         }
 
         events.loaded.emit();
@@ -96,9 +82,8 @@ export const useLibrary = defineStore("library", () => {
 
     function duplicateItem(item: LibraryItem) {
         const duplicate = reactive(createItemByType(item.type)!);
-        duplicate.deserialize(item.serialize());
+        duplicate.load(item.save());
         duplicate.id = uuidv4();
-        duplicate.load();
         items.value.push(duplicate);
     }
 
