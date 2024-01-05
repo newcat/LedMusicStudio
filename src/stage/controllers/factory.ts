@@ -1,5 +1,6 @@
 import { BaseController, ControllerType } from "./base.controller";
 import { DmxController } from "./dmx/dmx.controller";
+import { RazerChromaController } from "./razerchroma/chroma.controller";
 import { WledController } from "./wled/wled.controller";
 
 export function createController(type: ControllerType): BaseController {
@@ -9,8 +10,7 @@ export function createController(type: ControllerType): BaseController {
         case ControllerType.DMX:
             return new DmxController();
         case ControllerType.RAZER_CHROMA:
-            // TODO return new RazerChromaController();
-            throw new Error("TODO");
+            return new RazerChromaController();
         default:
             throw new Error(`Unknown controller type ${type}`);
     }

@@ -5,12 +5,7 @@ import { BaseController, ControllerState } from "./controllers";
 import { StageVisualization, StageVisualizationState } from "./visualization/stageVisualization";
 import { createFixture } from "./fixtures/factory";
 import { createController } from "./controllers/factory";
-
-export class ExtendedMap<K, V> extends Map<K, V> {
-    public getArray(): V[] {
-        return Array.from(this.values());
-    }
-}
+import { ExtendedMap } from "./extendedMap";
 
 export interface StageState {
     fixtures: FixtureState[];
@@ -54,8 +49,8 @@ export const useStage = defineStore("stage", () => {
     }
 
     function reset() {
-        fixtures.value = new ExtendedMap();
-        controllers.value = new ExtendedMap();
+        fixtures.value.clear();
+        controllers.value.clear();
         visualization.value?.dispose();
         visualization.value = new StageVisualization(fixtures.value);
     }
