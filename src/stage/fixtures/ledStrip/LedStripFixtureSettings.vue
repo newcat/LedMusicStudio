@@ -1,30 +1,15 @@
 <template>
-    <LabelledFormField label="Mesh">
-        <Dropdown v-model="fixture.meshId" :options="meshOptions" option-label="name" option-value="id"></Dropdown>
+    <LabelledFormField label="Number of LEDs">
+        <InputNumber v-model="fixture.config.numLeds" />
     </LabelledFormField>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import Dropdown from "primevue/dropdown";
+import InputNumber from "primevue/inputnumber";
 import LabelledFormField from "@/components/LabelledFormField.vue";
-import { StageLibraryItem } from "../../stage.libraryItem";
-import type { LedStripStageFixture } from "./ledStrip.fixture";
+import { LedStripFixture } from "./ledStrip.fixture";
 
-const props = defineProps<{
-    stage: StageLibraryItem;
+defineProps<{
+    fixture: LedStripFixture;
 }>();
-
-const fixture = defineModel<LedStripStageFixture>({ required: true });
-
-const meshOptions = computed(() => {
-    if (!props.stage.scene) {
-        return [];
-    }
-
-    return props.stage.scene.scene.children.map((mesh) => ({
-        id: mesh.uuid,
-        name: mesh.name,
-    }));
-});
 </script>

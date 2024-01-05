@@ -12,4 +12,4 @@ export interface ICalculationData {
     trackValues: Map<string, number | INote[]>;
 }
 
-export type LmsCalculationContext = CalculationContext<ICalculationData, DependencyEngine>;
+export type LmsCalculationContext = CalculationContext<ICalculationData, DependencyEngine<ICalculationData>>;

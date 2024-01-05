@@ -1,11 +1,12 @@
-import { serialize, deserialize } from "bson";
+import { serialize, deserialize, Binary } from "bson";
 import { ref } from "vue";
 import { defineStore } from "pinia";
 import { BaklavaEvent } from "@baklavajs/events";
 
-import { useTimeline } from "@/timeline";
+import { ITimelineState, useTimeline } from "@/timeline";
 import { useLibrary } from "./library";
 import { TICKS_PER_BEAT } from "./constants";
+import { StageState, useStage } from "./stage";
 
 const defaults = {
     bpm: 130,
@@ -14,6 +15,19 @@ const defaults = {
     resolution: 128,
     snapUnits: TICKS_PER_BEAT,
 };
+
+export interface SavedState {
+    stage: StageState;
+    timeline: ITimelineState;
+    library: Uint8Array | Binary;
+    bpm: number;
+    fps: number;
+    volume: number;
+    position: number;
+    resolution: number;
+    snapUnits: number;
+    bridgeUrl: string;
+}
 
 export const useGlobalState = defineStore("globalState", () => {
     const projectFilePath = ref("");
@@ -27,6 +41,7 @@ export const useGlobalState = defineStore("globalState", () => {
     const metronome = ref(false);
     const bridgeUrl = ref("");
 
+    const stage = useStage();
     const library = useLibrary();
     const timeline = useTimeline();
 
@@ -47,10 +62,12 @@ export const useGlobalState = defineStore("globalState", () => {
 
         await library.reset();
         timeline.reset();
+        stage.reset();
     }
 
     function save() {
-        return serialize({
+        const state: SavedState = {
+            stage: stage.save(),
             timeline: timeline.save(),
             library: library.save(),
             bpm: bpm.value,
@@ -60,12 +77,14 @@ export const useGlobalState = defineStore("globalState", () => {
             resolution: resolution.value,
             snapUnits: snapUnits.value,
             bridgeUrl: bridgeUrl.value,
-        });
+        };
+        return serialize(state);
     }
 
     async function load(serialized: Buffer) {
-        const data = deserialize(serialized);
-        await library.load(data.library);
+        const data: SavedState = deserialize(serialized) as SavedState;
+        stage.load(data.stage);
+        await library.load(data.library as Binary);
         timeline.load(data.timeline);
         bpm.value = data.bpm ?? defaults.bpm;
         fps.value = data.fps ?? defaults.fps;

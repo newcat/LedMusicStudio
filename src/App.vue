@@ -1,27 +1,22 @@
 <template>
     <main>
         <div id="app-container">
-            <c-toolbar @newProject="newProject" @load="load" @save="save" @saveAs="saveAs" @showSettings="showSettings = true"></c-toolbar>
+            <Toolbar
+                v-model:view="currentView"
+                @newProject="newProject"
+                @load="load"
+                @save="save"
+                @saveAs="saveAs"
+                @showSettings="showSettings = true"
+            />
             <div class="content">
-                <splitpanes>
-                    <pane min-size="10" size="15">
-                        <c-library></c-library>
-                    </pane>
-                    <pane>
-                        <splitpanes horizontal>
-                            <pane>
-                                <c-unified-editor class="fill-height"></c-unified-editor>
-                            </pane>
-                            <pane>
-                                <c-timeline></c-timeline>
-                            </pane>
-                        </splitpanes>
-                    </pane>
-                </splitpanes>
+                <Programming v-show="currentView === 'PROGRAMMING'" />
+                <Stage v-show="currentView === 'STAGE'" />
+                <Visualization v-show="currentView === 'VISUALIZATION'" />
             </div>
         </div>
-        <c-settings v-model="showSettings"></c-settings>
-        <c-loading-dialog v-model="showLoadingDialog"></c-loading-dialog>
+        <Settings v-model="showSettings" />
+        <LoadingDialog v-model="showLoadingDialog" />
         <Toast />
     </main>
 </template>
@@ -31,29 +26,29 @@ import { ref } from "vue";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 
-// @ts-ignore
-import { Splitpanes, Pane } from "splitpanes";
-
-import CLibrary from "@/library/Library.vue";
-import CSettings from "@/components/Settings.vue";
-import CToolbar from "@/components/MainToolbar.vue";
-import CLoadingDialog from "@/components/LoadingDialog.vue";
-import CUnifiedEditor from "@/components/UnifiedEditor.vue";
-import CTimeline from "@/timeline/Timeline.vue";
+import Settings from "@/components/Settings.vue";
+import Toolbar from "@/components/MainToolbar.vue";
+import LoadingDialog from "@/components/LoadingDialog.vue";
+import { Programming, Stage, Visualization } from "@/views";
 
 import { useGlobalState } from "@/globalState";
 import { TimelineProcessor } from "@/timeline";
+import { useStage } from "@/stage";
 import { showOpenDialog, showSaveDialog, readFile, writeFile } from "@/native";
+import { useErrorHandler } from "@/utils";
 
 const globalState = useGlobalState();
 const toast = useToast();
+const errorHandler = useErrorHandler();
 
 const showSettings = ref(false);
 const showLoadingDialog = ref(false);
 const processor = ref(new TimelineProcessor());
+const currentView = ref<"PROGRAMMING" | "STAGE" | "VISUALIZATION">("STAGE");
 
 (window as any).globalState = globalState;
 (window as any).processor = processor;
+(window as any).stage = useStage();
 
 newProject();
 
@@ -70,19 +65,10 @@ async function load(): Promise<void> {
     await globalState.reset();
     globalState.projectFilePath = p;
     showLoadingDialog.value = true;
-    try {
+    await errorHandler("Failed to load project", async () => {
         await globalState.load(buff);
-    } catch (err) {
-        console.error(err);
-        toast.add({
-            severity: "error",
-            closable: true,
-            summary: "Failed to load project",
-            detail: err instanceof Error ? err.message : String(err),
-            life: 6000,
-        });
-        showLoadingDialog.value = false;
-    }
+    });
+    showLoadingDialog.value = false;
 }
 
 async function save(): Promise<void> {
@@ -91,20 +77,12 @@ async function save(): Promise<void> {
             return;
         }
     }
-    try {
+
+    await errorHandler("Failed to save project", async () => {
         const state = globalState.save();
         await writeFile(globalState.projectFilePath, state);
         toast.add({ severity: "success", summary: "Saved", detail: "Project successfully saved", life: 2000 });
-    } catch (err) {
-        toast.add({
-            severity: "error",
-            closable: true,
-            summary: "Failed to save project",
-            detail: err instanceof Error ? err.message : String(err),
-            life: 6000,
-        });
-        showLoadingDialog.value = false;
-    }
+    });
 }
 
 async function saveAs(): Promise<void> {
@@ -153,10 +131,6 @@ main {
 
 .content {
     padding: 1rem;
-    height: 100%;
-}
-
-.n-config-provider {
     height: 100%;
 }
 </style>

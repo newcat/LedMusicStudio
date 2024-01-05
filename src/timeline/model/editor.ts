@@ -8,7 +8,7 @@ import { useGlobalState } from "@/globalState";
 import { Track, ITrackState } from "./track";
 import { Item, IItemState } from "./item";
 
-export interface IEditorState {
+export interface ITimelineState {
     tracks: ITrackState[];
     items: IItemState[];
     unitWidth: number;
@@ -36,7 +36,7 @@ export const useTimeline = defineStore("timeline", () => {
         addDefaultTrack();
     }
 
-    function load(state: IEditorState) {
+    function load(state: ITimelineState) {
         items.value.forEach((i) => removeItem(i));
         tracks.value.forEach((t) => removeTrack(t));
         for (const ts of state.tracks) {
@@ -48,7 +48,7 @@ export const useTimeline = defineStore("timeline", () => {
         headerWidth.value = state.headerWidth ?? 200;
     }
 
-    function save(): IEditorState {
+    function save(): ITimelineState {
         return {
             tracks: tracks.value.map((t) => t.save()),
             items: items.value.map((i) => i.save()),
