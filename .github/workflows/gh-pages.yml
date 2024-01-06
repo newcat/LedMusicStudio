@@ -29,7 +29,7 @@ jobs:
               with:
                   node-version: 21
                   cache: "yarn"
-            - name: Setup Yarn v3
+            - name: Setup Yarn v4
               run: |
                   corepack enable
                   corepack prepare yarn@stable --activate

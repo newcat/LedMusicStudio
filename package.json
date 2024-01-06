@@ -87,5 +87,6 @@
             "buildResources": "assets",
             "output": "dist_electron"
         }
-    }
+    },
+    "packageManager": "yarn@4.0.2"
 }
