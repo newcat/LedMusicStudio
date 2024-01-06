@@ -34,12 +34,13 @@ import { Programming, Stage, Visualization } from "@/views";
 import { useGlobalState } from "@/globalState";
 import { TimelineProcessor } from "@/timeline";
 import { useStage } from "@/stage";
-import { showOpenDialog, showSaveDialog, readFile, writeFile } from "@/native";
+import { getNativeAdapter } from "@/native";
 import { useErrorHandler } from "@/utils";
 
 const globalState = useGlobalState();
 const toast = useToast();
 const errorHandler = useErrorHandler();
+const nativeAdapter = getNativeAdapter();
 
 const showSettings = ref(false);
 const showLoadingDialog = ref(false);
@@ -57,62 +58,58 @@ async function newProject(): Promise<void> {
 }
 
 async function load(): Promise<void> {
-    const p = await openLoadDialog();
-    if (!p) {
+    const result = await nativeAdapter.chooseAndReadFile({
+        accept: [{ name: "LedMusic Project", extensions: ["lmp"] }],
+    });
+    if (!result) {
         return;
     }
-    const raw = await readFile(p, { encoding: "utf-8" });
+
     await globalState.reset();
-    globalState.projectFilePath = p;
+    globalState.projectFilePath = result.path ?? "";
     showLoadingDialog.value = true;
     await errorHandler("Failed to load project", async () => {
-        await globalState.load(raw);
+        await globalState.load(result.dataAsString);
     });
-    showLoadingDialog.value = false;
 }
 
 async function save(): Promise<void> {
-    if (!globalState.projectFilePath) {
-        if (!(await openSaveDialog())) {
-            return;
+    const showSuccessToast = () => {
+        toast.add({ severity: "success", summary: "Saved", detail: "Project successfully saved", life: 2000 });
+    };
+
+    if (globalState.projectFilePath && nativeAdapter.isElectron()) {
+        await errorHandler("Failed to save project", async () => {
+            const state = globalState.save();
+            await nativeAdapter.writeFile(globalState.projectFilePath, state);
+            showSuccessToast();
+        });
+    } else {
+        const data = new TextEncoder().encode(globalState.save());
+        const result = await nativeAdapter.chooseAndWriteFile(data, {
+            accept: [{ name: "LedMusic Project", extensions: ["lmp"] }],
+            suggestedName: "project.lmp",
+        });
+        if (result) {
+            showSuccessToast();
         }
     }
-
-    await errorHandler("Failed to save project", async () => {
-        const state = globalState.save();
-        await writeFile(globalState.projectFilePath, state);
-        toast.add({ severity: "success", summary: "Saved", detail: "Project successfully saved", life: 2000 });
-    });
 }
 
-async function saveAs(): Promise<void> {
-    if (!(await openSaveDialog())) {
-        return;
+async function saveAs() {
+    if (!nativeAdapter.isElectron()) {
+        throw new Error("Save-as is only supported in Electron");
     }
-    await save();
-}
 
-async function openLoadDialog(): Promise<string> {
-    const dialogResult = await showOpenDialog({
-        title: "Open Project",
-        filters: [{ name: "LedMusic Project", extensions: ["lmp"] }],
-    });
-    if (dialogResult.canceled) {
-        return "";
-    }
-    return dialogResult.filePaths![0];
-}
-
-async function openSaveDialog(): Promise<boolean> {
-    const dialogResult = await showSaveDialog({
+    const dialogResult = await nativeAdapter.showSaveDialog({
         title: "Save Project",
         filters: [{ name: "LedMusic Project", extensions: ["lmp"] }],
     });
     if (dialogResult.canceled) {
-        return false;
+        return;
     }
     globalState.projectFilePath = dialogResult.filePath!;
-    return true;
+    await save();
 }
 </script>
 

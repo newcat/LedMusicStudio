@@ -1,9 +1,8 @@
 <template>
     <div v-if="item" class="library-item" draggable="true" @dragstart="dragstart">
-        <div v-if="item.loading" class="__loading-indicator">
-            <i class="pi pi-spin pi-spinner"></i>
-        </div>
-        <div class="__title">{{ item.name }}</div>
+        <div v-if="item.loading" class="mr-4"><i class="pi pi-spin pi-spinner"></i></div>
+        <div v-else-if="item.error" class="mr-4" :title="item.error"><i class="mdi mdi-alert"></i></div>
+        <div class="grow">{{ item.name }}</div>
         <div class="__menu">
             <i class="pi pi-ellipsis-v" @click.stop="menu?.toggle"></i>
             <Menu ref="menu" :model="popupMenu" :popup="true" />
@@ -65,11 +64,7 @@ function dragstart(ev: DragEvent) {
     align-items: center;
 }
 
-.library-item > .__loading-indicator {
+.status-indicator {
     margin-right: 1rem;
-}
-
-.library-item > .__title {
-    flex-grow: 1;
 }
 </style>

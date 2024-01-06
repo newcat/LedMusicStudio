@@ -2,6 +2,7 @@ import { createApp } from "vue";
 import * as VueRouter from "vue-router";
 import { createPinia } from "pinia";
 import { wasmInterop } from "./wasmInterop";
+import { initializeNativeAdapter } from "./native";
 
 import "splitpanes/dist/splitpanes.css";
 import "@baklavajs/themes/dist/syrup-dark.css";
@@ -16,13 +17,20 @@ import PrimeVue from "primevue/config";
 import ToastService from "primevue/toastservice";
 import Tooltip from "primevue/tooltip";
 
-const pinia = createPinia();
+async function main() {
+    await initializeNativeAdapter();
+    wasmInterop.init();
 
-wasmInterop.init();
+    const pinia = createPinia();
 
-const router = VueRouter.createRouter({
-    history: VueRouter.createWebHashHistory(),
-    routes: [{ path: "/", component: App }],
-});
+    const router = VueRouter.createRouter({
+        history: VueRouter.createWebHashHistory(),
+        routes: [{ path: "/", component: App }],
+    });
 
-createApp(App).use(PrimeVue).use(ToastService).directive("tooltip", Tooltip).use(pinia).use(router).mount("#app");
+    document.getElementById("loadingPlaceholder")?.remove();
+
+    createApp(App).use(PrimeVue).use(ToastService).directive("tooltip", Tooltip).use(pinia).use(router).mount("#app");
+}
+
+main();

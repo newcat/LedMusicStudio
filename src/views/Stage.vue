@@ -25,7 +25,7 @@ import Card from "primevue/card";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
 
-import { showOpenDialog, readFile, showSaveDialog, writeFile } from "@/native";
+import { getNativeAdapter } from "@/native";
 import { useStage } from "@/stage";
 import { useErrorHandler } from "@/utils";
 
@@ -36,6 +36,7 @@ import Visualization from "@/stage/components/Visualization.vue";
 const toast = useToast();
 const errorHandler = useErrorHandler();
 const stage = useStage();
+const nativeAdapter = getNativeAdapter();
 
 const selectedTab = ref(0);
 
@@ -46,33 +47,28 @@ const menuItems: TabMenuProps["model"] = [
 ];
 
 async function importStage() {
-    const dialogResult = await showOpenDialog({
-        title: "Import Stage",
-        filters: [{ name: "LedMusic Stage", extensions: ["lms"] }],
+    const result = await nativeAdapter.chooseAndReadFile({
+        accept: [{ name: "LedMusic Stage", extensions: ["lms"] }],
     });
-    if (dialogResult.canceled) {
+    if (!result) {
         return;
     }
     await errorHandler("Failed to import stage", async () => {
-        const raw = await readFile(dialogResult.filePaths![0], { encoding: "utf-8" });
-        stage.load(JSON.parse(raw));
+        stage.load(JSON.parse(result.dataAsString));
         toast.add({ severity: "success", summary: "Success", detail: "Stage successfully imported", life: 2000 });
     });
 }
 
 async function exportStage() {
-    const dialogResult = await showSaveDialog({
-        title: "Export Stage",
-        filters: [{ name: "LedMusic Stage", extensions: ["lms"] }],
-    });
-    if (dialogResult.canceled) {
-        return;
-    }
-    const path = dialogResult.filePath!;
     await errorHandler("Failed to export stage", async () => {
-        const state = stage.save();
-        await writeFile(path, JSON.stringify(state));
-        toast.add({ severity: "success", summary: "Success", detail: "Stage successfully exported", life: 2000 });
+        const state = new TextEncoder().encode(JSON.stringify(stage.save()));
+        const success = await nativeAdapter.chooseAndWriteFile(state, {
+            accept: [{ name: "LedMusic Stage", extensions: ["lms"] }],
+            suggestedName: "stage.lms",
+        });
+        if (success) {
+            toast.add({ severity: "success", summary: "Success", detail: "Stage successfully exported", life: 2000 });
+        }
     });
 }
 </script>

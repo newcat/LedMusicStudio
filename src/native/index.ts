@@ -1,20 +1,24 @@
-import type {
-    ipcRenderer as origIpcRenderer,
-    OpenDialogOptions,
-    OpenDialogReturnValue,
-    SaveDialogOptions,
-    SaveDialogReturnValue,
-} from "electron";
-import type { readFile as origReadFile, writeFile as origWriteFile } from "fs/promises";
+import type { NativeAdapter } from "./types";
+import type { ElectronNativeAdapter } from "./electron";
+import type { BrowserNativeAdapter } from "./browser";
 
-export const readFile = (window as any).readFile as typeof origReadFile;
-export const writeFile = (window as any).writeFile as typeof origWriteFile;
-export const ipcRenderer = (window as any).ipcRenderer as typeof origIpcRenderer;
+export * from "./types";
 
-export async function showOpenDialog(options: OpenDialogOptions): Promise<OpenDialogReturnValue> {
-    return await ipcRenderer.invoke("dialog:showOpenDialog", options);
+const userAgent = navigator.userAgent.toLowerCase();
+
+let nativeAdapter: ElectronNativeAdapter | BrowserNativeAdapter;
+
+export async function initializeNativeAdapter() {
+    if (userAgent.indexOf(" electron/") > -1) {
+        nativeAdapter = new (await import("./electron")).ElectronNativeAdapter();
+    } else {
+        nativeAdapter = new (await import("./browser")).BrowserNativeAdapter();
+    }
 }
 
-export async function showSaveDialog(options: SaveDialogOptions): Promise<SaveDialogReturnValue> {
-    return await ipcRenderer.invoke("dialog:showSaveDialog", options);
+export function getNativeAdapter(): NativeAdapter {
+    if (!nativeAdapter) {
+        throw new Error("Trying to use native adapter before it was initialized");
+    }
+    return nativeAdapter;
 }

@@ -10,8 +10,8 @@
                     <div>
                         <div>{{ item.name }}</div>
                         <Button
-                            v-if="isAudioItem(item) && item.error"
-                            @click="item instanceof AudioLibraryItem ? replaceAudioFile(item) : undefined"
+                            v-if="isAudioLibraryItem(item) && item.error"
+                            @click="isAudioLibraryItem(item) ? item.chooseAudioFile() : undefined"
                             size="small"
                         >
                             Choose File
@@ -32,9 +32,8 @@ import { WatchStopHandle, computed, watch } from "vue";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 
-import { showOpenDialog } from "@/native";
-import { AudioLibraryItem } from "@/audio";
-import { LibraryItem, LibraryItemType, useLibrary } from "@/library";
+import { LibraryItem, useLibrary } from "@/library";
+import { isAudioLibraryItem } from "@/utils";
 
 const props = defineProps<{ modelValue: boolean }>();
 const emit = defineEmits(["update:modelValue"]);
@@ -44,24 +43,6 @@ const library = useLibrary();
 const items = computed<LibraryItem[]>(() => {
     return library.items.slice().sort((a) => (a.loading ? 0 : 1));
 });
-
-function isAudioItem(item: LibraryItem) {
-    return item.type === LibraryItemType.AUDIO;
-}
-
-async function replaceAudioFile(item: AudioLibraryItem) {
-    const dialogResult = await showOpenDialog({
-        title: "Select Audio File",
-        filters: [
-            { name: "Audio Files", extensions: ["mp3", "wav", "flac", "ogg"] },
-            { name: "All Files", extensions: ["*"] },
-        ],
-    });
-    if (dialogResult.canceled) {
-        return "";
-    }
-    item.load({ path: dialogResult.filePaths![0] });
-}
 
 let stopWatch: WatchStopHandle | null = null;
 watch(

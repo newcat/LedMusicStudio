@@ -9,30 +9,24 @@
 <script setup lang="ts">
 import Button from "primevue/button";
 
-import { readFile, showOpenDialog } from "@/native";
+import { getNativeAdapter } from "@/native";
 import { useErrorHandler } from "@/utils";
 import { useStage } from "../stage";
 
 const errorHandler = useErrorHandler();
 const stage = useStage();
+const nativeAdapter = getNativeAdapter();
 
 async function loadScene() {
-    const result = await showOpenDialog({ title: "Load Scene", filters: [{ name: "Stage Scene", extensions: ["json"] }] });
-    if (result.canceled || result.filePaths.length !== 1) {
+    const result = await nativeAdapter.chooseAndReadFile({
+        accept: [{ name: "Stage Scene", extensions: ["json"] }],
+    });
+    if (!result) {
         return;
     }
 
     errorHandler("Could not load scene", async () => {
-        const timeoutSymbol = Symbol("timeout");
-        const rawData = await Promise.race([
-            readFile(result.filePaths[0], { encoding: "utf-8" }),
-            new Promise<symbol>((res) => setTimeout(res, 5000, timeoutSymbol)),
-        ]);
-        if (rawData === timeoutSymbol) {
-            throw new Error("Timeout while reading data");
-        }
-
-        stage.visualization.loadScene(JSON.parse(rawData as string));
+        stage.visualization.loadScene(JSON.parse(result.dataAsString));
     });
 }
 </script>

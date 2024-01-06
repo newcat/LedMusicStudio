@@ -28,8 +28,6 @@
                         <LibraryItemView :item-id="option.key" />
                     </template>
                 </Listbox>
-
-                <input ref="fileinput" type="file" @change="loadAudio" style="display: none" />
             </template>
         </Card>
     </div>
@@ -43,18 +41,18 @@ import Menu, { MenuProps } from "primevue/menu";
 import Card from "primevue/card";
 import Listbox, { ListboxProps } from "primevue/listbox";
 
+import { useLibrary } from "./libraryModel";
+
 import { AudioLibraryItem } from "@/audio/audio.libraryItem";
 import { AutomationLibraryItem } from "@/automation/automation.libraryItem";
 import { GraphLibraryItem } from "@/graph/graph.libraryItem";
 import { PatternLibraryItem } from "@/pattern/pattern.libraryItem";
 import { LibraryItemType, LibraryItem, LibraryItemTypeIcons, LibraryItemTypeLabels, LibraryItemTypeList } from "./libraryItem";
-import { useLibrary } from "./libraryModel";
 
 import LibraryItemView from "./LibraryItem.vue";
 
 const library = useLibrary();
 
-const fileinput = ref<HTMLInputElement | null>(null);
 const menu = ref<Menu | null>(null);
 
 const getMenuItem = (type: LibraryItemType) => ({
@@ -78,31 +76,24 @@ const libraryItems = computed<ListboxProps["options"]>(() => {
     }));
 });
 
-function openFileDialog() {
-    fileinput.value!.click();
-}
-
 function toggleAddItemMenu(ev: Event) {
     menu.value!.toggle(ev);
 }
 
 async function loadAudio() {
-    const f = fileinput.value!.files;
-    if (!f || f.length === 0) {
-        return;
-    }
     const item = reactive(new AudioLibraryItem());
-    item.name = f[0].name;
-    item.path = f[0].path;
     library.addItem(item);
-    await item.loadAudio();
+    const result = await item.chooseAudioFile();
+    if (!result) {
+        library.removeItem(item);
+    }
 }
 
 function addItem(key: LibraryItemType) {
     let item: new () => LibraryItem;
     switch (key) {
         case LibraryItemType.AUDIO:
-            openFileDialog();
+            loadAudio();
             return;
         case LibraryItemType.AUTOMATION:
             item = AutomationLibraryItem;

@@ -1,7 +1,7 @@
 import { BaklavaEvent } from "@baklavajs/events";
 import { LibraryItem, LibraryItemType } from "@/library";
 import WaveformWorker from "./workerInstance";
-import { readFile } from "@/native";
+import { getNativeAdapter } from "@/native";
 
 export interface IWaveformPart {
     start: number;
@@ -22,7 +22,7 @@ export class AudioLibraryItem extends LibraryItem<AudioLibraryItemState> {
     public static sampleRate = 192000;
 
     public type = LibraryItemType.AUDIO;
-    public name = "Empty";
+    public name = "";
     public path = "";
     public audioBuffer: AudioBuffer | null = null;
     public waveform: IWaveform | null = null;
@@ -42,29 +42,74 @@ export class AudioLibraryItem extends LibraryItem<AudioLibraryItemState> {
         await this.loadAudio();
     }
 
-    public async loadAudio() {
-        this.loading = true;
-        this.error = false;
+    public async chooseAudioFile(): Promise<boolean> {
+        const nativeAdapter = getNativeAdapter();
+        if (nativeAdapter.isElectron()) {
+            const dialogResult = await nativeAdapter.showOpenDialog({
+                title: "Select Audio File",
+                filters: [
+                    { name: "Audio Files", extensions: ["mp3", "wav", "flac", "ogg"] },
+                    { name: "All Files", extensions: ["*"] },
+                ],
+            });
+            if (dialogResult.canceled) {
+                return false;
+            }
+            if (!this.name) {
+                this.name = dialogResult.filePaths![0];
+            }
+            this.path = dialogResult.filePaths![0];
+            await this.loadAudio();
+        } else {
+            const result = await nativeAdapter.chooseAndReadFile({
+                accept: [{ name: "Audio Files", extensions: ["audio/*"] }],
+            });
+            if (!result) {
+                return false;
+            }
+            if (!this.name) {
+                this.name = result.path!;
+            }
+            await this.loadAudio(result.data);
+        }
+        return true;
+    }
 
-        if (!this.path) {
-            this.loading = false;
-            this.error = true;
-            return;
+    public async loadAudio(data?: Uint8Array) {
+        this.loading = true;
+        this.error = "";
+
+        if (!data) {
+            if (!this.path) {
+                this.loading = false;
+                this.error = "Cannot load audio without path or data";
+                return;
+            }
+
+            const nativeAdapter = getNativeAdapter();
+            if (!nativeAdapter.isElectron()) {
+                this.loading = false;
+                this.error = "Cannot load audio from path without Electron";
+                return;
+            }
+
+            try {
+                data = await nativeAdapter.readFile(this.path);
+            } catch (err) {
+                console.warn(err);
+                this.loading = false;
+                this.error = String(err);
+                return;
+            }
         }
 
         try {
-            const timeoutSymbol = Symbol("timeout");
-            const rawData = await Promise.race([readFile(this.path), new Promise<symbol>((res) => setTimeout(res, 5000, timeoutSymbol))]);
-            if (rawData === timeoutSymbol) {
-                throw new Error("Timeout while reading data");
-            }
-
             const offlineAudioContext = new OfflineAudioContext(1, 2, AudioLibraryItem.sampleRate);
-            this.audioBuffer = await offlineAudioContext.decodeAudioData((rawData as Buffer).buffer);
+            this.audioBuffer = await offlineAudioContext.decodeAudioData(data.buffer);
             this.waveform = await this.generateWaveform();
         } catch (err) {
             console.warn(err);
-            this.error = true;
+            this.error = String(err);
         }
 
         this.loading = false;

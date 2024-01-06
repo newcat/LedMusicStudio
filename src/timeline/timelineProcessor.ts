@@ -107,7 +107,7 @@ export class TimelineProcessor {
                 const results = await this.processGraph(g, unit, calculationData);
 
                 if (g.libraryItem.error) {
-                    g.libraryItem.error = false;
+                    g.libraryItem.error = "";
                 }
 
                 results.forEach((intfValues) => {
@@ -122,7 +122,7 @@ export class TimelineProcessor {
                 });
             } catch (err) {
                 console.error(err);
-                g.libraryItem.error = true;
+                g.libraryItem.error = String(err);
             }
         }
 

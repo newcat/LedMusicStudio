@@ -19,14 +19,17 @@
 import { computed } from "vue";
 import Menubar, { MenubarProps } from "primevue/menubar";
 import Button from "primevue/button";
+
 import { useBridge } from "@/bridge";
 import { useGlobalState } from "@/globalState";
+import { getNativeAdapter } from "@/native";
 
 const currentView = defineModel<"PROGRAMMING" | "STAGE" | "VISUALIZATION">("view", { required: true });
 const emit = defineEmits(["newProject", "load", "save", "saveAs", "showSettings"]);
 
 const globalState = useGlobalState();
 const bridge = useBridge();
+const nativeAdapter = getNativeAdapter();
 
 const connectionStateToSeverity = computed(() => {
     if (!globalState.bridgeUrl) {
@@ -69,7 +72,8 @@ const menuItems = computed<MenubarProps["model"]>(() => [
             { label: "New", command: () => emit("newProject") },
             { label: "Open", command: () => emit("load") },
             { label: "Save", command: () => emit("save") },
-            { label: "Save as", command: () => emit("saveAs") },
+            // Save as only supported in electron
+            ...(nativeAdapter.isElectron() ? [{ label: "Save as", command: () => emit("saveAs") }] : []),
         ],
     },
     {

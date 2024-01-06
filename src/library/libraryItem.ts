@@ -35,7 +35,7 @@ export abstract class LibraryItem<S = unknown> {
     public abstract name: string;
 
     public loading = false;
-    public error = false;
+    public error = "";
 
     public abstract save(): S;
     public abstract load(state: S): void | Promise<void>;
