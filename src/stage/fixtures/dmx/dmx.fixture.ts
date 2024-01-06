@@ -65,4 +65,8 @@ export class DmxFixture extends BaseFixture<number[], DmxFixtureConfiguration> {
         });
         this.name = "DMX Fixture";
     }
+
+    public override resetValue(): void {
+        this.setValue([]);
+    }
 }

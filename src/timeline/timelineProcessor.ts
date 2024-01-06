@@ -1,8 +1,8 @@
 import type { Item } from "@/timeline";
 
 import { watchEffect } from "vue";
+import { CalculationResult, applyResult } from "baklavajs";
 import { BaklavaEvent } from "@baklavajs/events";
-import { applyResult } from "@baklavajs/engine";
 
 import { AudioLibraryItem, AudioProcessor, Metronome } from "@/audio";
 import { GraphLibraryItem } from "@/graph";
@@ -91,6 +91,7 @@ export class TimelineProcessor {
 
         const audioData = this.audioProcessor!.getAudioData();
 
+        const uncontrolledFixtures = new Set(this.stage.fixtures.values());
         const calculationData: ICalculationData = {
             resolution: this.globalState.resolution,
             fps: this.globalState.fps,
@@ -103,14 +104,30 @@ export class TimelineProcessor {
         const graphs = currentActiveItems.filter((i) => this.isType(i, LibraryItemType.GRAPH));
         for (const g of graphs) {
             try {
-                await this.processGraph(g, unit, calculationData);
+                const results = await this.processGraph(g, unit, calculationData);
+
                 if (g.libraryItem.error) {
                     g.libraryItem.error = false;
                 }
+
+                results.forEach((intfValues) => {
+                    if (!intfValues.has("fixtureId")) {
+                        return;
+                    }
+                    const fixture = this.stage.fixtures.get(intfValues.get("fixtureId"));
+                    if (fixture) {
+                        uncontrolledFixtures.delete(fixture);
+                        fixture.setValue(intfValues.get("data"));
+                    }
+                });
             } catch (err) {
                 console.error(err);
                 g.libraryItem.error = true;
             }
+        }
+
+        for (const fixture of uncontrolledFixtures) {
+            fixture.resetValue();
         }
 
         this.stage.afterFrame();
@@ -156,18 +173,12 @@ export class TimelineProcessor {
         return item.libraryItem.type === type;
     }
 
-    private async processGraph(item: Item, unit: number, calculationData: ICalculationData): Promise<void> {
+    private async processGraph(item: Item, unit: number, calculationData: ICalculationData): Promise<CalculationResult> {
         const graph = item.libraryItem as GraphLibraryItem;
         graph.keyframeManager.applyKeyframes(unit - item.start);
         const results = (await graph.editor.enginePlugin.runOnce(calculationData))!;
         applyResult(results, graph.editor.editor);
-        results.forEach((intfValues) => {
-            if (!intfValues.has("fixtureId")) {
-                return;
-            }
-            const fixture = this.stage.fixtures.get(intfValues.get("fixtureId"));
-            fixture?.setValue(intfValues.get("data"));
-        });
+        return results;
     }
 
     private processAutomation(unit: number, item: Item): void {
