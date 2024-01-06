@@ -5,7 +5,7 @@ import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-    base: process.env.ELECTRON == "true" ? "./" : "",
+    base: process.env.ELECTRON == "true" ? "./" : process.env.BASE_URL ?? "",
     server: {
         port: 3000,
     },
