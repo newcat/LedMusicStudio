@@ -35,12 +35,11 @@ jobs:
                   corepack prepare yarn@stable --activate
             - name: Install dependencies
               run: yarn install
-            - name: Install rust dependencies
-              working-directory: ./src/rust
-              run: cargo install
             - name: Build WASM
               working-directory: ./src/rust
-              run: wasm-pack build --target web
+              run: |
+                  cargo install wasm-pack
+                  wasm-pack build --target web
             - name: Build
               run: yarn run build
               env:
