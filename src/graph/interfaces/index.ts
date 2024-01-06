@@ -4,4 +4,6 @@ export * from "./ColorSingleInterface";
 export * from "./IntegerInterface";
 export * from "./NumberInterface";
 export * from "./PreviewInterface";
+export * from "./ScriptNodeConfigurationInterface";
+export * from "./SelectFixtureInterface";
 export * from "./SliderInterface";

@@ -7,6 +7,7 @@ import * as LogicNodes from "./logic";
 import * as GeneratorNodes from "./generators";
 import * as EffectNodes from "./effects";
 import * as OutputNodes from "./output";
+import ScriptNode from "./scriptNode";
 
 function registerCategory(editor: Editor, nodes: any, category?: string) {
     for (const k of Object.keys(nodes)) {
@@ -22,4 +23,6 @@ export function registerNodes(editor: Editor) {
     registerCategory(editor, GeneratorNodes, "Generators");
     registerCategory(editor, EffectNodes, "Effects");
     registerCategory(editor, OutputNodes, "Outputs");
+
+    editor.registerNodeType(ScriptNode);
 }

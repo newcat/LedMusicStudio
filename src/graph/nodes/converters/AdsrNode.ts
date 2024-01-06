@@ -45,38 +45,63 @@ export class AdsrNode extends Node<Inputs, Outputs> {
     public override calculate: CalculateFunction<Inputs, Outputs, LmsCalculationContext> = (inputs, { globalValues }) => {
         const { trigger, attack, decay, sustain, release } = inputs;
 
-        let offsetFromStartInSeconds = Math.max(0, (globalValues.position - this.startFrame) / globalValues.fps);
+        const offsetFromStartInSeconds = () => Math.max(0, (globalValues.position - this.startFrame) / globalValues.fps);
 
-        // Handle phase transitions
-        if (trigger && (this.phase === "None" || this.phase === "Release")) {
-            this.phase = "Attack";
+        const enterPhase = (phase: Phase) => {
+            this.phase = phase;
             this.startFrame = globalValues.position;
             this.startValue = this.value;
-        } else if (!trigger && this.phase !== "Release" && this.phase !== "None") {
-            this.phase = "Release";
-            this.startValue = this.value;
-            this.startFrame = globalValues.position;
-        } else if (!trigger && this.phase === "Release" && offsetFromStartInSeconds > release) {
-            this.phase = "None";
-        } else if (this.phase === "Attack" && offsetFromStartInSeconds > attack) {
-            this.phase = "Decay";
-        } else if (this.phase === "Decay" && offsetFromStartInSeconds > attack + decay) {
-            this.phase = "Sustain";
+        };
+        let hasPhaseChanged = true;
+        while (hasPhaseChanged) {
+            const oldPhase = this.phase;
+            if (this.phase === "None") {
+                if (trigger) {
+                    enterPhase("Attack");
+                }
+            } else if (this.phase === "Attack") {
+                if (!trigger) {
+                    enterPhase("Release");
+                } else if (offsetFromStartInSeconds() >= attack) {
+                    enterPhase("Decay");
+                }
+            } else if (this.phase === "Decay") {
+                if (!trigger) {
+                    enterPhase("Release");
+                } else if (offsetFromStartInSeconds() >= decay) {
+                    enterPhase("Sustain");
+                }
+            } else if (this.phase === "Sustain") {
+                if (!trigger) {
+                    enterPhase("Release");
+                }
+            } else if (this.phase === "Release") {
+                if (trigger) {
+                    enterPhase("Attack");
+                } else if (offsetFromStartInSeconds() >= release) {
+                    enterPhase("None");
+                }
+            }
+            hasPhaseChanged = oldPhase !== this.phase;
         }
 
-        // as the phase transition could have changed the start frame, recalculate
-        offsetFromStartInSeconds = Math.max(0, (globalValues.position - this.startFrame) / globalValues.fps);
-
+        const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
         let value = 0;
         if (this.phase === "Attack") {
-            value = this.startValue + (offsetFromStartInSeconds / attack) * (1 - this.startValue);
+            value = lerp(this.startValue, 1, offsetFromStartInSeconds() / attack);
         } else if (this.phase === "Decay") {
-            value = 1 - (offsetFromStartInSeconds - attack) / decay + sustain;
+            value = lerp(this.startValue, sustain, offsetFromStartInSeconds() / decay);
         } else if (this.phase === "Sustain") {
             value = sustain;
         } else if (this.phase === "Release") {
-            value = this.startValue - offsetFromStartInSeconds / release;
+            value = lerp(this.startValue, 0, offsetFromStartInSeconds() / release);
         }
+
+        if (isNaN(value)) {
+            console.warn("ADSR value is NaN");
+            value = 0;
+        }
+        this.value = value;
 
         return { value };
     };

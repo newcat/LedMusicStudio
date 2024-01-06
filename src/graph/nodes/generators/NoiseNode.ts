@@ -13,6 +13,7 @@ interface Inputs {
 
 interface Outputs {
     colors: Color[];
+    value: number;
 }
 
 export class NoiseNode extends Node<Inputs, Outputs> {
@@ -27,6 +28,7 @@ export class NoiseNode extends Node<Inputs, Outputs> {
 
     public outputs = {
         colors: new ColorArrayInterface("Colors"),
+        value: new NumberInterface("Single Value", 0).setComponent(null),
     };
 
     private hueNoise = makeNoise2D(Math.random() * 100000);
@@ -35,7 +37,7 @@ export class NoiseNode extends Node<Inputs, Outputs> {
 
     public constructor() {
         super();
-        this.title  =this.type;
+        this.title = this.type;
         this.initializeIo();
     }
 
@@ -58,7 +60,7 @@ export class NoiseNode extends Node<Inputs, Outputs> {
         }
 
         this.timer += timeFreq;
-        return { colors: result };
+        return { colors: result, value: this.valueNoise(0, this.timer) };
     };
 
     private clamp(v: number, min: number, max: number) {
