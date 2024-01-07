@@ -97,7 +97,6 @@ export class StageRenderer {
     }
 
     public onFixtureConfigUpdate<T extends VisualizationType>(fixtureId: string, config: FixtureRendererConfig<T>) {
-        console.log("Updating fixture config", fixtureId, config);
         const fixtureRenderer = this.fixtureRenderers.get(fixtureId);
         if (fixtureRenderer) {
             fixtureRenderer.onConfigUpdate(config);

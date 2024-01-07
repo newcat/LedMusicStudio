@@ -3,6 +3,8 @@ import { useLocalStorage } from "@vueuse/core";
 import { defineStore } from "pinia";
 import { Fixture, OFLManufacturers } from "./open-fixture";
 
+import SelfHostedOfl from "./ofl_export_ofl.zip?url";
+
 export interface Manufacturer {
     name: string;
     fixtures: Fixture[];
@@ -29,7 +31,7 @@ export const useFixtureLibrary = defineStore("fixtureLibrary", () => {
         try {
             updating.value = true;
             const axios = (await import("axios")).default;
-            const response = await axios.get("/ofl_export_ofl.zip", {
+            const response = await axios.get(SelfHostedOfl, {
                 responseType: "blob",
             });
             return response.data;
