@@ -1,31 +1,31 @@
 import { Component, watch } from "vue";
-import * as THREE from "three";
-import { BaseFixture, FixtureType } from "@/stage/fixtures";
 
-export enum VisualizationType {
-    LED_STRIP = "Led Strip",
-    SPOT = "Spot",
-}
+import type { RemoteStageRenderer } from "../stageRenderer";
+import { BaseFixture, FixtureType } from "@/stage/fixtures";
+import { useStage } from "@/stage/stage";
+import { VisualizationType } from "./types";
+
+export { VisualizationType } from "./types";
 
 export interface VisualizationState<C = unknown> {
     type: VisualizationType;
     config: C;
 }
 
-export abstract class BaseVisualization<F extends BaseFixture = BaseFixture, C = unknown> extends THREE.Group {
+export abstract class BaseVisualization<F extends BaseFixture = BaseFixture, C = unknown> {
     public abstract readonly compatibleFixtures: FixtureType[];
     public abstract readonly type: VisualizationType;
 
     public readonly settingsComponent: Component | null = null;
 
     protected _config: C;
+    protected readonly renderer: RemoteStageRenderer = useStage().renderer;
 
     public get config(): C {
         return this._config;
     }
 
     public constructor(public readonly fixture: F, initialConfig: C) {
-        super();
         this._config = initialConfig;
 
         watch(
@@ -42,6 +42,7 @@ export abstract class BaseVisualization<F extends BaseFixture = BaseFixture, C =
 
     protected abstract onFixtureConfigUpdate(): void;
     protected abstract onFixtureValueUpdate(): void;
+
     public dispose() {}
 
     public setConfig(c: C) {
