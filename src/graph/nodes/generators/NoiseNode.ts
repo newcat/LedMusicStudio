@@ -1,6 +1,6 @@
 import { ColorArrayInterface, NumberInterface, SliderInterface } from "@/graph/interfaces";
 import { CalculateFunction, Node } from "@baklavajs/core";
-import { makeNoise2D } from "open-simplex-noise";
+import { makeNoise2D } from "open-simplex-noise/lib/2d";
 import { Color, fromChroma, chroma } from "../../colors";
 import { LmsCalculationContext } from "../../types";
 

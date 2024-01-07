@@ -36,9 +36,10 @@ import Button from "primevue/button";
 import Divider from "primevue/divider";
 
 import InterfaceView from "./InterfaceView.vue";
-import CodeEditor from "./CodeEditor.vue";
 import { ScriptNodeConfigurationInterface } from "../../interfaces";
-import { computed } from "vue";
+import { computed, defineAsyncComponent } from "vue";
+
+const CodeEditor = defineAsyncComponent(() => import("./CodeEditor.vue"));
 
 const props = defineProps<{
     intf: ScriptNodeConfigurationInterface;

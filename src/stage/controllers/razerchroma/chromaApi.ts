@@ -1,10 +1,12 @@
-import axios, { AxiosInstance } from "axios";
+import type { AxiosInstance } from "axios";
 
 export class ChromaApi {
     private client?: AxiosInstance;
     private keepaliveTimer?: ReturnType<typeof setTimeout>;
 
     public async initialize() {
+        const axios = (await import("axios")).default;
+
         const r = await axios.post("http://localhost:54235/razer/chromasdk", {
             title: "LedMusic",
             description: "LedMusic Razer Output",

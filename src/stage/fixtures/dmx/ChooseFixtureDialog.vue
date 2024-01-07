@@ -2,7 +2,13 @@
     <Dialog v-model:visible="visible" modal header="Choose Fixture" style="width: 50vw; min-width: 1000px">
         <div class="fixture-library">
             <div class="toolbar">
-                <Button :disabled="updatingFixtureLibrary" label="Update Fixture Library" outlined @click="updateFixtureLibrary" />
+                <Button
+                    :icon="fixtureLibrary.updating ? 'pi pi-spin pi-spinner' : ''"
+                    :disabled="fixtureLibrary.updating"
+                    label="Update Fixture Library"
+                    outlined
+                    @click="updateFixtureLibrary"
+                />
             </div>
             <Listbox
                 class="manufacturer-list"
@@ -30,12 +36,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import Listbox from "primevue/listbox";
-import { useToast } from "primevue/usetoast";
 
+import { useErrorHandler } from "@/utils";
 import { Fixture } from "./open-fixture";
 import { Manufacturer, useFixtureLibrary } from "./fixtureLibrary";
 
@@ -44,23 +50,29 @@ const emit = defineEmits<{
     (e: "setFixture", fixture: Fixture): void;
 }>();
 
-const toast = useToast();
 const fixtureLibrary = useFixtureLibrary();
+const errorHandler = useErrorHandler();
 
-const updatingFixtureLibrary = ref(false);
 const selectedManufacturer = ref<Manufacturer | null>(null);
 const selectedFixture = ref<Fixture | null>(null);
 
-async function updateFixtureLibrary() {
-    updatingFixtureLibrary.value = true;
-    try {
-        await fixtureLibrary.updateFixtures();
-    } catch (err) {
-        console.error(err);
-        toast.add({ severity: "error", life: 5000, summary: "Failed to update fixture library" });
-    } finally {
-        updatingFixtureLibrary.value = false;
+onMounted(async () => {
+    if (fixtureLibrary.fixtures.length === 0) {
+        updateFixtureLibrary();
     }
+});
+
+async function updateFixtureLibrary() {
+    await errorHandler("Failed to update fixture library", async () => {
+        let data;
+        try {
+            data = await fixtureLibrary.downloadFromOfl();
+        } catch (err) {
+            console.error(err);
+            data = await fixtureLibrary.downloadSelfHosted();
+        }
+        await fixtureLibrary.applyOflData(data);
+    });
 }
 
 function addToUniverse() {
