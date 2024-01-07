@@ -94,7 +94,6 @@ export class StageRenderer {
         newRenderer.onConfigUpdate(initialConfig as any);
         this._fixtureRenderers.set(fixtureId, newRenderer);
         this._scene?.add(newRenderer);
-        console.log("Created fixture renderer", fixtureId, visualizationType, initialConfig);
     }
 
     public onFixtureConfigUpdate<T extends VisualizationType>(fixtureId: string, config: FixtureRendererConfig<T>) {
@@ -102,7 +101,6 @@ export class StageRenderer {
         const fixtureRenderer = this.fixtureRenderers.get(fixtureId);
         if (fixtureRenderer) {
             fixtureRenderer.onConfigUpdate(config);
-            console.log("Updated fixture config", fixtureId, config);
         }
     }
 
@@ -110,7 +108,6 @@ export class StageRenderer {
         const fixtureRenderer = this.fixtureRenderers.get(fixtureId);
         if (fixtureRenderer) {
             fixtureRenderer.onFixtureValueUpdate(value);
-            console.log("Updated fixture value", fixtureId, value);
         }
     }
 

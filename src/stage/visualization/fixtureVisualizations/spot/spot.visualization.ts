@@ -1,4 +1,4 @@
-import { markRaw } from "vue";
+import { markRaw, toRaw } from "vue";
 
 import { BaseFixture, DmxFixture, FixtureType } from "@/stage/fixtures";
 import { BaseVisualization, VisualizationType } from "../base.visualization";
@@ -39,6 +39,6 @@ export class SpotVisualization extends BaseVisualization<DmxFixture, SpotVisuali
     }
 
     protected async onFixtureValueUpdate() {
-        await this.renderer.onFixtureValueUpdate(this.fixture.id, this.fixture.value);
+        await this.renderer.onFixtureValueUpdate(this.fixture.id, toRaw(this.fixture.value));
     }
 }

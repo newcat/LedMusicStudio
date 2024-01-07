@@ -1,5 +1,5 @@
 import * as Comlink from "comlink";
 import { StageRenderer } from "./stageRenderer";
 
-console.log("Hello from worker!");
+console.log("Stage visualization worker started");
 Comlink.expose(new StageRenderer());

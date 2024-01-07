@@ -49,6 +49,5 @@ export class RazerChromaController extends BaseController<Record<string, never>,
 
     public async dispose(): Promise<void> {
         await this.api.destroy();
-        console.log("API disposed");
     }
 }

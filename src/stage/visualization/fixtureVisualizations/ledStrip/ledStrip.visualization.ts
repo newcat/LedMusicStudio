@@ -1,4 +1,4 @@
-import { markRaw } from "vue";
+import { markRaw, toRaw } from "vue";
 
 import { BaseFixture, FixtureType, LedStripFixture } from "@/stage/fixtures";
 import { BaseVisualization, VisualizationType } from "../base.visualization";
@@ -39,7 +39,7 @@ export class LedStripVisualization extends BaseVisualization<LedStripFixture, Le
     }
 
     protected async onFixtureValueUpdate() {
-        await this.renderer.onFixtureValueUpdate(this.fixture.id, this.fixture.value);
+        await this.renderer.onFixtureValueUpdate(this.fixture.id, toRaw(this.fixture.value));
     }
 
     private getRendererConfig(): LedStripRendererConfig {
