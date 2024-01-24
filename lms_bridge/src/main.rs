@@ -1,7 +1,7 @@
 mod bridge;
+mod controllers;
 mod dmx_output;
 mod types;
-mod wled_output;
 
 use std::net::TcpListener;
 use tungstenite::{accept, Error as WsError};

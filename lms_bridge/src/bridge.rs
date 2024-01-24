@@ -1,67 +1,73 @@
 use std::collections::HashMap;
+use std::sync::mpsc::{channel, Receiver, Sender};
+use std::thread;
 
-use crate::types;
-use crate::{dmx_output::DmxOutput, types::WsMessage, wled_output::WledOutput};
+use crate::controllers::controller::{
+    BridgeToControllerMessage, Controller, ControllerToBridgeMessage,
+};
+use crate::types::WsMessage;
 
-#[derive(Debug)]
-enum Output {
-    Dmx(DmxOutput),
-    Wled(WledOutput),
-}
-
-#[derive(Debug)]
 pub struct Bridge {
-    outputs: HashMap<String, Output>,
+    controller_to_bridge_rx: Receiver<ControllerToBridgeMessage>,
+    controller_to_bridge_tx: Sender<ControllerToBridgeMessage>,
+    controllers: HashMap<String, Sender<BridgeToControllerMessage>>,
 }
 
 impl Bridge {
     pub fn new() -> Self {
+        let (tx, rx) = channel();
         return Self {
-            outputs: HashMap::new(),
+            controller_to_bridge_rx: rx,
+            controller_to_bridge_tx: tx,
+            controllers: HashMap::new(),
         };
     }
 
     pub fn handle_message(self: &mut Self, msg: &WsMessage) {
-        match msg {
-            WsMessage::ConfigureOutputs { outputs } => self.configure_outputs(outputs),
-            WsMessage::DmxData(data) => {
-                let Some(output) = self.outputs.get_mut(&data.id) else {
-                    println!("Could not find output with id {}", data.id);
-                    return;
-                };
-                let Output::Dmx(dmx_output) = output else {
-                    println!("Output {} is not of type DMX", data.id);
-                    return;
-                };
-                if dmx_output.on_data(data).is_err() {
-                    println!("Failed to write to serialport");
-                }
-            }
-            WsMessage::WledData(data) => {
-                let Some(output) = self.outputs.get_mut(&data.id) else {
-                    println!("Could not find output with id {}", data.id);
-                    return;
-                };
-                let Output::Wled(wled_output) = output else {
-                    println!("Output {} is not of type WLED", data.id);
-                    return;
-                };
-                if wled_output.on_data(data).is_err() {
-                    println!("Failed to send UDP packet to WLED controller");
-                }
-            }
-        }
-    }
+        println!("Received message: {:?}", msg);
 
-    fn configure_outputs(self: &mut Self, configuration: &Vec<types::BaseOutputConfiguration>) {
-        self.outputs.clear();
-        for output_configuration in configuration {
-            let output = match &output_configuration.output {
-                crate::types::OutputConfiguration::Dmx(c) => Output::Dmx(DmxOutput::new(&c)),
-                crate::types::OutputConfiguration::Wled(c) => Output::Wled(WledOutput::new(&c)),
-            };
-            self.outputs
-                .insert(output_configuration.id.to_owned(), output);
+        match msg {
+            WsMessage::AddController {
+                id,
+                controller_type,
+            } => {
+                println!("Adding controller: {} (type {:?})", id, controller_type);
+                let bridge_to_controller = channel();
+
+                let mut controller = match controller_type {
+                    crate::types::ControllerType::Wled => {
+                        crate::controllers::wled_controller::WledController::new(
+                            self.controller_to_bridge_tx.clone(),
+                            bridge_to_controller.1,
+                        )
+                    }
+                    crate::types::ControllerType::Dmx => {
+                        panic!("DMX controller not implemented yet");
+                    }
+                };
+
+                self.controllers
+                    .insert(id.to_owned(), bridge_to_controller.0);
+
+                let id_copy = id.to_owned();
+                thread::spawn(move || {
+                    controller.run();
+                    println!("Controller {} exited", id_copy)
+                });
+            }
+            WsMessage::RemoveController { id } => {
+                println!("Removing controller: {}", id);
+                if let Some(tx) = self.controllers.get(id) {
+                    let _ = tx.send(BridgeToControllerMessage::Dispose);
+                }
+                self.controllers.remove(id);
+            }
+            WsMessage::CallController { id, message } => {
+                println!("Calling controller: {} with message: {}", id, message);
+                if let Some(tx) = self.controllers.get(id) {
+                    let _ = tx.send(BridgeToControllerMessage::Message(message.to_owned()));
+                }
+            }
         }
     }
 }
