@@ -51,7 +51,7 @@
                 <component
                     v-if="selectedController.settingsComponent"
                     :is="selectedController.settingsComponent"
-                    v-model="selectedController"
+                    :controller="selectedController"
                 />
 
                 <Divider />

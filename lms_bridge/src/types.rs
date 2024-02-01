@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-#[derive(Debug, Serialize, Deserialize, TS)]
+#[derive(Debug, Serialize, Deserialize, TS, Clone, Copy)]
 #[ts(export)]
 pub enum ControllerType {
-    Wled,
-    Dmx,
+    WLED,
+    DMX,
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]

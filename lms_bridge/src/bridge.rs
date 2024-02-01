@@ -34,31 +34,21 @@ impl Bridge {
                 println!("Adding controller: {} (type {:?})", id, controller_type);
                 let bridge_to_controller = channel();
 
-                let mut controller = match controller_type {
-                    crate::types::ControllerType::Wled => {
-                        crate::controllers::wled_controller::WledController::new(
-                            self.controller_to_bridge_tx.clone(),
-                            bridge_to_controller.1,
-                        )
-                    }
-                    crate::types::ControllerType::Dmx => {
-                        panic!("DMX controller not implemented yet");
-                    }
-                };
-
                 self.controllers
                     .insert(id.to_owned(), bridge_to_controller.0);
 
-                let id_copy = id.to_owned();
-                thread::spawn(move || {
-                    controller.run();
-                    println!("Controller {} exited", id_copy)
-                });
+                self.spawn_and_run_controller(
+                    id.clone(),
+                    bridge_to_controller.1,
+                    controller_type.clone(),
+                )
             }
             WsMessage::RemoveController { id } => {
                 println!("Removing controller: {}", id);
                 if let Some(tx) = self.controllers.get(id) {
                     let _ = tx.send(BridgeToControllerMessage::Dispose);
+                } else {
+                    println!("Controller {} not found", id);
                 }
                 self.controllers.remove(id);
             }
@@ -66,8 +56,31 @@ impl Bridge {
                 println!("Calling controller: {} with message: {}", id, message);
                 if let Some(tx) = self.controllers.get(id) {
                     let _ = tx.send(BridgeToControllerMessage::Message(message.to_owned()));
+                } else {
+                    println!("Controller {} not found", id);
                 }
             }
         }
+    }
+
+    fn spawn_and_run_controller(
+        self: &Self,
+        id: String,
+        btc: Receiver<BridgeToControllerMessage>,
+        controller_type: crate::types::ControllerType,
+    ) {
+        let ctb = self.controller_to_bridge_tx.clone();
+        thread::spawn(move || {
+            let mut controller: Box<dyn Controller> = match controller_type {
+                crate::types::ControllerType::WLED => Box::new(
+                    crate::controllers::wled_controller::WledController::new(ctb, btc),
+                ),
+                crate::types::ControllerType::DMX => Box::new(
+                    crate::controllers::dmx_controller::DmxController::new(ctb, btc),
+                ),
+            };
+            controller.run();
+            println!("Controller {} exited", id)
+        });
     }
 }

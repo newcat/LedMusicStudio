@@ -79,4 +79,7 @@ export abstract class BaseController<C = unknown, F extends BaseFixture = BaseFi
     }
 
     public abstract send(): void | Promise<void>;
+
+    /** @virtual */
+    public dispose() {}
 }

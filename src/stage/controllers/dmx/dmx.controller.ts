@@ -1,7 +1,7 @@
 import { markRaw } from "vue";
 
-import { BaseOutputConfiguration } from "lms_bridge/BaseOutputConfiguration";
-import { useBridge } from "@/bridge";
+import { DmxControllerMessage } from "lms_bridge/DmxControllerMessage";
+import { IBridgeController, SendMessageFunction, useBridge } from "@/bridge";
 import { BaseController, ControllerType } from "../base.controller";
 import { DmxFixture, FixtureType } from "../../fixtures";
 import DmxControllerSettings from "./DmxControllerSettings.vue";
@@ -10,8 +10,10 @@ interface DmxControllerConfiguration {
     port: string;
 }
 
-export class DmxController extends BaseController<DmxControllerConfiguration, DmxFixture> {
+export class DmxController extends BaseController<DmxControllerConfiguration, DmxFixture> implements IBridgeController<void> {
     private readonly bridge = useBridge();
+    private readonly sendMessage: SendMessageFunction<DmxControllerMessage>;
+
     public override readonly type = ControllerType.DMX;
     public override readonly compatibleFixtures = [FixtureType.DMX];
     public override readonly settingsComponent = markRaw(DmxControllerSettings);
@@ -42,11 +44,28 @@ export class DmxController extends BaseController<DmxControllerConfiguration, Dm
     public constructor() {
         super({ port: "" });
         this.name = "DMX Controller";
+        this.sendMessage = this.bridge.registerController(this);
+        this.sendConfiguration();
+    }
+
+    public onBridgeConnected() {
+        this.sendConfiguration();
     }
 
     public async send() {
-        // TODO
-        /*const maxChannel = Math.max(0, ...Array.from(this.currentChannelValues.keys()));
+        if (this.controlledFixtures.length === 0) {
+            return;
+        }
+
+        const channelValues = new Map<number, number>();
+        for (const fixture of this.controlledFixtures) {
+            const fixtureChannelValues = fixture.value;
+            for (const [channel, value] of fixtureChannelValues.entries()) {
+                channelValues.set(fixture.config.startChannel + channel, value);
+            }
+        }
+
+        const maxChannel = Math.max(0, ...Array.from(channelValues.keys()));
         if (maxChannel <= 0) {
             return;
         }
@@ -55,23 +74,23 @@ export class DmxController extends BaseController<DmxControllerConfiguration, Dm
         buffer[0] = Math.floor(maxChannel / 256);
         buffer[1] = maxChannel % 256;
         for (let i = 1; i <= maxChannel; i++) {
-            buffer[i + 1] = this.currentChannelValues.get(i) ?? 0;
+            buffer[i + 1] = channelValues.get(i) ?? 0;
         }
 
-        this.bridge.sendMessage({
-            type: "DmxData",
-            id: this.id,
+        this.sendMessage({
+            type: "Data",
             data: buffer,
-        });*/
+        });
     }
 
-    public getBridgeConfiguration(): BaseOutputConfiguration {
-        return {
-            id: this.id,
-            output: {
-                type: "Dmx",
-                port: this.config.port,
-            },
-        };
+    public override dispose(): void {
+        this.bridge.unregisterController(this.id);
+    }
+
+    private sendConfiguration() {
+        this.sendMessage({
+            type: "UpdateConfiguration",
+            port: this.config.port,
+        });
     }
 }

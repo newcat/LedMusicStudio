@@ -1,6 +1,5 @@
 mod bridge;
 mod controllers;
-mod dmx_output;
 mod types;
 
 use std::net::TcpListener;
@@ -33,6 +32,7 @@ fn main() {
                 }
                 Err(e) => {
                     println!("Error reading message: {:?}", e);
+                    break;
                 }
             };
         }

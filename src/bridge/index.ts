@@ -3,6 +3,9 @@ import { defineStore } from "pinia";
 import { useToast } from "primevue/usetoast";
 import { WsMessage } from "lms_bridge/WsMessage";
 import { useGlobalState } from "@/globalState";
+import { IBridgeController, SendMessageFunction } from "./types";
+
+export * from "./types";
 
 export const useBridge = defineStore("bridge", () => {
     const globalState = useGlobalState();
@@ -11,22 +14,22 @@ export const useBridge = defineStore("bridge", () => {
     let bridge: WebSocket | undefined = undefined;
     const connectionStatus = ref<"DISCONNECTED" | "CONNECTING" | "CONNECTED">("DISCONNECTED");
 
-    function updateControllers() {
-        // TODO
-        /*const outputs = library.items.filter((it) => it.type === LibraryItemType.OUTPUT) as OutputLibraryItem[];
-        const relevantOutputs = outputs
-            .filter((o) => [OutputType.DMX, OutputType.WLED].includes(o.outputInstance.type))
-            .map((o) => o.outputInstance) as Array<DmxOutput | WledOutput>;
-        const msg: WsMessage = {
-            type: "ConfigureOutputs",
-            outputs: relevantOutputs.map((o) => o.getBridgeConfiguration()),
-        };
-        sendMessage(msg);*/
-    }
+    const controllers = ref<Map<string, IBridgeController<unknown>>>(new Map());
 
     function sendMessage(message: WsMessage) {
         if (bridge && bridge.readyState === WebSocket.OPEN) {
             bridge.send(JSON.stringify(message));
+        }
+    }
+
+    function updateControllers() {
+        for (const controller of controllers.value.values()) {
+            sendMessage({
+                type: "AddController",
+                controller_type: controller.type,
+                id: controller.id,
+            });
+            controller.onBridgeConnected();
         }
     }
 
@@ -62,7 +65,34 @@ export const useBridge = defineStore("bridge", () => {
         };
     }
 
+    function registerController<C2BM, C extends IBridgeController<unknown>>(controller: C): SendMessageFunction<C2BM> {
+        controllers.value.set(controller.id, controller);
+
+        sendMessage({
+            type: "AddController",
+            controller_type: controller.type,
+            id: controller.id,
+        });
+
+        return (msg: C2BM) => {
+            const bridgeMsg: WsMessage = {
+                type: "CallController",
+                id: controller.id,
+                message: JSON.stringify(msg),
+            };
+            sendMessage(bridgeMsg);
+        };
+    }
+
+    function unregisterController(id: string) {
+        sendMessage({
+            type: "RemoveController",
+            id,
+        });
+        controllers.value.delete(id);
+    }
+
     watch(() => globalState.bridgeUrl, connect, { immediate: true });
 
-    return { connectionStatus, updateControllers, sendMessage, connect };
+    return { connectionStatus, sendMessage, connect, registerController, unregisterController };
 });

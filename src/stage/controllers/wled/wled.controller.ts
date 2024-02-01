@@ -1,11 +1,11 @@
 import { markRaw } from "vue";
 
-import { BaseOutputConfiguration } from "lms_bridge/BaseOutputConfiguration";
-import { useBridge } from "@/bridge";
+import { IBridgeController, SendMessageFunction, useBridge } from "@/bridge";
 import { LedStripFixture } from "../../fixtures/ledStrip/ledStrip.fixture";
 import { BaseController, ControllerType } from "../base.controller";
 import WledControllerSettings from "./WledControllerSettings.vue";
 import { FixtureType } from "@/stage/fixtures";
+import { WledControllerMessage } from "lms_bridge/WledControllerMessage";
 
 interface WledControllerConfiguration {
     host: string;
@@ -13,8 +13,10 @@ interface WledControllerConfiguration {
     timeout: number;
 }
 
-export class WledController extends BaseController<WledControllerConfiguration, LedStripFixture> {
+export class WledController extends BaseController<WledControllerConfiguration, LedStripFixture> implements IBridgeController<void> {
     private readonly bridge = useBridge();
+    private readonly sendMessage: SendMessageFunction<WledControllerMessage>;
+
     public override readonly type = ControllerType.WLED;
     public override readonly compatibleFixtures = [FixtureType.LED_STRIP];
     public override readonly settingsComponent = markRaw(WledControllerSettings);
@@ -30,6 +32,8 @@ export class WledController extends BaseController<WledControllerConfiguration, 
             timeout: 255,
         });
         this.name = "WLED Controller";
+        this.sendMessage = this.bridge.registerController(this);
+        this.sendConfiguration();
     }
 
     public override addFixture(f: LedStripFixture): void {
@@ -37,6 +41,11 @@ export class WledController extends BaseController<WledControllerConfiguration, 
             throw new Error("WLED controller can only control one fixture");
         }
         super.addFixture(f);
+    }
+
+    public override setConfig(c: WledControllerConfiguration): void {
+        super.setConfig(c);
+        this.sendConfiguration();
     }
 
     public async send(): Promise<void> {
@@ -61,21 +70,25 @@ export class WledController extends BaseController<WledControllerConfiguration, 
             buff[i * 3 + 4] = colors[i][2];
         }
 
-        this.bridge.sendMessage({
-            type: "WledData",
-            id: this.id,
+        this.sendMessage({
+            type: "Data",
             data: buff,
         });
     }
 
-    public getBridgeConfiguration(): BaseOutputConfiguration {
-        return {
-            id: this.id,
-            output: {
-                type: "Wled",
-                host: this.config.host,
-                port: this.config.port,
-            },
-        };
+    public onBridgeConnected() {
+        this.sendConfiguration();
+    }
+
+    public override dispose(): void {
+        this.bridge.unregisterController(this.id);
+    }
+
+    private sendConfiguration() {
+        this.sendMessage({
+            type: "UpdateConfiguration",
+            host: this.config.host,
+            port: this.config.port,
+        });
     }
 }
