@@ -65,9 +65,9 @@ export class WledController extends BaseController<WledControllerConfiguration, 
         buff[1] = this.config.timeout;
 
         for (let i = 0; i < fixture.config.numLeds; i++) {
-            buff[i * 3 + 2] = colors[i][0];
-            buff[i * 3 + 3] = colors[i][1];
-            buff[i * 3 + 4] = colors[i][2];
+            buff[i * 3 + 2] = Math.floor(colors[i][0]);
+            buff[i * 3 + 3] = Math.floor(colors[i][1]);
+            buff[i * 3 + 4] = Math.floor(colors[i][2]);
         }
 
         this.sendMessage({

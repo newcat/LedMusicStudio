@@ -24,8 +24,6 @@ impl Bridge {
     }
 
     pub fn handle_message(self: &mut Self, msg: &WsMessage) {
-        println!("Received message: {:?}", msg);
-
         match msg {
             WsMessage::AddController {
                 id,
@@ -53,7 +51,6 @@ impl Bridge {
                 self.controllers.remove(id);
             }
             WsMessage::CallController { id, message } => {
-                println!("Calling controller: {} with message: {}", id, message);
                 if let Some(tx) = self.controllers.get(id) {
                     let _ = tx.send(BridgeToControllerMessage::Message(message.to_owned()));
                 } else {

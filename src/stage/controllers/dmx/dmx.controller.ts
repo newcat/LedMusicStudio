@@ -61,7 +61,7 @@ export class DmxController extends BaseController<DmxControllerConfiguration, Dm
         for (const fixture of this.controlledFixtures) {
             const fixtureChannelValues = fixture.value;
             for (const [channel, value] of fixtureChannelValues.entries()) {
-                channelValues.set(fixture.config.startChannel + channel, value);
+                channelValues.set(fixture.config.startChannel + channel, Math.floor(value));
             }
         }
 

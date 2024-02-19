@@ -53,7 +53,6 @@ impl DmxController {
                 }
             }
             DmxControllerMessage::Data(data) => {
-                println!("Sending data: {:?}", data);
                 if let Some(ref mut port) = self.serialport {
                     let _ = port.write(&data.data[..]);
                 };
@@ -79,7 +78,6 @@ impl Controller for DmxController {
             match self.rx.recv() {
                 Ok(msg) => match msg {
                     BridgeToControllerMessage::Message(str_message) => {
-                        println!("Received message: {}", str_message);
                         let parsed_message: DmxControllerMessage =
                             serde_json::from_str(&str_message).unwrap();
                         self.handle_message(parsed_message);

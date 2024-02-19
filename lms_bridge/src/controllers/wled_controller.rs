@@ -45,7 +45,6 @@ impl WledController {
                 self.port = configuration.port;
             }
             WledControllerMessage::Data(data) => {
-                println!("Sending data: {:?}", data);
                 let Some(ref socket) = self.socket else {
                     return;
                 };
@@ -76,7 +75,6 @@ impl Controller for WledController {
             match self.rx.recv() {
                 Ok(msg) => match msg {
                     BridgeToControllerMessage::Message(str_message) => {
-                        println!("Received message: {}", str_message);
                         let parsed_message: WledControllerMessage =
                             serde_json::from_str(&str_message).unwrap();
                         self.handle_message(parsed_message);
