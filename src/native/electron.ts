@@ -1,10 +1,4 @@
-import type {
-    ipcRenderer as origIpcRenderer,
-    OpenDialogOptions,
-    OpenDialogReturnValue,
-    SaveDialogOptions,
-    SaveDialogReturnValue,
-} from "electron";
+import type { OpenDialogOptions, OpenDialogReturnValue, SaveDialogOptions, SaveDialogReturnValue } from "electron";
 import type { readFile as origReadFile, writeFile as origWriteFile } from "fs/promises";
 import { FileOptions, NativeAdapter, NativeAdapterType, ReadFileResult, SaveFileOptions } from "./types";
 import { withTimeout } from "@/utils";
@@ -14,7 +8,8 @@ export class ElectronNativeAdapter implements NativeAdapter {
 
     public readonly readFile = (window as any).readFile as typeof origReadFile;
     public readonly writeFile = (window as any).writeFile as typeof origWriteFile;
-    public readonly ipcRenderer = (window as any).ipcRenderer as typeof origIpcRenderer;
+    public readonly showOpenDialog = (window as any).showOpenDialog as (options: OpenDialogOptions) => Promise<OpenDialogReturnValue>;
+    public readonly showSaveDialog = (window as any).showSaveDialog as (options: SaveDialogOptions) => Promise<SaveDialogReturnValue>;
 
     public isElectron(): this is ElectronNativeAdapter {
         return true;
@@ -46,13 +41,5 @@ export class ElectronNativeAdapter implements NativeAdapter {
         }
         await this.writeFile(result.filePath, data);
         return true;
-    }
-
-    public async showOpenDialog(options: OpenDialogOptions): Promise<OpenDialogReturnValue> {
-        return await this.ipcRenderer.invoke("dialog:showOpenDialog", options);
-    }
-
-    public async showSaveDialog(options: SaveDialogOptions): Promise<SaveDialogReturnValue> {
-        return await this.ipcRenderer.invoke("dialog:showSaveDialog", options);
     }
 }
