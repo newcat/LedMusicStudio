@@ -3,17 +3,18 @@
         <div class="flex gap-2">
             <Button icon="mdi mdi-plus" text rounded @click="addStop" />
             <Button icon="mdi mdi-minus" text rounded @click="removeStop" />
-            <Button icon="mdi mdi-dots-vertical" text rounded />
-            <Dropdown v-model="modelValue.mode" :options="modes" placeholder="Mode" />
+            <Button icon="mdi mdi-dots-vertical" text rounded @click="ctxMenu?.toggle($event)" />
+            <Menu ref="ctxMenu" :model="ctxMenuItems" :popup="true" />
+            <Dropdown v-model="modelValue.mode" :options="modes" option-label="label" option-value="value" placeholder="Mode" />
         </div>
-        <div class="color-ramp" ref="colorRampEl">
+        <div class="color-ramp" ref="colorRampEl" @mousedown="selectedStopId = ''">
             <template v-for="stop in modelValue.stops" :key="stop.id">
                 <div class="color-stop-indicator" :style="{ left: `${Math.round(100 * stop.position)}%` }"></div>
                 <div
                     class="color-stop-handle"
                     :class="{ '--selected': selectedStopId === stop.id }"
                     :style="{ left: `${Math.round(100 * stop.position)}%` }"
-                    @mousedown="onHandleMousedown(stop)"
+                    @mousedown.stop="onHandleMousedown(stop)"
                 ></div>
             </template>
         </div>
@@ -24,18 +25,30 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { ComponentInstance, computed, ref } from "vue";
 import { v4 as uuidv4 } from "uuid";
+import type { InterpolationMode } from "chroma-js";
 import Button from "primevue/button";
 import Dropdown from "primevue/dropdown";
+import Menu from "primevue/menu";
 import ColorPicker from "./ColorPicker.vue";
 import type { ColorRampStop, ColorRampValue } from "../nodes/colors/ColorRampNode";
 
-const modes = ["RGB", "HSV", "HSL"];
+const modes: Array<{ label: string; value: InterpolationMode }> = [
+    { label: "RGB", value: "rgb" },
+    { label: "HSL", value: "hsl" },
+];
+
+const ctxMenuItems = [
+    { label: "Flip Color Ramp", command: flip },
+    { label: "Distribute Stops from Left", command: distributeLeft },
+    { label: "Distribute Evenly", command: distributeEvenly },
+];
 
 const modelValue = defineModel<ColorRampValue>({ required: true });
 
 const colorRampEl = ref<HTMLElement>();
+const ctxMenu = ref<ComponentInstance<typeof Menu>>();
 const selectedStopId = ref("");
 
 const selectedStop = computed(() => modelValue.value.stops.find((s) => s.id === selectedStopId.value));
@@ -47,7 +60,11 @@ const cssLinearGradient = computed(() => {
         return `rgb(${modelValue.value.stops[0].color[0]}, ${modelValue.value.stops[0].color[1]}, ${modelValue.value.stops[0].color[2]})`;
     }
 
-    const args: string[] = ["to right"];
+    const cssColorSpace = {
+        rgb: "srgb",
+        hsl: "hsl",
+    };
+    const args: string[] = [`to right in ${cssColorSpace[modelValue.value.mode]}`];
     for (const stop of modelValue.value.stops.toSorted((a, b) => a.position - b.position)) {
         args.push(`rgb(${stop.color[0]}, ${stop.color[1]}, ${stop.color[2]}) ${Math.round(100 * stop.position)}%`);
     }
@@ -87,6 +104,20 @@ function onMouseMove(event: MouseEvent) {
     if (stop) {
         stop.position = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
     }
+}
+
+function flip() {
+    modelValue.value.stops = modelValue.value.stops.map((s) => ({ ...s, position: 1 - s.position }));
+}
+
+function distributeLeft() {
+    modelValue.value.stops.sort((a, b) => a.position - b.position);
+    modelValue.value.stops = modelValue.value.stops.map((s, i) => ({ ...s, position: i / modelValue.value.stops.length }));
+}
+
+function distributeEvenly() {
+    modelValue.value.stops.sort((a, b) => a.position - b.position);
+    modelValue.value.stops = modelValue.value.stops.map((s, i) => ({ ...s, position: i / (modelValue.value.stops.length - 1) }));
 }
 </script>
 
