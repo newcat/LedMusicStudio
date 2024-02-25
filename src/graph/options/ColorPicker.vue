@@ -1,29 +1,33 @@
 <template>
-    <div ref="el" class="color-picker" @click.self="open = true" :style="{ backgroundColor: modelValue }">
+    <div ref="el" class="color-picker" @click.self="open = true" :style="{ backgroundColor: hexColor }">
         <transition name="slide-fade">
             <cp-chrome
-                class="color-picker-overlay"
                 v-show="open"
-                :model-value="modelValue"
-                @update:model-value="emit('update:modelValue', $event.hex)"
+                :model-value="hexColor"
+                class="color-picker-overlay"
+                :disable-alpha="true"
+                @update:model-value="setColor"
             ></cp-chrome>
         </transition>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { Chrome as CpChrome } from "@ckpack/vue-color";
+import { computed, ref } from "vue";
+import { Chrome as CpChrome, Payload } from "@ckpack/vue-color";
 import { onClickOutside } from "@vueuse/core";
+import { Color, toChroma } from "../colors";
 
-defineProps({
-    modelValue: { type: String, default: "#000000" },
-});
-
-const emit = defineEmits(["update:modelValue"]);
+const modelValue = defineModel<Color>({ default: [0, 0, 0] });
 
 const el = ref<HTMLElement | null>(null);
 const open = ref(false);
+
+const hexColor = computed(() => (modelValue.value ? toChroma(modelValue.value).css() : "#000000"));
+
+function setColor(color: Payload) {
+    modelValue.value = [color.rgba.r as number, color.rgba.g as number, color.rgba.b as number];
+}
 
 onClickOutside(el, () => {
     open.value = false;

@@ -1,15 +1,31 @@
-export {};
-/*
-TODO: 
-import { defineNode, NodeBuilder } from "@baklavajs/core";
+import { markRaw } from "vue";
+import { NodeInterface, defineNode } from "baklavajs";
+import { ColorArrayInterface, ColorSingleInterface, SliderInterface } from "../../interfaces";
+import { Color } from "../../colors";
+import ColorRampOption from "../../options/ColorRampOption.vue";
 
-export const ColorRampNode2 = new NodeBuilder("Color Ramp")
-    .addInputInterface("Factor", "SliderOption", 0, { type: "number", min: 0, max: 1 })
-    .addOption("Color Ramp", "ColorRampOption", () => [
-        { color: [0, 0, 0], position: 0 },
-        { color: [255, 255, 255], position: 1 },
-    ])
-    .addOutputInterface("Color Band", { type: "color_array" })
-    .addOutputInterface("Single Color", { type: "color_single" })
-    .build();
-*/
+export interface ColorRampStop {
+    id: string;
+    position: number;
+    color: Color;
+}
+
+export interface ColorRampValue {
+    mode: "RGB" | "HSV" | "HSL";
+    stops: ColorRampStop[];
+}
+
+export const ColorRampNode = defineNode({
+    type: "Color Ramp",
+    inputs: {
+        colorRamp: () =>
+            new NodeInterface<ColorRampValue>("Color Ramp", { mode: "RGB", stops: [] })
+                .setPort(false)
+                .setComponent(markRaw(ColorRampOption)),
+        factor: () => new SliderInterface("Factor", 0.5, 0, 1),
+    },
+    outputs: {
+        colorRamp: () => new ColorArrayInterface("Color Ramp"),
+        value: () => new ColorSingleInterface("Value").setComponent(null),
+    },
+});
