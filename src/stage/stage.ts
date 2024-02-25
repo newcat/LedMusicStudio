@@ -40,7 +40,6 @@ export const useStage = defineStore("stage", () => {
     const fixtures = ref<ExtendedMap<string, BaseFixture>>(new ExtendedMap()) as Ref<ExtendedMap<string, BaseFixture>>;
     const controllers = ref<ExtendedMap<string, BaseController>>(new ExtendedMap()) as Ref<ExtendedMap<string, BaseController>>;
     const renderer = markRaw(rendererProxy) as RemoteStageRenderer;
-    // const renderer = {} as any;
     const visualization = ref(new StageVisualization(fixtures.value));
 
     function afterFrame() {

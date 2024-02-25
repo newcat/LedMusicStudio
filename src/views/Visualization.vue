@@ -1,7 +1,7 @@
 <template>
     <splitpanes horizontal>
         <pane>
-            <StageView />
+            <StageView :active="active" />
         </pane>
         <pane>
             <Timeline />
@@ -14,4 +14,6 @@ import { Splitpanes, Pane } from "splitpanes";
 
 import Timeline from "@/timeline/Timeline.vue";
 import StageView from "@/stage/visualization/StageView.vue";
+
+defineProps<{ active: boolean }>();
 </script>

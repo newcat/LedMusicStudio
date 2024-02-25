@@ -33,6 +33,7 @@ export interface RemoteStageRenderer {
     onFixtureValueUpdate<T extends VisualizationType>(fixtureId: string, value: FixtureRendererValue<T>): Promise<void>;
     setCanvas(canvas: OffscreenCanvas | null): Promise<void>;
     setCanvasSize(width: number, height: number): Promise<void>;
+    setActive(loading: boolean): Promise<void>;
     removeFixtureRenderer(fixtureId: string): Promise<void>;
     loadScene(scene: any): Promise<void>;
     reset(): Promise<void>;
@@ -43,6 +44,7 @@ export class StageRenderer {
     private _camera: THREE.PerspectiveCamera | null = null;
     private _fixtureRenderers: Map<string, BaseRenderer> = new Map();
 
+    private active = false;
     private renderer: THREE.WebGLRenderer | null = null;
     private canvas: OffscreenCanvas | null = null;
 
@@ -82,6 +84,10 @@ export class StageRenderer {
         if (this.renderer) {
             this.renderer.setSize(width, height, false);
         }
+    }
+
+    public setActive(active: boolean) {
+        this.active = active;
     }
 
     public createFixtureRenderer<T extends VisualizationType>(
@@ -143,7 +149,7 @@ export class StageRenderer {
     private render() {
         requestAnimationFrame(() => this.render());
 
-        if (!this.renderer || !this.scene || !this.camera) {
+        if (!this.renderer || !this.scene || !this.camera || !this.active) {
             return;
         }
 

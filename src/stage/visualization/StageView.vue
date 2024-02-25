@@ -8,10 +8,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, onMounted, onBeforeUnmount, watch } from "vue";
 import { useResizeObserver, useThrottleFn } from "@vueuse/core";
 import * as Comlink from "comlink";
 import { useStage } from "../stage";
+
+const props = defineProps<{ active: boolean }>();
 
 const stage = useStage();
 
@@ -40,6 +42,13 @@ function onResize() {
 
     stage.renderer.setCanvasSize(stageViewEl.value.clientWidth, stageViewEl.value.clientHeight);
 }
+
+watch(
+    () => props.active,
+    (active) => {
+        stage.renderer.setActive(active);
+    }
+);
 
 onMounted(() => {
     initialize();

@@ -12,7 +12,7 @@
             <div class="content">
                 <Programming v-show="currentView === 'PROGRAMMING'" />
                 <Stage v-show="currentView === 'STAGE'" />
-                <Visualization v-show="currentView === 'VISUALIZATION'" />
+                <Visualization v-show="currentView === 'VISUALIZATION'" :active="currentView === 'VISUALIZATION'" />
             </div>
         </div>
         <Settings v-model="showSettings" />
