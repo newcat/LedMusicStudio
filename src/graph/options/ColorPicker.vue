@@ -38,6 +38,7 @@ onClickOutside(el, () => {
 .color-picker {
     height: 100%;
     border-radius: 3px;
+    cursor: pointer;
 }
 
 .color-picker-overlay {
@@ -45,5 +46,10 @@ onClickOutside(el, () => {
     left: 100%;
     top: 0%;
     z-index: 100;
+    transform: scale(1);
+}
+
+:deep(.vc-input__input) {
+    background-color: white;
 }
 </style>

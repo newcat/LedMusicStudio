@@ -56,7 +56,7 @@ export class AudioLibraryItem extends LibraryItem<AudioLibraryItemState> {
                 return false;
             }
             if (!this.name) {
-                this.name = dialogResult.filePaths![0];
+                this.name = dialogResult.filePaths![0].replace(/^.*[\\/]/, "");
             }
             this.path = dialogResult.filePaths![0];
             await this.loadAudio();
