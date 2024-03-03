@@ -66,6 +66,11 @@ export class DmxFixture extends BaseFixture<number[], DmxFixtureConfiguration> {
         this.name = "DMX Fixture";
     }
 
+    public override setValue(v: number[]): void {
+        const normalizedValues = v.map((val) => Math.max(0, Math.min(255, Math.floor(val))));
+        super.setValue(normalizedValues);
+    }
+
     public override resetValue(): void {
         this.setValue([]);
     }
