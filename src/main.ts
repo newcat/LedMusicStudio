@@ -1,8 +1,10 @@
 import { createApp } from "vue";
 import * as VueRouter from "vue-router";
 import { createPinia } from "pinia";
+
 import { wasmInterop } from "./wasmInterop";
 import { initializeNativeAdapter } from "./native";
+import "./utils/comlinkVueTransferHandler";
 
 import "splitpanes/dist/splitpanes.css";
 import "@baklavajs/themes/dist/syrup-dark.css";
