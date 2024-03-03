@@ -9,6 +9,7 @@
                     outlined
                     @click="updateFixtureLibrary"
                 />
+                <Button outlined label="Use OFL fixture file" @click="useCustomFixture"></Button>
             </div>
             <Listbox
                 class="manufacturer-list"
@@ -40,8 +41,10 @@ import { onMounted, ref } from "vue";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import Listbox from "primevue/listbox";
+import { useToast } from "primevue/usetoast";
 
 import { useErrorHandler } from "@/utils";
+import { getNativeAdapter } from "@/native";
 import { Fixture } from "./open-fixture";
 import { Manufacturer, useFixtureLibrary } from "./fixtureLibrary";
 
@@ -50,8 +53,10 @@ const emit = defineEmits<{
     (e: "setFixture", fixture: Fixture): void;
 }>();
 
+const toast = useToast();
 const fixtureLibrary = useFixtureLibrary();
 const errorHandler = useErrorHandler();
+const nativeAdapter = getNativeAdapter();
 
 const selectedManufacturer = ref<Manufacturer | null>(null);
 const selectedFixture = ref<Fixture | null>(null);
@@ -73,6 +78,27 @@ async function updateFixtureLibrary() {
         }
         await fixtureLibrary.applyOflData(data);
     });
+}
+
+async function useCustomFixture() {
+    const result = await nativeAdapter.chooseAndReadFile({ accept: [{ name: "OFL Fixture", extensions: ["json"] }] });
+    if (!result) {
+        return;
+    }
+    const { validateFixture } = await import("./validateFixture");
+    const fixture = JSON.parse(result.dataAsString);
+    const validationErrors = validateFixture(fixture);
+    if (validationErrors.length > 0) {
+        toast.add({
+            severity: "error",
+            summary: "Invalid fixture file",
+            detail: validationErrors.join("\n"),
+            life: 6000,
+        });
+        return;
+    }
+    emit("setFixture", fixture);
+    visible.value = false;
 }
 
 function addToUniverse() {
@@ -97,6 +123,7 @@ function addToUniverse() {
 .toolbar {
     display: flex;
     grid-area: toolbar;
+    gap: 1rem;
 }
 
 .manufacturer-list,
