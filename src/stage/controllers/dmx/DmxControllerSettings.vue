@@ -2,7 +2,7 @@
     <LabelledInputText v-model="port">Port</LabelledInputText>
     <ChannelVisualization :fixtures="controller.controlledFixtures" />
     <div>
-        <Button outlined label="Open DMX Panel" @click="panelVisible = true" />
+        <Button outlined label="Open DMX Control Panel" @click="panelVisible = true" />
     </div>
     <DmxPanel :controller="controller" v-model:visible="panelVisible" />
 </template>

@@ -20,7 +20,10 @@ const functions: Record<string, (x: number) => number> = {
     Sine: (x: number) => Math.sin(Math.PI * 2 * x),
     Triangle: (x: number) => 4 * Math.abs(x - Math.floor(x + 0.5)) - 1,
     Sawtooth: (x: number) => 2 * x - 1,
-    Square: (x: number) => Math.sign(Math.sin(Math.PI * 2 * x)),
+    Square: (x: number) => {
+        const v = Math.sign(Math.sin(Math.PI * 2 * x));
+        return v === 0 ? -1 : v;
+    },
 };
 
 export const LfoNode = defineNode({

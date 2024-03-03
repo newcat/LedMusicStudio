@@ -9,7 +9,19 @@
                 <template v-if="selectedFixture">
                     <div v-for="(channel, i) in selectedFixture.channelNames" :key="channel" class="channel">
                         <div>{{ channel }}</div>
-                        <Slider v-model="selectedFixture.value[i]" class="h-full" orientation="vertical" :min="0" :max="255" :step="1" />
+                        <Slider
+                            :model-value="selectedFixture.value[i]"
+                            class="h-full"
+                            orientation="vertical"
+                            :min="0"
+                            :max="255"
+                            :step="1"
+                            @update:model-value="setValue(i, $event)"
+                        />
+                        <div class="flex gap-2">
+                            <Button text icon="pi pi-minus" @click="setValue(i, selectedFixture.value[i] - 1)" />
+                            <Button text icon="pi pi-plus" @click="setValue(i, selectedFixture.value[i] + 1)" />
+                        </div>
                         <div>{{ selectedFixture.value[i] ?? 0 }}</div>
                     </div>
                 </template>
@@ -19,20 +31,45 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
+import Button from "primevue/button";
 import Dropdown from "primevue/dropdown";
 import Dialog from "primevue/dialog";
 import Slider from "primevue/slider";
 import { DmxController } from "./dmx.controller";
 import { DmxFixture } from "../../fixtures";
+import { useThrottleFn } from "@vueuse/core";
 
 const visible = defineModel<boolean>("visible", { required: true });
 
-defineProps<{
+const props = defineProps<{
     controller: DmxController;
 }>();
 
 const selectedFixture = ref<DmxFixture>();
+
+onMounted(() => {
+    selectedFixture.value = props.controller.controlledFixtures[0];
+});
+
+const throttledSend = useThrottleFn(
+    () => {
+        props.controller.send();
+    },
+    300,
+    true
+);
+
+function setValue(index: number, value: number) {
+    if (!selectedFixture.value) {
+        return;
+    }
+
+    const clone = [...selectedFixture.value.value];
+    clone[index] = value;
+    selectedFixture.value.setValue(clone);
+    throttledSend();
+}
 </script>
 
 <style scoped>

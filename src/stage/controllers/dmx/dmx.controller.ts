@@ -52,6 +52,11 @@ export class DmxController extends BaseController<DmxControllerConfiguration, Dm
         this.sendConfiguration();
     }
 
+    public override setConfig(c: DmxControllerConfiguration): void {
+        super.setConfig(c);
+        this.sendConfiguration();
+    }
+
     public async send() {
         if (this.controlledFixtures.length === 0) {
             return;
