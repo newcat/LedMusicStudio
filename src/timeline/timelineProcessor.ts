@@ -12,6 +12,7 @@ import { INote, PatternLibraryItem } from "@/pattern";
 import { ICalculationData } from "@/graph";
 import { useGlobalState } from "@/globalState";
 import { useStage } from "@/stage/stage";
+import { BaseFixture } from "@/stage";
 
 export class TimelineProcessor {
     public trackValues = new Map<string, number | INote[]>(); // maps trackId -> value
@@ -91,7 +92,7 @@ export class TimelineProcessor {
 
         const audioData = this.audioProcessor!.getAudioData();
 
-        const uncontrolledFixtures = new Set(this.stage.fixtures.values());
+        const uncontrolledFixtures = new Set(this.stage.fixtures.values()) as Set<BaseFixture>;
         const calculationData: ICalculationData = {
             resolution: this.globalState.resolution,
             fps: this.globalState.fps,
@@ -105,21 +106,10 @@ export class TimelineProcessor {
         for (const g of graphs) {
             try {
                 const results = await this.processGraph(g, unit, calculationData);
-
                 if (g.libraryItem.error) {
                     g.libraryItem.error = "";
                 }
-
-                results.forEach((intfValues) => {
-                    if (!intfValues.has("fixtureId")) {
-                        return;
-                    }
-                    const fixture = this.stage.fixtures.get(intfValues.get("fixtureId"));
-                    if (fixture) {
-                        uncontrolledFixtures.delete(fixture);
-                        fixture.setValue(intfValues.get("data"));
-                    }
-                });
+                this.applyGraphResults(results, uncontrolledFixtures);
             } catch (err) {
                 console.error(err);
                 g.libraryItem.error = String(err);
@@ -191,5 +181,19 @@ export class TimelineProcessor {
         const np = item.libraryItem as PatternLibraryItem;
         const notes = np.getNotesAt(unit - item.start);
         this.trackValues.set(item.trackId, notes);
+    }
+
+    private applyGraphResults(results: CalculationResult, uncontrolledFixtures: Set<BaseFixture>): void {
+        for (const nodeResults of results.values()) {
+            if (nodeResults.has("_calculationResults")) {
+                this.applyGraphResults(nodeResults.get("_calculationResults") as CalculationResult, uncontrolledFixtures);
+            } else if (nodeResults.has("fixtureId")) {
+                const fixture = this.stage.fixtures.get(nodeResults.get("fixtureId"));
+                if (fixture) {
+                    uncontrolledFixtures.delete(fixture as BaseFixture);
+                    fixture.setValue(nodeResults.get("data"));
+                }
+            }
+        }
     }
 }

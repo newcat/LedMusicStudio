@@ -1,9 +1,11 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
+import { IGraphTemplateState } from "baklavajs";
 import { BaklavaEvent } from "@baklavajs/events";
 
 import { ITimelineState, useTimeline } from "@/timeline";
 import { ILibraryState, useLibrary } from "./library";
+import { useGraphTemplateSync } from "./graph";
 import { TICKS_PER_BEAT } from "./constants";
 import { StageState, useStage } from "./stage";
 
@@ -26,6 +28,7 @@ export interface SavedState {
     resolution: number;
     snapUnits: number;
     bridgeUrl: string;
+    graphTemplates: IGraphTemplateState[];
 }
 
 export const useGlobalState = defineStore("globalState", () => {
@@ -43,6 +46,7 @@ export const useGlobalState = defineStore("globalState", () => {
     const stage = useStage();
     const library = useLibrary();
     const timeline = useTimeline();
+    const graphTemplates = useGraphTemplateSync();
 
     const events = {
         positionSetByUser: new BaklavaEvent<void, undefined>(undefined),
@@ -69,6 +73,7 @@ export const useGlobalState = defineStore("globalState", () => {
             stage: stage.save(),
             timeline: timeline.save(),
             library: library.save(),
+            graphTemplates: graphTemplates.save(),
             bpm: bpm.value,
             fps: fps.value,
             volume: volume.value,
@@ -83,6 +88,7 @@ export const useGlobalState = defineStore("globalState", () => {
     async function load(raw: string) {
         const data: SavedState = JSON.parse(raw) as SavedState;
         stage.load(data.stage);
+        graphTemplates.load(data.graphTemplates ?? []);
         await library.load(data.library);
         timeline.load(data.timeline);
         bpm.value = data.bpm ?? defaults.bpm;
@@ -110,6 +116,7 @@ export const useGlobalState = defineStore("globalState", () => {
         snapUnits,
         metronome,
         bridgeUrl,
+        graphTemplates,
         timeline,
         events,
         reset,

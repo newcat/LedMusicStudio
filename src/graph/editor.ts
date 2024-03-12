@@ -24,9 +24,6 @@ export class BaklavaEditor {
         this.editor.graphEvents.addConnection.subscribe(this, () => this.updateNodeInterfaceTypes());
         this.editor.graphEvents.removeConnection.subscribe(this, () => this.updateNodeInterfaceTypes());
 
-        // TODO: Remove after next Baklava upgrade
-        this.enginePlugin.calculateOrder();
-
         this.enginePlugin.events.afterRun.subscribe(this, (r) => {
             applyResult(r, this.editor);
         });
