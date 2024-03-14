@@ -118,7 +118,6 @@ export class AudioLibraryItem extends LibraryItem<AudioLibraryItemState> {
 
     private async generateWaveform(): Promise<IWaveform> {
         const samples = this.audioBuffer!.getChannelData(0);
-        // Important! Using transferable for the samples crashes Electron 8.4+
         const rawWaveform = await WaveformWorker.generateWaveform(samples, AudioLibraryItem.sampleRate, 1024);
 
         const parts: IWaveformPart[] = [];

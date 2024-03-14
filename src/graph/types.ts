@@ -9,6 +9,7 @@ export interface ICalculationData {
     timeDomainData: Float32Array;
     frequencyData: Float32Array;
     trackValues: Map<string, number | INote[]>;
+    relativeTrackItemProgress: number;
 }
 
 export type LmsCalculationContext = CalculationContext<ICalculationData>;

@@ -93,7 +93,7 @@ export class TimelineProcessor {
         const audioData = this.audioProcessor!.getAudioData();
 
         const uncontrolledFixtures = new Set(this.stage.fixtures.values()) as Set<BaseFixture>;
-        const calculationData: ICalculationData = {
+        const calculationData: Omit<ICalculationData, "relativeTrackItemProgress"> = {
             resolution: this.globalState.resolution,
             fps: this.globalState.fps,
             position: unit,
@@ -105,7 +105,8 @@ export class TimelineProcessor {
         const graphs = currentActiveItems.filter((i) => this.isType(i, LibraryItemType.GRAPH));
         for (const g of graphs) {
             try {
-                const results = await this.processGraph(g, unit, calculationData);
+                const relativeTrackItemProgress = (unit - g.start) / (g.end - g.start);
+                const results = await this.processGraph(g, unit, { ...calculationData, relativeTrackItemProgress });
                 if (g.libraryItem.error) {
                     g.libraryItem.error = "";
                 }

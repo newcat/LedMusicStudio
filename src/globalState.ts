@@ -63,6 +63,7 @@ export const useGlobalState = defineStore("globalState", () => {
         snapUnits.value = defaults.snapUnits;
         bridgeUrl.value = "";
 
+        graphTemplates.reset();
         await library.reset();
         timeline.reset();
         stage.reset();
@@ -89,7 +90,9 @@ export const useGlobalState = defineStore("globalState", () => {
         const data: SavedState = JSON.parse(raw) as SavedState;
         stage.load(data.stage);
         graphTemplates.load(data.graphTemplates ?? []);
+        graphTemplates.skipSync.value = true;
         await library.load(data.library);
+        graphTemplates.skipSync.value = false;
         timeline.load(data.timeline);
         bpm.value = data.bpm ?? defaults.bpm;
         fps.value = data.fps ?? defaults.fps;
