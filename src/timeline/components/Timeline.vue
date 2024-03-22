@@ -307,10 +307,14 @@ function onHeaderClick(ev: MouseEvent): void {
 function wheel(ev: WheelEvent) {
     ev.preventDefault();
     const amount = normalizeMouseWheel(ev);
-    const unit = pixelToUnit(ev.offsetX); // the unit which is currently hovered
+    const contentEl = el.value!.querySelector(".__content") as HTMLElement;
+    // get offset relative to the content element
+    const bb = contentEl.getBoundingClientRect();
+    const offsetX = ev.screenX - bb.left - timeline.headerWidth;
+    const unit = pixelToUnit(offsetX); // the unit which is currently hovered
     timeline.unitWidth *= 1 - amount / 1500;
     // scroll so that the unit stays at the same place visually
-    el.value!.scrollBy(unitToPixel(unit) - ev.offsetX, 0);
+    el.value!.scrollBy(unitToPixel(unit) - offsetX, 0);
 }
 
 function unitToPixel(unit: number): number {
