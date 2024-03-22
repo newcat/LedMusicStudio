@@ -13,6 +13,7 @@
         <div class="__content" :style="contentStyles">
             <position-marker></position-marker>
             <div class="__header-row" @click="onHeaderClick">
+                <div class="__spacer"></div>
                 <div class="__container">
                     <marker-label v-for="m in markers" :key="m.unit" :marker="m"></marker-label>
                 </div>
@@ -104,7 +105,7 @@ const markers = computed(() => {
         lastItemEnd.value + globalState.snapUnits
     );
 
-    for (let unit = 0; unit < maxUnit; unit += markerSpacing.value.space) {
+    for (let unit = markerSpacing.value.space; unit < maxUnit; unit += markerSpacing.value.space) {
         const x = unitToPixel(unit);
         const nthMarker = Math.floor(unit / markerSpacing.value.space);
         if (nthMarker % markerSpacing.value.majorMultiplier === 0) {
@@ -122,7 +123,7 @@ function unselectAllItems() {
     });
 }
 
-function updateLastNoteEnd() {
+function updateLastItemEnd() {
     const newLastItemEnd = timeline.items.reduce((p, i) => Math.max(p, i.end), 0);
     if (dragItem.value && newLastItemEnd < lastItemEnd.value) {
         // do nothing because shrinking the content while dragging results in strange behaviour
@@ -130,8 +131,8 @@ function updateLastNoteEnd() {
     }
     lastItemEnd.value = newLastItemEnd;
 }
-watch(dragItem, updateLastNoteEnd);
-watch(() => timeline.items.map((i) => i.end), updateLastNoteEnd);
+watch(dragItem, updateLastItemEnd);
+watch(() => timeline.items.map((i) => i.end), updateLastItemEnd);
 
 function mousedown(ev: MouseEvent) {
     const target = ev.target as HTMLElement | null;
@@ -295,9 +296,9 @@ function drop(track: Track, ev: DragEvent) {
 
 function onHeaderClick(ev: MouseEvent): void {
     let x = ev.offsetX;
-    if ((ev.target as HTMLElement).classList.contains("__header-row")) {
+    if ((ev.target as HTMLElement).classList.contains("__spacer")) {
         // clicked on the padding area on top of the track headers
-        x = 0;
+        x = el.value!.scrollLeft;
     }
 
     const tick = pixelToUnit(x);
