@@ -72,6 +72,6 @@ export class DmxFixture extends BaseFixture<number[], DmxFixtureConfiguration> {
     }
 
     public override resetValue(): void {
-        this.setValue(new Array(this.channelNames.length).fill(0));
+        this.setValue(new Array<number>(this.channelNames.length).fill(0));
     }
 }

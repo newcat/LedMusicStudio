@@ -44,6 +44,8 @@ jobs:
               run: yarn run build
               env:
                   BASE_URL: "/LedMusicStudio/"
+            - name: Lint
+              run: yarn run lint
             - name: Setup Pages
               uses: actions/configure-pages@v3
             - name: Upload artifact

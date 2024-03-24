@@ -22,8 +22,8 @@ export abstract class BaseFixture<V = unknown, C = unknown> {
     public readonly settingsComponent: Component | null = null;
 
     public readonly events = {
-        valueChanged: new BaklavaEvent<V, this>(this),
-        configChanged: new BaklavaEvent<C, this>(this),
+        valueChanged: new BaklavaEvent<void, undefined>(undefined),
+        configChanged: new BaklavaEvent<void, undefined>(undefined),
     };
 
     protected _value: V;
@@ -46,12 +46,12 @@ export abstract class BaseFixture<V = unknown, C = unknown> {
 
     public setValue(v: V) {
         this._value = v;
-        this.events.valueChanged.emit(v);
+        this.events.valueChanged.emit();
     }
 
     public setConfig(c: C) {
         this._config = c;
-        this.events.configChanged.emit(c);
+        this.events.configChanged.emit();
     }
 
     public save(): FixtureState<V, C> {

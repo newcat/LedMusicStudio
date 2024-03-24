@@ -48,7 +48,7 @@ export class WledController extends BaseController<WledControllerConfiguration, 
         this.sendConfiguration();
     }
 
-    public async send(): Promise<void> {
+    public send() {
         if (this.controlledFixtures.length === 0) {
             return;
         }

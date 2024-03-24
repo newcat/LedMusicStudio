@@ -43,10 +43,10 @@ export class AudioProcessor {
             () => this.gainNode.gain.setValueAtTime(this.state.volume, this.audioContext.currentTime),
             { immediate: true }
         );
-        this.state.events.positionSetByUser.subscribe(this, () => {
+        this.state.events.positionSetByUser.subscribe(this, async () => {
             if (this.state.isPlaying) {
                 this.pause(false);
-                this.play();
+                await this.play();
             }
         });
     }
@@ -61,7 +61,7 @@ export class AudioProcessor {
         this.startPosition = this.state.position;
 
         if (this.audioContext.state === "suspended" && this.audioContext.resume) {
-            this.audioContext.resume();
+            await this.audioContext.resume();
         }
     }
 
@@ -75,7 +75,7 @@ export class AudioProcessor {
         }
     }
 
-    public destroy() {
+    public async destroy() {
         if (!this.state.isPlaying) {
             this.pause();
         }
@@ -83,7 +83,7 @@ export class AudioProcessor {
         this.unwatch();
         this.gainNode.disconnect();
         this.analyserNode.disconnect();
-        this.audioContext.close();
+        await this.audioContext.close();
     }
 
     public updatePosition(): number {

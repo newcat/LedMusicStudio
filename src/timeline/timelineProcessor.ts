@@ -36,10 +36,10 @@ export class TimelineProcessor extends BaseTimelineProcessor {
 
     public onIsPlayingChanged() {
         if (this.globalState.isPlaying && !this.internalPlayState) {
-            this.audioProcessor?.play();
+            void this.audioProcessor.play();
             this.internalPlayState = true;
         } else if (!this.globalState.isPlaying && this.internalPlayState) {
-            this.audioProcessor?.pause();
+            this.audioProcessor.pause();
             this.internalPlayState = false;
         }
     }
@@ -54,15 +54,15 @@ export class TimelineProcessor extends BaseTimelineProcessor {
         if (this.timer) {
             clearInterval(this.timer);
         }
-        this.timer = setInterval(() => this.tick(), 1000 / this.globalState.fps);
+        this.timer = setInterval(() => void this.tick(), 1000 / this.globalState.fps);
     }
 
-    private tick() {
+    private async tick() {
         if (!this.globalState.isPlaying || !this.audioProcessor) {
             return;
         }
         this.globalState.position = this.audioProcessor.updatePosition();
-        this.process(this.globalState.position);
+        await this.process(this.globalState.position);
         this.events.tick.emit();
     }
 
@@ -75,10 +75,10 @@ export class TimelineProcessor extends BaseTimelineProcessor {
                     this.activate(item);
                 });
             }
-            this.audioProcessor!.registerBuffer(af.audioBuffer!, item.start);
+            this.audioProcessor.registerBuffer(af.audioBuffer!, item.start);
             item.events.moved.subscribe(this, () => {
-                this.audioProcessor!.unregisterBuffer(af.audioBuffer!);
-                this.audioProcessor!.registerBuffer(af.audioBuffer!, item.start);
+                this.audioProcessor.unregisterBuffer(af.audioBuffer!);
+                this.audioProcessor.registerBuffer(af.audioBuffer!, item.start);
             });
             item.events.beforeMoved.subscribe(this, (item, prevent) => {
                 // TODO: moving an audio item while playing causes continuos stuttering during playback for whatever reason.
@@ -95,7 +95,7 @@ export class TimelineProcessor extends BaseTimelineProcessor {
             const af = item.libraryItem as AudioLibraryItem;
             item.events.moved.unsubscribe(this);
             item.events.beforeMoved.unsubscribe(this);
-            this.audioProcessor!.unregisterBuffer(af.audioBuffer!);
+            this.audioProcessor.unregisterBuffer(af.audioBuffer!);
         }
     }
 }

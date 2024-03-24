@@ -55,7 +55,7 @@ const currentView = ref<"PROGRAMMING" | "STAGE" | "VISUALIZATION">("STAGE");
 (window as any).processor = processor;
 (window as any).stage = useStage();
 
-newProject();
+void newProject();
 
 async function newProject(): Promise<void> {
     await globalState.reset();

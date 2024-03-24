@@ -64,7 +64,7 @@ export const useLibrary = defineStore("library", () => {
             libItem = reactive(libItem);
             libItem.id = item.id;
             libItem.name = item.name;
-            libItem.load(item.state);
+            await libItem.load(item.state);
             items.value.push(libItem);
         }
 
@@ -80,9 +80,9 @@ export const useLibrary = defineStore("library", () => {
         events.itemAdded.emit(item);
     }
 
-    function duplicateItem(item: LibraryItem) {
+    async function duplicateItem(item: LibraryItem) {
         const duplicate = reactive(createItemByType(item.type)!);
-        duplicate.load(item.save());
+        await duplicate.load(item.save());
         duplicate.id = uuidv4();
         items.value.push(duplicate);
     }

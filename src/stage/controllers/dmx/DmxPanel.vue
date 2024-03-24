@@ -54,7 +54,7 @@ onMounted(() => {
 
 const throttledSend = useThrottleFn(
     () => {
-        props.controller.send();
+        void props.controller.send();
     },
     300,
     true
@@ -68,7 +68,7 @@ function setValue(index: number, value: number) {
     const clone = [...selectedFixture.value.value];
     clone[index] = value;
     selectedFixture.value.setValue(clone);
-    throttledSend();
+    void throttledSend();
 }
 </script>
 

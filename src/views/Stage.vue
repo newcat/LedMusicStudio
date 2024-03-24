@@ -54,7 +54,7 @@ async function importStage() {
         return;
     }
     await errorHandler("Failed to import stage", async () => {
-        stage.load(JSON.parse(result.dataAsString));
+        await stage.load(JSON.parse(result.dataAsString));
         toast.add({ severity: "success", summary: "Success", detail: "Stage successfully imported", life: 2000 });
     });
 }

@@ -16,7 +16,7 @@ export class RazerChromaController extends BaseController<Record<string, never>,
 
     public constructor() {
         super({});
-        this.api.initialize();
+        void this.api.initialize();
         this.name = "Razer Chroma Controller";
     }
 

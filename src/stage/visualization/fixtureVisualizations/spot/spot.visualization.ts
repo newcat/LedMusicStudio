@@ -21,12 +21,12 @@ export class SpotVisualization extends BaseVisualization<DmxFixture, SpotVisuali
             target: [0, 0, 0],
             colorChannels: [0, 0, 0],
         });
-        this.renderer.createFixtureRenderer(fixture.id, this.type, this.config);
+        void this.renderer.createFixtureRenderer(fixture.id, this.type, this.config);
     }
 
     public setConfig(c: SpotVisualizationConfig): void {
         super.setConfig(c);
-        this.renderer.onFixtureConfigUpdate(this.fixture.id, this.config);
+        void this.renderer.onFixtureConfigUpdate(this.fixture.id, this.config);
     }
 
     public async dispose() {

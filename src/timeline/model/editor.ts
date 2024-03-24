@@ -122,7 +122,7 @@ export const useTimeline = defineStore("timeline", () => {
 
     function getPositionRelativeToItem(item: LibraryItem): number {
         const unit = globalState.position;
-        const currentActiveItems = items.value.filter((i) => i.start <= unit && i.end >= unit) as Item[];
+        const currentActiveItems = items.value.filter((i) => i.start <= unit && i.end >= unit);
         const activeItemOfType = currentActiveItems.find((i) => i.libraryItem.id === item.id);
         return activeItemOfType ? unit - activeItemOfType.start : -1;
     }

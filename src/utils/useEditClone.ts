@@ -1,7 +1,7 @@
 import { Ref, nextTick, onMounted, ref, watch } from "vue";
 
 export function useEditClone<T>(original: Ref<T>) {
-    const clone = ref<T>(JSON.parse(JSON.stringify(original.value))) as Ref<T>;
+    const clone = ref<T>(JSON.parse(JSON.stringify(original.value)) as T) as Ref<T>;
     const dirty = ref(false);
 
     watch(
@@ -18,7 +18,7 @@ export function useEditClone<T>(original: Ref<T>) {
     }
 
     onMounted(async () => {
-        clone.value = JSON.parse(JSON.stringify(original.value));
+        clone.value = JSON.parse(JSON.stringify(original.value)) as T;
         await nextTick();
         dirty.value = false;
     });

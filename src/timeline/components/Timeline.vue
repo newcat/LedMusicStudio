@@ -272,6 +272,7 @@ function drop(track: Track, ev: DragEvent) {
         // check, whether the track is free
         let chosenTrack: Track | undefined;
         const trackItems = timeline.items.filter((i) => i.trackId === track.id);
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         if (!trackItems.some((i) => isOverlapping(i as Item, item!))) {
             chosenTrack = track;
         }
@@ -280,6 +281,7 @@ function drop(track: Track, ev: DragEvent) {
         if (!chosenTrack) {
             chosenTrack = timeline.tracks.find((t) => {
                 const trackItems = timeline.items.filter((i) => i.trackId === t.id);
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
                 return !trackItems.some((i) => isOverlapping(i as Item, item!));
             }) as Track;
         }

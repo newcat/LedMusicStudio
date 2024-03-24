@@ -58,7 +58,7 @@ const controllerId = computed<string>({
         return id;
     },
     set: (value) => {
-        errorHandler("Could not assign controller", () => {
+        void errorHandler("Could not assign controller", () => {
             const oldController = stage.controllers.get(controllerId.value);
             oldController?.removeFixture(props.fixture);
             const newController = stage.controllers.get(value);
@@ -82,7 +82,7 @@ const visualizationType = computed<VisualizationType | "NONE">({
         return stage.visualization.visualizations.get(props.fixture.id)?.type ?? "NONE";
     },
     set(newType) {
-        errorHandler("Could not update visualization", () => {
+        void errorHandler("Could not update visualization", () => {
             stage.visualization.setVisualization(props.fixture.id, newType === "NONE" ? null : newType);
         });
     },

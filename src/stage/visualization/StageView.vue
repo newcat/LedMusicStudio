@@ -19,9 +19,10 @@ const stage = useStage();
 
 const stageViewEl = ref<HTMLElement>();
 const canvas = ref<HTMLCanvasElement>();
-useResizeObserver(stageViewEl, useThrottleFn(onResize, 100, true));
+const throttledResize = useThrottleFn(() => void onResize(), 100, true);
+useResizeObserver(stageViewEl, () => void throttledResize());
 
-function initialize() {
+async function initialize() {
     if (!stageViewEl.value) {
         console.warn("stageViewEl is not set");
         return;
@@ -32,31 +33,31 @@ function initialize() {
     }
 
     const offscreenCanvas = canvas.value.transferControlToOffscreen();
-    stage.renderer.setCanvas(Comlink.transfer(offscreenCanvas, [offscreenCanvas]));
+    await stage.renderer.setCanvas(Comlink.transfer(offscreenCanvas, [offscreenCanvas]));
 }
 
-function onResize() {
+async function onResize() {
     if (!stageViewEl.value) {
         return;
     }
 
-    stage.renderer.setCanvasSize(stageViewEl.value.clientWidth, stageViewEl.value.clientHeight);
+    await stage.renderer.setCanvasSize(stageViewEl.value.clientWidth, stageViewEl.value.clientHeight);
 }
 
 watch(
     () => props.active,
-    (active) => {
-        stage.renderer.setActive(active);
+    async (active) => {
+        await stage.renderer.setActive(active);
     }
 );
 
-onMounted(() => {
-    initialize();
-    onResize();
+onMounted(async () => {
+    await initialize();
+    await onResize();
 });
 
-onBeforeUnmount(() => {
-    stage.renderer.setCanvas(null);
+onBeforeUnmount(async () => {
+    await stage.renderer.setCanvas(null);
 });
 </script>
 

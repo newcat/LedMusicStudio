@@ -57,7 +57,7 @@ export class DmxController extends BaseController<DmxControllerConfiguration, Dm
         this.sendConfiguration();
     }
 
-    public async send() {
+    public send() {
         if (this.controlledFixtures.length === 0) {
             return;
         }

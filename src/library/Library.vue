@@ -85,15 +85,15 @@ async function loadAudio() {
     library.addItem(item);
     const result = await item.chooseAudioFile();
     if (!result) {
-        library.removeItem(item);
+        await library.removeItem(item);
     }
 }
 
-function addItem(key: LibraryItemType) {
+async function addItem(key: LibraryItemType) {
     let item: new () => LibraryItem;
     switch (key) {
         case LibraryItemType.AUDIO:
-            loadAudio();
+            await loadAudio();
             return;
         case LibraryItemType.AUTOMATION:
             item = AutomationLibraryItem;

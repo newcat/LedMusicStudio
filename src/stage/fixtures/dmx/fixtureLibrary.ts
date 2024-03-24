@@ -43,6 +43,7 @@ export const useFixtureLibrary = defineStore("fixtureLibrary", () => {
     async function applyOflData(data: Blob) {
         try {
             updating.value = true;
+            // eslint-disable-next-line @typescript-eslint/unbound-method
             const { loadAsync } = await import("jszip");
 
             const zip = await loadAsync(data);

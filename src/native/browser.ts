@@ -40,7 +40,7 @@ export class BrowserNativeAdapter implements NativeAdapter {
         });
     }
 
-    public async chooseAndWriteFile(data: Uint8Array, options?: FileOptions): Promise<boolean> {
+    public chooseAndWriteFile(data: Uint8Array, options?: FileOptions): Promise<boolean> {
         const blob = new Blob([data], { type: "application/octet-stream" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -49,6 +49,6 @@ export class BrowserNativeAdapter implements NativeAdapter {
             a.download = `file.${options.accept[0].extensions[0]}`;
         }
         a.click();
-        return true;
+        return Promise.resolve(true);
     }
 }

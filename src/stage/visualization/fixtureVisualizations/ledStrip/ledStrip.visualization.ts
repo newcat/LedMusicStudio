@@ -21,12 +21,12 @@ export class LedStripVisualization extends BaseVisualization<LedStripFixture, Le
             start: [0, 0, 0],
             end: [0, 0, 0],
         });
-        this.renderer.createFixtureRenderer(fixture.id, this.type, this.getRendererConfig());
+        void this.renderer.createFixtureRenderer(fixture.id, this.type, this.getRendererConfig());
     }
 
     public setConfig(c: LedStripVisualizationConfig): void {
         super.setConfig(c);
-        this.renderer.onFixtureConfigUpdate(this.fixture.id, this.getRendererConfig());
+        void this.renderer.onFixtureConfigUpdate(this.fixture.id, this.getRendererConfig());
     }
 
     public async dispose() {

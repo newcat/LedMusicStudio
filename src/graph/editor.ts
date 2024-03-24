@@ -32,8 +32,8 @@ export class BaklavaEditor {
     private updateNodeInterfaceTypes() {
         // TODO: This needs to be done in all graphs
         this.editor.graph.nodes.forEach((n) => {
-            if ((n as any).updateNodeInterfaceTypes) {
-                (n as any).updateNodeInterfaceTypes(this);
+            if ("updateNodeInterfaceTypes" in n && typeof n.updateNodeInterfaceTypes === "function") {
+                n.updateNodeInterfaceTypes(this);
             }
         });
     }

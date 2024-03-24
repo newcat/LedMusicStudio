@@ -63,7 +63,7 @@ const selectedFixture = ref<Fixture | null>(null);
 
 onMounted(async () => {
     if (fixtureLibrary.fixtures.length === 0) {
-        updateFixtureLibrary();
+        await updateFixtureLibrary();
     }
 });
 

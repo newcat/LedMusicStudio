@@ -44,6 +44,7 @@ export default class ScriptNode extends Node<ScriptNodeInputs, Record<string, an
 
     public override calculate = (inputs: Record<string, any>) => {
         if (this.calcFunction === undefined || this.codeChangedSinceLastCalculate) {
+            // eslint-disable-next-line @typescript-eslint/no-implied-eval
             this.calcFunction = new Function(this.code);
             this.codeChangedSinceLastCalculate = false;
         }

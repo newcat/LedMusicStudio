@@ -53,7 +53,7 @@ export class ChromaApi {
         if (this.keepaliveTimer) {
             clearTimeout(this.keepaliveTimer);
         }
-        this.keepaliveTimer = setTimeout(() => this.sendHeartbeat(), 10000);
+        this.keepaliveTimer = setTimeout(() => void this.sendHeartbeat(), 10000);
     }
 
     private async sendHeartbeat() {
