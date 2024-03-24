@@ -29,8 +29,8 @@ export const SpectrumNode = defineNode({
     calculate(inputs, context: LmsCalculationContext) {
         const { frequencyData, sampleRate } = context.globalValues;
         const fftSize = frequencyData.length;
-        const minIndex = clamp(getBinIndexByFrequency(inputs.minFreq, sampleRate, fftSize), 1, frequencyData.length - 1);
-        const maxIndex = clamp(getBinIndexByFrequency(inputs.maxFreq, sampleRate, fftSize), 1, frequencyData.length - 1);
+        const minIndex = clamp(getBinIndexByFrequency(inputs.minFreq, sampleRate, fftSize), 1, fftSize - 1);
+        const maxIndex = clamp(getBinIndexByFrequency(inputs.maxFreq, sampleRate, fftSize), 1, fftSize - 1);
 
         const maxDb = clamp(inputs.maxDb, -200, 0);
         const minDb = clamp(inputs.minDb, -200, maxDb);

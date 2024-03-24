@@ -21,6 +21,7 @@ export class BaseTimelineProcessor {
     protected readonly globalState = useGlobalState();
     protected readonly stage = useStage();
     private readonly fft = new FFT(FFT_SIZE);
+    private readonly fftWindow = this.getFftWindow();
 
     private activeItems: Item[] = [];
 
@@ -98,15 +99,26 @@ export class BaseTimelineProcessor {
         }
 
         const offsetInSeconds = unitToSeconds(currentUnit - startUnit, this.globalState.bpm);
-        const offsetInSamples = offsetInSeconds * audioItem.audioBuffer.sampleRate;
+        const offsetInSamples = Math.floor(offsetInSeconds * audioItem.audioBuffer.sampleRate);
         const data = audioItem.audioBuffer.getChannelData(0);
-        const window = data.slice(offsetInSamples, offsetInSamples + FFT_SIZE);
+        const samples = data.slice(offsetInSamples, Math.min(offsetInSamples + FFT_SIZE, data.length));
+        const windowedSamples = new Float32Array(FFT_SIZE);
+        for (let i = 0; i < FFT_SIZE; i++) {
+            windowedSamples[i] = samples[i] * this.fftWindow[i];
+        }
+
         const fftOutput = this.fft.createComplexArray();
-        this.fft.realTransform(fftOutput, window);
+        this.fft.realTransform(fftOutput, windowedSamples);
+        const frequencyData = new Float32Array(fftOutput.length / 2);
+        for (let i = 0; i < fftOutput.length; i += 2) {
+            const real = fftOutput[i];
+            const imag = fftOutput[i + 1];
+            frequencyData[i / 2] = 20 * Math.log10(Math.sqrt(real * real + imag * imag) / FFT_SIZE);
+        }
 
         return {
-            timeDomainData: window,
-            frequencyData: new Float32Array(fftOutput),
+            timeDomainData: samples,
+            frequencyData,
         };
     }
 
@@ -149,5 +161,13 @@ export class BaseTimelineProcessor {
                 }
             }
         }
+    }
+
+    private getFftWindow(): Float32Array {
+        const window = new Float32Array(FFT_SIZE);
+        for (let i = 0; i < FFT_SIZE; i++) {
+            window[i] = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (FFT_SIZE - 1)));
+        }
+        return window;
     }
 }
