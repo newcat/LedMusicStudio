@@ -1,10 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Ref, markRaw, ref } from "vue";
+import { Ref, ref } from "vue";
 import { defineStore } from "pinia";
-import * as Comlink from "comlink";
 
 import { BaseFixture, FixtureState } from "./fixtures";
 import { BaseController, ControllerState } from "./controllers";
@@ -12,9 +7,7 @@ import { StageVisualization, StageVisualizationState } from "./visualization/sta
 import { createFixture } from "./fixtures/factory";
 import { createController } from "./controllers/factory";
 import { ExtendedMap } from "./extendedMap";
-
-import VisualizationWorker from "./visualization/visualization.worker?worker";
-import { RemoteStageRenderer } from "./visualization/stageRenderer";
+import { createVisualizationWorkerInstance } from "./visualizationWorkerInstance";
 
 export interface StageState {
     fixtures: FixtureState[];
@@ -22,28 +15,10 @@ export interface StageState {
     visualization: StageVisualizationState;
 }
 
-const outsideRenderer = Comlink.wrap<RemoteStageRenderer>(new VisualizationWorker());
-const rendererProxy = new Proxy<typeof outsideRenderer>({} as any, {
-    get(target: any, prop) {
-        if (typeof prop === "string" && prop.startsWith("__v_")) {
-            return target[prop];
-        }
-        return (outsideRenderer as any)[prop];
-    },
-    set(target: any, prop, value) {
-        if (typeof prop === "string" && prop.startsWith("__v_")) {
-            target[prop] = value;
-            return true;
-        }
-        (outsideRenderer as any)[prop] = value;
-        return true;
-    },
-});
-
 export const useStage = defineStore("stage", () => {
     const fixtures = ref<ExtendedMap<string, BaseFixture>>(new ExtendedMap()) as Ref<ExtendedMap<string, BaseFixture>>;
     const controllers = ref<ExtendedMap<string, BaseController>>(new ExtendedMap()) as Ref<ExtendedMap<string, BaseController>>;
-    const renderer = markRaw(rendererProxy) as RemoteStageRenderer;
+    const renderer = createVisualizationWorkerInstance();
     const visualization = ref(new StageVisualization(fixtures.value));
 
     function afterFrame() {
@@ -60,7 +35,7 @@ export const useStage = defineStore("stage", () => {
         };
     }
 
-    function load(state: StageState) {
+    async function load(state: StageState) {
         for (const fixtureState of state.fixtures) {
             const fixture = createFixture(fixtureState.type);
             fixture.load(fixtureState);
@@ -73,7 +48,7 @@ export const useStage = defineStore("stage", () => {
             controllers.value.set(controller.id, controller);
         }
 
-        visualization.value.load(state.visualization);
+        await visualization.value.load(state.visualization);
     }
 
     function reset() {

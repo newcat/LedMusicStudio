@@ -1,5 +1,6 @@
 import { Component } from "vue";
 import { v4 as uuidv4 } from "uuid";
+import { BaklavaEvent } from "@baklavajs/events";
 
 export enum FixtureType {
     LED_STRIP = "LED Strip",
@@ -19,6 +20,11 @@ export abstract class BaseFixture<V = unknown, C = unknown> {
     public abstract readonly type: FixtureType;
     public name: string = "Fixture";
     public readonly settingsComponent: Component | null = null;
+
+    public readonly events = {
+        valueChanged: new BaklavaEvent<V, this>(this),
+        configChanged: new BaklavaEvent<C, this>(this),
+    };
 
     protected _value: V;
     protected _config: C;
@@ -40,10 +46,12 @@ export abstract class BaseFixture<V = unknown, C = unknown> {
 
     public setValue(v: V) {
         this._value = v;
+        this.events.valueChanged.emit(v);
     }
 
     public setConfig(c: C) {
         this._config = c;
+        this.events.configChanged.emit(c);
     }
 
     public save(): FixtureState<V, C> {

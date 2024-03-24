@@ -4,6 +4,7 @@ import { BaseFixture } from "../fixtures";
 import { useStage } from "../stage";
 import { BaseVisualization, VisualizationState, VisualizationType } from "./fixtureVisualizations/base.visualization";
 import { createFixtureVisualization } from "./fixtureVisualizations/factory";
+import { ExtendedMap } from "../extendedMap";
 
 export interface StageVisualizationState {
     baseScene: unknown;
@@ -12,7 +13,7 @@ export interface StageVisualizationState {
 
 export class StageVisualization {
     private baseScene: unknown = null;
-    private _visualizations: Map<string, BaseVisualization> = new Map();
+    private _visualizations: ExtendedMap<string, BaseVisualization> = new ExtendedMap();
 
     public get isSceneLoaded() {
         return this.baseScene !== null;
@@ -68,10 +69,19 @@ export class StageVisualization {
     }
 
     public reset() {
-        for (const visualization of this.visualizations.values()) {
-            visualization.dispose();
-        }
         this._visualizations.clear();
+    }
+
+    public pause() {
+        for (const visualization of this.visualizations.values()) {
+            visualization.pause();
+        }
+    }
+
+    public resume() {
+        for (const visualization of this.visualizations.values()) {
+            visualization.resume();
+        }
     }
 
     private updateFixtures() {
@@ -88,7 +98,6 @@ export class StageVisualization {
     private removeVisualization(fixtureId: string) {
         const visualization = this.visualizations.get(fixtureId);
         if (visualization) {
-            visualization.dispose();
             this._visualizations.delete(fixtureId);
         }
     }

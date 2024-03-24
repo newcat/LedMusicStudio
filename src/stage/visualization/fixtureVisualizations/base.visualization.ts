@@ -1,4 +1,4 @@
-import { Component, watch } from "vue";
+import { Component } from "vue";
 
 import type { RemoteStageRenderer } from "../stageRenderer";
 import { BaseFixture, FixtureType } from "@/stage/fixtures";
@@ -21,29 +21,33 @@ export abstract class BaseVisualization<F extends BaseFixture = BaseFixture, C =
     protected _config: C;
     protected readonly renderer: RemoteStageRenderer = useStage().renderer;
 
+    private _paused = false;
+
     public get config(): C {
         return this._config;
     }
 
+    protected get paused() {
+        return this._paused;
+    }
+
     public constructor(public readonly fixture: F, initialConfig: C) {
         this._config = initialConfig;
-
-        watch(
-            () => fixture.config,
-            () => this.onFixtureConfigUpdate(),
-            { deep: true }
-        );
-        watch(
-            () => fixture.value,
-            () => this.onFixtureValueUpdate(),
-            { deep: true }
-        );
+        fixture.events.configChanged.subscribe(this, () => this.onFixtureConfigUpdate());
+        fixture.events.valueChanged.subscribe(this, () => {
+            if (!this._paused) {
+                this.onFixtureValueUpdate();
+            }
+        });
     }
 
     protected abstract onFixtureConfigUpdate(): void;
     protected abstract onFixtureValueUpdate(): void;
 
-    public dispose() {}
+    public dispose() {
+        this.fixture.events.configChanged.unsubscribe(this);
+        this.fixture.events.valueChanged.unsubscribe(this);
+    }
 
     public setConfig(c: C) {
         this._config = c;
@@ -58,5 +62,13 @@ export abstract class BaseVisualization<F extends BaseFixture = BaseFixture, C =
 
     public load(state: VisualizationState<C>) {
         this.setConfig(state.config);
+    }
+
+    public pause() {
+        this._paused = true;
+    }
+
+    public resume() {
+        this._paused = false;
     }
 }

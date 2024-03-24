@@ -21,7 +21,7 @@ import Tooltip from "primevue/tooltip";
 
 async function main() {
     await initializeNativeAdapter();
-    wasmInterop.init();
+    await wasmInterop.init();
 
     const pinia = createPinia();
 
@@ -35,4 +35,4 @@ async function main() {
     createApp(App).use(PrimeVue).use(ToastService).directive("tooltip", Tooltip).use(pinia).use(router).mount("#app");
 }
 
-main();
+void main();
