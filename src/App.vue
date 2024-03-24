@@ -8,6 +8,7 @@
                 @save="save"
                 @saveAs="saveAs"
                 @showSettings="showSettings = true"
+                @render="renderDialog?.startRender()"
             />
             <div class="content">
                 <Programming v-show="currentView === 'PROGRAMMING'" />
@@ -17,6 +18,7 @@
         </div>
         <Settings v-model="showSettings" />
         <LoadingDialog v-model="showLoadingDialog" />
+        <RenderDialog ref="renderDialog" />
         <Toast />
     </main>
 </template>
@@ -29,6 +31,7 @@ import { useToast } from "primevue/usetoast";
 import Settings from "@/components/Settings.vue";
 import Toolbar from "@/components/MainToolbar.vue";
 import LoadingDialog from "@/components/LoadingDialog.vue";
+import RenderDialog from "@/components/RenderDialog.vue";
 import { Programming, Stage, Visualization } from "@/views";
 
 import { useGlobalState } from "@/globalState";
@@ -44,6 +47,7 @@ const nativeAdapter = getNativeAdapter();
 
 const showSettings = ref(false);
 const showLoadingDialog = ref(false);
+const renderDialog = ref<InstanceType<typeof RenderDialog> | null>(null);
 const processor = ref(new TimelineProcessor());
 const currentView = ref<"PROGRAMMING" | "STAGE" | "VISUALIZATION">("STAGE");
 

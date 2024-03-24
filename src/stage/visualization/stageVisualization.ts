@@ -6,12 +6,12 @@ import { BaseVisualization, VisualizationState, VisualizationType } from "./fixt
 import { createFixtureVisualization } from "./fixtureVisualizations/factory";
 
 export interface StageVisualizationState {
-    baseScene: any | null;
+    baseScene: unknown;
     visualizationStates: Record<string, VisualizationState>;
 }
 
 export class StageVisualization {
-    private baseScene: any | null = null;
+    private baseScene: unknown = null;
     private _visualizations: Map<string, BaseVisualization> = new Map();
 
     public get isSceneLoaded() {
@@ -23,7 +23,10 @@ export class StageVisualization {
     }
 
     public constructor(private readonly fixtures: Map<string, BaseFixture>) {
-        watch(fixtures, () => this.updateFixtures(), { deep: true });
+        watch(
+            () => fixtures.values(),
+            () => this.updateFixtures()
+        );
     }
 
     public setVisualization(fixtureId: string, visualizationType: VisualizationType | null, state?: VisualizationState) {
@@ -55,9 +58,9 @@ export class StageVisualization {
         };
     }
 
-    public load(state: StageVisualizationState) {
+    public async load(state: StageVisualizationState) {
         if (state.baseScene) {
-            this.loadScene(state.baseScene);
+            await this.loadScene(state.baseScene);
         }
         for (const [fixtureId, visualizationState] of Object.entries(state.visualizationStates)) {
             this.setVisualization(fixtureId, visualizationState.type, visualizationState);

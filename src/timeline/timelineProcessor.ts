@@ -1,47 +1,31 @@
 import type { Item } from "@/timeline";
 
 import { watchEffect } from "vue";
-import { CalculationResult, applyResult } from "baklavajs";
 import { BaklavaEvent } from "@baklavajs/events";
 
 import { AudioLibraryItem, AudioProcessor, Metronome } from "@/audio";
-import { GraphLibraryItem } from "@/graph";
-import { AutomationLibraryItem } from "@/automation";
-import { LibraryItemType, useLibrary } from "@/library";
-import { INote, PatternLibraryItem } from "@/pattern";
-import { ICalculationData } from "@/graph";
-import { useGlobalState } from "@/globalState";
-import { useStage } from "@/stage/stage";
-import { BaseFixture } from "@/stage";
+import { LibraryItemType } from "@/library";
+import { BaseTimelineProcessor } from "./baseTimelineProcessor";
 
-export class TimelineProcessor {
-    public trackValues = new Map<string, number | INote[]>(); // maps trackId -> value
-
+export class TimelineProcessor extends BaseTimelineProcessor {
     public events = {
         tick: new BaklavaEvent<void, this>(this),
         globalPreviewUpdated: new BaklavaEvent<void, this>(this),
     };
 
-    private readonly globalState = useGlobalState();
-    private readonly library = useLibrary();
-    private readonly stage = useStage();
-
     private timer?: ReturnType<typeof setInterval>;
     private observers: Array<() => void> = [];
 
-    private activeItems: Item[] = [];
-    private audioProcessor?: AudioProcessor;
-    private metronome?: Metronome;
+    private audioProcessor: AudioProcessor;
+    private metronome: Metronome;
 
     // this is needed because onIsPlayingChanged is sometimes called multiple times
     // which would lead to stuttery playback otherwise due to many subsequent play() calls
     private internalPlayState = false;
 
     public constructor() {
+        super();
         (window as any).processor = this; // for debugging purposes; can now be accessed in dev tools console
-        if (this.audioProcessor) {
-            this.audioProcessor.destroy();
-        }
         this.observers.forEach((stopWatching) => stopWatching());
         this.observers = [];
         this.observers.push(watchEffect(() => this.setTimer()));
@@ -60,6 +44,12 @@ export class TimelineProcessor {
         }
     }
 
+    public override async process(unit: number): Promise<void> {
+        await super.process(unit);
+        this.stage.afterFrame();
+        this.metronome.tick(unit);
+    }
+
     private setTimer() {
         if (this.timer) {
             clearInterval(this.timer);
@@ -76,56 +66,7 @@ export class TimelineProcessor {
         this.events.tick.emit();
     }
 
-    public async process(unit: number) {
-        const currentActiveItems = this.globalState.timeline.items.filter((i) => i.start <= unit && i.end >= unit) as Item[];
-
-        const newActiveItems = currentActiveItems.filter((i) => !this.activeItems.includes(i));
-        newActiveItems.forEach((i) => this.activate(i));
-
-        const newInactiveItems = this.activeItems.filter((i) => !currentActiveItems.includes(i));
-        newInactiveItems.forEach((i) => this.deactivate(i));
-
-        this.activeItems = currentActiveItems;
-
-        currentActiveItems.filter((i) => this.isType(i, LibraryItemType.AUTOMATION)).forEach((i) => this.processAutomation(unit, i));
-        currentActiveItems.filter((i) => this.isType(i, LibraryItemType.PATTERN)).forEach((i) => this.processPattern(unit, i));
-
-        const audioData = this.audioProcessor!.getAudioData();
-
-        const uncontrolledFixtures = new Set(this.stage.fixtures.values()) as Set<BaseFixture>;
-        const calculationData: Omit<ICalculationData, "relativeTrackItemProgress"> = {
-            resolution: this.globalState.resolution,
-            fps: this.globalState.fps,
-            position: unit,
-            sampleRate: audioData.sampleRate,
-            timeDomainData: audioData.timeDomainData,
-            frequencyData: audioData.frequencyData,
-            trackValues: this.trackValues,
-        };
-        const graphs = currentActiveItems.filter((i) => this.isType(i, LibraryItemType.GRAPH));
-        for (const g of graphs) {
-            try {
-                const relativeTrackItemProgress = (unit - g.start) / (g.end - g.start);
-                const results = await this.processGraph(g, unit, { ...calculationData, relativeTrackItemProgress });
-                if (g.libraryItem.error) {
-                    g.libraryItem.error = "";
-                }
-                this.applyGraphResults(results, uncontrolledFixtures);
-            } catch (err) {
-                console.error(err);
-                g.libraryItem.error = String(err);
-            }
-        }
-
-        for (const fixture of uncontrolledFixtures) {
-            fixture.resetValue();
-        }
-
-        this.stage.afterFrame();
-        this.metronome?.tick(unit);
-    }
-
-    private activate(item: Item) {
+    protected override activate(item: Item) {
         if (item.libraryItem.type === LibraryItemType.AUDIO) {
             const af = item.libraryItem as AudioLibraryItem;
             if (af.loading) {
@@ -149,52 +90,12 @@ export class TimelineProcessor {
         }
     }
 
-    private deactivate(item: Item) {
+    protected override deactivate(item: Item) {
         if (item.libraryItem.type === LibraryItemType.AUDIO) {
             const af = item.libraryItem as AudioLibraryItem;
             item.events.moved.unsubscribe(this);
             item.events.beforeMoved.unsubscribe(this);
             this.audioProcessor!.unregisterBuffer(af.audioBuffer!);
-        } else if (item.libraryItem.type === LibraryItemType.PATTERN) {
-            this.trackValues.set(item.trackId, []);
-        }
-    }
-
-    private isType(item: Item, type: LibraryItemType): boolean {
-        return item.libraryItem.type === type;
-    }
-
-    private async processGraph(item: Item, unit: number, calculationData: ICalculationData): Promise<CalculationResult> {
-        const graph = item.libraryItem as GraphLibraryItem;
-        graph.keyframeManager.applyKeyframes(unit - item.start);
-        const results = (await graph.editor.enginePlugin.runOnce(calculationData))!;
-        applyResult(results, graph.editor.editor);
-        return results;
-    }
-
-    private processAutomation(unit: number, item: Item): void {
-        const ac = item.libraryItem as AutomationLibraryItem;
-        const value = ac.getValueAt(unit - item.start);
-        this.trackValues.set(item.trackId, value);
-    }
-
-    private processPattern(unit: number, item: Item): void {
-        const np = item.libraryItem as PatternLibraryItem;
-        const notes = np.getNotesAt(unit - item.start);
-        this.trackValues.set(item.trackId, notes);
-    }
-
-    private applyGraphResults(results: CalculationResult, uncontrolledFixtures: Set<BaseFixture>): void {
-        for (const nodeResults of results.values()) {
-            if (nodeResults.has("_calculationResults")) {
-                this.applyGraphResults(nodeResults.get("_calculationResults") as CalculationResult, uncontrolledFixtures);
-            } else if (nodeResults.has("fixtureId")) {
-                const fixture = this.stage.fixtures.get(nodeResults.get("fixtureId"));
-                if (fixture) {
-                    uncontrolledFixtures.delete(fixture as BaseFixture);
-                    fixture.setValue(nodeResults.get("data"));
-                }
-            }
         }
     }
 }

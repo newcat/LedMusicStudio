@@ -19,7 +19,7 @@ export interface AudioLibraryItemState {
 }
 
 export class AudioLibraryItem extends LibraryItem<AudioLibraryItemState> {
-    public static sampleRate = 192000;
+    public static sampleRate = 48000;
 
     public type = LibraryItemType.AUDIO;
     public name = "";

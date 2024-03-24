@@ -25,7 +25,7 @@ import { useGlobalState } from "@/globalState";
 import { getNativeAdapter } from "@/native";
 
 const currentView = defineModel<"PROGRAMMING" | "STAGE" | "VISUALIZATION">("view", { required: true });
-const emit = defineEmits(["newProject", "load", "save", "saveAs", "showSettings"]);
+const emit = defineEmits(["newProject", "load", "save", "saveAs", "showSettings", "render"]);
 
 const globalState = useGlobalState();
 const bridge = useBridge();
@@ -79,6 +79,10 @@ const menuItems = computed<MenubarProps["model"]>(() => [
     {
         label: "Edit",
         items: [{ label: "Settings", command: () => emit("showSettings") }],
+    },
+    {
+        label: "Project",
+        items: [{ label: "Render", command: () => emit("render") }],
     },
     {
         label: "Stage",

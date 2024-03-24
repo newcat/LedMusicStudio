@@ -3,6 +3,7 @@ export * from "./libraryItemTypeGuards";
 export * from "./normalizeMouseWheel";
 export * from "./scaleColorArray";
 export * from "./snap";
+export * from "./unitConversion";
 export * from "./useEditClone";
 export * from "./useErrorHandler";
 export * from "./withTimeout";

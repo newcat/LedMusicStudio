@@ -3,7 +3,7 @@ module.exports = {
         browser: true,
         es2021: true,
     },
-    extends: ["eslint:recommended", "plugin:@typescript-eslint/recommended", "plugin:vue/vue3-essential"],
+    extends: ["eslint:recommended", "plugin:@typescript-eslint/recommended-type-checked", "plugin:vue/vue3-essential"],
     overrides: [
         {
             env: {
@@ -19,6 +19,8 @@ module.exports = {
         ecmaVersion: "latest",
         parser: "@typescript-eslint/parser",
         sourceType: "module",
+        project: "tsconfig.json",
+        extraFileExtensions: [".vue"],
     },
     plugins: ["@typescript-eslint", "vue"],
     rules: {

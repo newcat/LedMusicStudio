@@ -1,5 +1,6 @@
-import { useGlobalState } from "@/globalState";
 import { watch } from "vue";
+import { useGlobalState } from "@/globalState";
+import { secondsToUnits, unitToSeconds } from "@/utils";
 
 // inspired by: https://github.com/katspaugh/wavesurfer.js/blob/master/src/webaudio.js
 
@@ -89,7 +90,7 @@ export class AudioProcessor {
         if (!this.state.isPlaying) {
             return -1;
         }
-        return this.startPosition + this.secondsToUnits(this.audioContext.currentTime - this.startTime);
+        return this.startPosition + secondsToUnits(this.audioContext.currentTime - this.startTime, this.state.bpm);
     }
 
     public getAudioData(): IAudioData {
@@ -103,14 +104,6 @@ export class AudioProcessor {
             timeDomainData,
             frequencyData,
         };
-    }
-
-    public unitToSeconds(units: number) {
-        return (units / 24) * (60 / this.state.bpm);
-    }
-
-    public secondsToUnits(seconds: number) {
-        return Math.floor((seconds / 60) * this.state.bpm * 24);
     }
 
     public registerBuffer(buffer: AudioBuffer, startUnit: number) {
@@ -143,7 +136,7 @@ export class AudioProcessor {
         const source = this.audioContext.createBufferSource();
         source.buffer = buffer;
         source.connect(this.analyserNode);
-        const offset = this.unitToSeconds(this.state.position - startUnit);
+        const offset = unitToSeconds(this.state.position - startUnit, this.state.bpm);
         if (offset < 0) {
             console.warn("Source offset < 0");
         }

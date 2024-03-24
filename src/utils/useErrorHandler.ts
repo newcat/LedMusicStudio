@@ -1,6 +1,7 @@
+import { ToastMessageOptions } from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 
-export function useErrorHandler() {
+export function useErrorHandler(severity: ToastMessageOptions["severity"] = "warn") {
     const toast = useToast();
 
     async function errorHandler<T>(summary: string, fn: () => T | Promise<T>) {
@@ -9,7 +10,7 @@ export function useErrorHandler() {
         } catch (err) {
             console.error(err);
             toast.add({
-                severity: "warn",
+                severity,
                 closable: true,
                 summary: summary,
                 detail: err instanceof Error ? err.message : String(err),
