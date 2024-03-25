@@ -1,4 +1,5 @@
 {
     "editor.tabSize": 4,
-    "rust-analyzer.linkedProjects": ["lms_bridge\\Cargo.toml"]
+    "rust-analyzer.linkedProjects": ["lms_bridge\\Cargo.toml"],
+    "typescript.tsdk": "node_modules\\typescript\\lib"
 }
