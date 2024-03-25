@@ -42,6 +42,11 @@ export class AutomationLibraryItem extends LibraryItem<AutomationLibraryItemStat
         this.events.pointsUpdated.emit();
     }
 
+    public removePoint(id: string) {
+        this.points = this.points.filter((p) => p.id !== id);
+        this.events.pointsUpdated.emit();
+    }
+
     public sortPoints() {
         this.points.sort((a, b) => a.unit - b.unit);
     }

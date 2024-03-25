@@ -68,7 +68,7 @@
             <!-- points ----->
             <circle
                 v-for="p in points"
-                @mousedown="mousedown(p.id)"
+                @mousedown="mousedown($event, p.id)"
                 :key="p.id + '-point'"
                 :class="{ '--dragged': draggedPoint === p }"
                 :cx="getXCoordinate(p.unit)"
@@ -195,7 +195,11 @@ function getValue(yCoordinate: number) {
     return clamp((-yCoordinate + padding.value) / (height.value - 2 * padding.value) + 1, 0, 1);
 }
 
-function mousedown(id: string) {
+function mousedown(ev: MouseEvent, id: string) {
+    if (ev.button === 2) {
+        props.automationClip.removePoint(id);
+        return;
+    }
     draggedPoint.value = points.value.find((p) => p.id === id) ?? null;
 }
 
