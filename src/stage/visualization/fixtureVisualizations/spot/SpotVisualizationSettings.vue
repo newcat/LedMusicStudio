@@ -31,6 +31,9 @@
         <LabelledFormField label="DMX Channel Blue">
             <DmxChannelSelector v-model="config.colorChannels[2]" :fixture="props.visualization.fixture" />
         </LabelledFormField>
+        <LabelledFormField label="DMX Channel White">
+            <DmxChannelSelector v-model="config.colorChannels[3]" :fixture="props.visualization.fixture" />
+        </LabelledFormField>
     </div>
     <div>
         <Button outlined label="Apply" :disabled="!dirty" @click="save" />

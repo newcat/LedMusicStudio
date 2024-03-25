@@ -19,7 +19,7 @@ export class SpotVisualization extends BaseVisualization<DmxFixture, SpotVisuali
         super(fixture, {
             position: [0, 0, 0],
             target: [0, 0, 0],
-            colorChannels: [0, 0, 0],
+            colorChannels: [-1, -1, -1, -1],
         });
         void this.renderer.createFixtureRenderer(fixture.id, this.type, this.config);
     }

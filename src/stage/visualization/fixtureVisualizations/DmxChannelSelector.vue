@@ -15,7 +15,7 @@ const props = defineProps<{
 }>();
 
 const options = computed(() => {
-    const options: { label: string; value: number }[] = [];
+    const options: { label: string; value: number }[] = [{ label: "None", value: -1 }];
     for (let i = 0; i < props.fixture.channelNames.length; i++) {
         options.push({
             label: props.fixture.channelNames[i],
