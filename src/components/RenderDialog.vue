@@ -1,6 +1,7 @@
 <template>
     <Dialog :visible="showDialog" :style="{ width: '50vw' }" header="Rendering" modal>
-        <ProgressBar class="render-bar" :value="progress" />
+        <p>{{ step }}</p>
+        <ProgressBar class="render-bar" :mode="progress < 0 ? 'indeterminate' : 'determinate'" :value="progress" />
 
         <template #footer>
             <Button @click="cancel">Cancel</Button>
@@ -10,88 +11,59 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { pack } from "msgpackr";
-import { gzipSync } from "fflate";
 
 import Dialog from "primevue/dialog";
 import ProgressBar from "primevue/progressbar";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
 
-import { BaseTimelineProcessor } from "@/timeline";
-import { useGlobalState } from "@/globalState";
-import { TICKS_PER_BEAT } from "@/constants";
 import { useStage } from "@/stage";
-import { unitToSeconds } from "@/utils";
 import { getNativeAdapter } from "@/native";
+import { Renderer } from "@/renderer";
 
-const globalState = useGlobalState();
 const toast = useToast();
 const stage = useStage();
 const nativeAdapter = getNativeAdapter();
 
 const showDialog = ref(false);
-const cancelRequest = ref(false);
+const step = ref("");
 const progress = ref(0);
 
-interface RenderResult {
-    timestamps: number[];
-    fixtureValues: Record<string, unknown[]>;
-}
+let renderer: Renderer | null = null;
 
 async function startRender() {
-    showDialog.value = true;
-    const maxUnit = globalState.timeline.items.reduce((max, item) => Math.max(max, item.end), 0);
-    const processor = new BaseTimelineProcessor();
+    const token = Symbol();
     progress.value = 0;
-    let nextFrameTime = 0;
-    const result: RenderResult = { timestamps: [], fixtureValues: {} };
-
+    showDialog.value = true;
     stage.visualization.pause();
 
-    for (let unit = 0; unit <= maxUnit; unit++) {
-        if (cancelRequest.value) {
-            break;
-        }
-        try {
-            await processor.process(unit);
-        } catch (err) {
-            console.error(err);
-            toast.add({ severity: "error", summary: "Rendering Error", detail: err instanceof Error ? err.message : String(err) });
-            cancelRequest.value = true;
-            break;
-        }
+    renderer = new Renderer();
+    renderer.events.stepChanged.subscribe(token, (value) => {
+        step.value = value;
+    });
+    renderer.events.progress.subscribe(token, (value) => {
+        progress.value = value;
+    });
 
-        const secondsPerFrame = 1 / globalState.fps;
-        const nextTimestamp = unitToSeconds(unit + 1, globalState.bpm);
-        if (nextTimestamp > nextFrameTime) {
-            result.timestamps.push(nextFrameTime);
-            nextFrameTime += secondsPerFrame;
-            for (const [fixtureId, fixture] of stage.fixtures.entries()) {
-                if (!result.fixtureValues[fixtureId]) {
-                    result.fixtureValues[fixtureId] = [];
-                }
-                result.fixtureValues[fixtureId].push(fixture.value);
-            }
-        }
-
-        progress.value = Math.floor((unit / maxUnit) * 100);
-        if (unit % TICKS_PER_BEAT === 0) {
-            await new Promise((res) => setTimeout(res, 0));
-        }
+    let result: Uint8Array | null = null;
+    try {
+        result = await renderer.startRender();
+    } catch (err) {
+        console.error(err);
+        toast.add({ severity: "error", summary: "Rendering Error", detail: err instanceof Error ? err.message : String(err) });
     }
 
-    progress.value = 100;
+    showDialog.value = false;
     stage.visualization.resume();
+    renderer.events.stepChanged.unsubscribe(token);
+    renderer.events.progress.unsubscribe(token);
+    renderer = null;
 
-    if (cancelRequest.value) {
-        cancelRequest.value = false;
-        showDialog.value = false;
+    if (result === null) {
         return;
     }
 
-    const data = gzipSync(pack(result));
-    await nativeAdapter.chooseAndWriteFile(data, {
+    await nativeAdapter.chooseAndWriteFile(result, {
         suggestedName: "render.lmr",
         accept: [
             {
@@ -100,11 +72,10 @@ async function startRender() {
             },
         ],
     });
-    showDialog.value = false;
 }
 
 function cancel() {
-    cancelRequest.value = true;
+    renderer?.cancelRender();
 }
 
 defineExpose({ startRender });

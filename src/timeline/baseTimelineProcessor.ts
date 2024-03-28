@@ -39,40 +39,43 @@ export class BaseTimelineProcessor {
         /** maps trackId -> value */
         const trackValues = this.getTrackValues(currentActiveItems, unit);
 
-        let timeDomainData = new Float32Array(FFT_SIZE);
-        let frequencyData = new Float32Array(FFT_SIZE);
-        // TODO: handle multiple audio items?
-        const audioItem = currentActiveItems.find((i) => this.isType(i, LibraryItemType.AUDIO));
-        if (audioItem) {
-            const audioData = this.getAudioData(audioItem.libraryItem as AudioLibraryItem, audioItem.start, unit);
-            if (audioData) {
-                timeDomainData = audioData.timeDomainData;
-                frequencyData = audioData.frequencyData;
-            }
-        }
-
         const uncontrolledFixtures = new Set(this.stage.fixtures.values()) as Set<BaseFixture>;
-        const calculationData: Omit<ICalculationData, "relativeTrackItemProgress"> = {
-            resolution: this.globalState.resolution,
-            fps: this.globalState.fps,
-            position: unit,
-            sampleRate: AudioLibraryItem.sampleRate,
-            timeDomainData: timeDomainData,
-            frequencyData: frequencyData,
-            trackValues,
-        };
         const graphs = currentActiveItems.filter((i) => this.isType(i, LibraryItemType.GRAPH));
-        for (const g of graphs) {
-            try {
-                const relativeTrackItemProgress = (unit - g.start) / (g.end - g.start);
-                const results = await this.processGraph(g, unit, { ...calculationData, relativeTrackItemProgress });
-                if (g.libraryItem.error) {
-                    g.libraryItem.error = "";
+        if (graphs.length > 0) {
+            let timeDomainData = new Float32Array(FFT_SIZE);
+            let frequencyData = new Float32Array(FFT_SIZE);
+            // TODO: handle multiple audio items?
+            const audioItem = currentActiveItems.find((i) => this.isType(i, LibraryItemType.AUDIO));
+            if (audioItem) {
+                const audioData = this.getAudioData(audioItem.libraryItem as AudioLibraryItem, audioItem.start, unit);
+                if (audioData) {
+                    timeDomainData = audioData.timeDomainData;
+                    frequencyData = audioData.frequencyData;
                 }
-                this.applyGraphResults(results, uncontrolledFixtures);
-            } catch (err) {
-                console.error(err);
-                g.libraryItem.error = String(err);
+            }
+
+            const calculationData: Omit<ICalculationData, "relativeTrackItemProgress"> = {
+                resolution: this.globalState.resolution,
+                fps: this.globalState.fps,
+                position: unit,
+                sampleRate: AudioLibraryItem.sampleRate,
+                timeDomainData: timeDomainData,
+                frequencyData: frequencyData,
+                trackValues,
+            };
+
+            for (const g of graphs) {
+                try {
+                    const relativeTrackItemProgress = (unit - g.start) / (g.end - g.start);
+                    const results = await this.processGraph(g, unit, { ...calculationData, relativeTrackItemProgress });
+                    if (g.libraryItem.error) {
+                        g.libraryItem.error = "";
+                    }
+                    this.applyGraphResults(results, uncontrolledFixtures);
+                } catch (err) {
+                    console.error(err);
+                    g.libraryItem.error = String(err);
+                }
             }
         }
 

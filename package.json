@@ -34,6 +34,7 @@
         "fflate": "^0.8.2",
         "fft.js": "^4.0.4",
         "jszip": "^3.10.1",
+        "lamejs": "^1.2.1",
         "msgpackr": "^1.10.1",
         "open-simplex-noise": "^2.5.0",
         "pinia": "^2.1.7",
