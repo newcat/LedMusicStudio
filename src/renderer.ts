@@ -23,7 +23,7 @@ import BitStream from "lamejs/src/js/BitStream";
 (window as any).BitStream = BitStream;
 
 export interface RenderResult {
-    audio: Uint8Array;
+    audio: Int8Array;
     fixtures: FixtureState[];
     timestamps: number[];
     fixtureValues: Record<string, unknown[]>;
@@ -84,6 +84,14 @@ export class Renderer {
         }
 
         const audio = await this.renderAudio(maxUnit);
+
+        if (this.cancelRequest) {
+            this.cancelRequest = false;
+            return null;
+        }
+
+        console.log(audio);
+
         const result: RenderResult = {
             audio,
             fixtures: this.stage.save().fixtures,
@@ -139,21 +147,30 @@ export class Renderer {
         const left = buffer.getChannelData(0);
         const right = buffer.getChannelData(1);
         for (let i = 0; i < left.length; i += sampleBlockSize) {
+            if (this.cancelRequest) {
+                break;
+            }
+
             const leftChunk = new Int16Array(left.subarray(i, i + sampleBlockSize).map((v) => v * 32767));
             const rightChunk = new Int16Array(right.subarray(i, i + sampleBlockSize).map((v) => v * 32767));
-            const mp3buf = encoder.encodeBuffer(leftChunk, rightChunk);
+            const mp3buf: Int8Array = encoder.encodeBuffer(leftChunk, rightChunk);
             if (mp3buf.length > 0) {
-                mp3Data.push(mp3buf);
+                mp3Data.push(...mp3buf);
             }
 
             this.events.progress.emit(Math.floor((i / left.length) * 100));
             await new Promise((res) => setTimeout(res, 0));
         }
-        const mp3buf = encoder.flush();
-        if (mp3buf.length > 0) {
-            mp3Data.push(mp3buf);
+
+        if (this.cancelRequest) {
+            return new Int8Array();
         }
 
-        return new Uint8Array(mp3Data);
+        const mp3buf: Int8Array = encoder.flush();
+        if (mp3buf.length > 0) {
+            mp3Data.push(...mp3buf);
+        }
+
+        return new Int8Array(mp3Data);
     }
 }

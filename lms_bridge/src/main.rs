@@ -4,11 +4,11 @@ mod types;
 
 use clap::{Parser, Subcommand};
 use flate2::read::GzDecoder;
-use rmp_serde::Deserializer;
+use rodio::{Decoder, OutputStream, Sink};
 use serde::Deserialize;
-use std::{io::Read, net::TcpListener};
+use std::{io::Cursor, net::TcpListener};
 use tungstenite::{accept, Error as WsError};
-use types::{ControllerType, WsMessage};
+use types::WsMessage;
 
 use crate::bridge::Bridge;
 
@@ -23,6 +23,8 @@ struct Cli {
 enum Commands {
     Play {
         file: String,
+        #[arg(short, long, default_value_t = 1.0)]
+        volume: f32,
     },
     Bridge {
         #[arg(short, long)]
@@ -46,12 +48,19 @@ struct RenderedFile {
     fixtureValues: Record<string, unknown[]>;*/
 }
 
-fn play_rendered(file: &str) {
+fn play_rendered(file: &str, volume: f32) {
     println!("Playing rendered file {}", file);
     let file = std::fs::File::open(file).unwrap();
     let gzip_decoder = GzDecoder::new(file);
     let rendered_file: RenderedFile = rmp_serde::from_read(gzip_decoder).unwrap();
-    println!("Audio length: {}", rendered_file.audio.len());
+    println!("Audio length: {:?}", rendered_file.audio.len());
+
+    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+    let sink = Sink::try_new(&stream_handle).unwrap();
+    let source = Decoder::new_mp3(Cursor::new(rendered_file.audio)).unwrap();
+    sink.append(source);
+    sink.set_volume(volume);
+    sink.sleep_until_end();
 }
 
 fn start_bridge(port: u16) {
@@ -88,7 +97,7 @@ fn start_bridge(port: u16) {
 fn main() {
     let args = Cli::parse();
     match args.command {
-        Some(Commands::Play { file }) => play_rendered(&file),
+        Some(Commands::Play { file, volume }) => play_rendered(&file, volume),
         Some(Commands::Bridge { port }) => start_bridge(port.unwrap_or(1234)),
         None => println!("No command provided"),
     }
