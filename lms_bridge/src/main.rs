@@ -2,14 +2,60 @@ mod bridge;
 mod controllers;
 mod types;
 
-use std::net::TcpListener;
+use clap::{Parser, Subcommand};
+use flate2::read::GzDecoder;
+use rmp_serde::Deserializer;
+use serde::Deserialize;
+use std::{io::Read, net::TcpListener};
 use tungstenite::{accept, Error as WsError};
-use types::WsMessage;
+use types::{ControllerType, WsMessage};
 
 use crate::bridge::Bridge;
 
-fn main() {
-    let server = TcpListener::bind("127.0.0.1:1234").unwrap();
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    Play {
+        file: String,
+    },
+    Bridge {
+        #[arg(short, long)]
+        port: Option<u16>,
+    },
+}
+
+/*struct FixtureState {
+    id: String,
+    r#type: ControllerType,
+    value: V,
+    config: C,
+}*/
+
+#[derive(Deserialize)]
+struct RenderedFile {
+    #[serde(with = "serde_bytes")]
+    audio: Vec<u8>,
+    timestamps: Vec<f64>,
+    /*fixtures: FixtureState[];
+    fixtureValues: Record<string, unknown[]>;*/
+}
+
+fn play_rendered(file: &str) {
+    println!("Playing rendered file {}", file);
+    let file = std::fs::File::open(file).unwrap();
+    let gzip_decoder = GzDecoder::new(file);
+    let rendered_file: RenderedFile = rmp_serde::from_read(gzip_decoder).unwrap();
+    println!("Audio length: {}", rendered_file.audio.len());
+}
+
+fn start_bridge(port: u16) {
+    let server = TcpListener::bind(("127.0.0.1", port)).unwrap();
     println!("LMSBridge started. Listening on port 1234...");
 
     for stream in server.incoming() {
@@ -36,5 +82,14 @@ fn main() {
                 }
             };
         }
+    }
+}
+
+fn main() {
+    let args = Cli::parse();
+    match args.command {
+        Some(Commands::Play { file }) => play_rendered(&file),
+        Some(Commands::Bridge { port }) => start_bridge(port.unwrap_or(1234)),
+        None => println!("No command provided"),
     }
 }
