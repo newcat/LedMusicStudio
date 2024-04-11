@@ -78,7 +78,11 @@ export function useGraphTemplateSync() {
         for (const target of targets) {
             const targetTemplate = target.graphTemplates.find((t) => t.id === template.id);
             if (targetTemplate) {
-                targetTemplate.update(template);
+                targetTemplate.update({
+                    ...template,
+                    panning: template.panning ?? { x: 0, y: 0 },
+                    scaling: template.scaling ?? 1,
+                });
                 targetTemplate.name = template.name;
             } else {
                 const newTemplate = new GraphTemplate(template, target);
