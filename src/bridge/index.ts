@@ -14,7 +14,7 @@ export const useBridge = defineStore("bridge", () => {
     let bridge: WebSocket | undefined = undefined;
     const connectionStatus = ref<"DISCONNECTED" | "CONNECTING" | "CONNECTED">("DISCONNECTED");
 
-    const controllers = ref<Map<string, IBridgeController<unknown>>>(new Map());
+    const controllers = ref<Map<string, IBridgeController<unknown, unknown>>>(new Map());
 
     function sendMessage(message: WsMessage) {
         if (bridge && bridge.readyState === WebSocket.OPEN) {
@@ -65,7 +65,7 @@ export const useBridge = defineStore("bridge", () => {
         };
     }
 
-    function registerController<C2BM, C extends IBridgeController<unknown>>(controller: C): SendMessageFunction<C2BM> {
+    function registerController<C2BM, C extends IBridgeController<C2BM, unknown>>(controller: C): SendMessageFunction<C2BM> {
         controllers.value.set(controller.id, controller);
 
         sendMessage({
@@ -94,5 +94,5 @@ export const useBridge = defineStore("bridge", () => {
 
     watch(() => globalState.bridgeUrl, connect, { immediate: true });
 
-    return { connectionStatus, sendMessage, connect, registerController, unregisterController };
+    return { controllers, connectionStatus, sendMessage, connect, registerController, unregisterController };
 });

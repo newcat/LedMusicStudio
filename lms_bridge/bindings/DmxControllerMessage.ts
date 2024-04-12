@@ -2,4 +2,4 @@
 import type { DmxControllerConfiguration } from "./DmxControllerConfiguration";
 import type { DmxControllerData } from "./DmxControllerData";
 
-export type DmxControllerMessage = { type: "UpdateConfiguration" } & DmxControllerConfiguration | { type: "Data" } & DmxControllerData;
+export type DmxControllerMessage = { "type": "UpdateConfiguration" } & DmxControllerConfiguration | { "type": "Data" } & DmxControllerData;

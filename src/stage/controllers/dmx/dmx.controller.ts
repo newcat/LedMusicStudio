@@ -10,7 +10,10 @@ interface DmxControllerConfiguration {
     port: string;
 }
 
-export class DmxController extends BaseController<DmxControllerConfiguration, DmxFixture> implements IBridgeController<void> {
+export class DmxController
+    extends BaseController<DmxControllerConfiguration, DmxFixture>
+    implements IBridgeController<DmxControllerMessage, void>
+{
     private readonly bridge = useBridge();
     private readonly sendMessage: SendMessageFunction<DmxControllerMessage>;
 
@@ -58,8 +61,26 @@ export class DmxController extends BaseController<DmxControllerConfiguration, Dm
     }
 
     public send() {
+        const msg = this.getValueMessage();
+        if (msg) {
+            this.sendMessage(msg);
+        }
+    }
+
+    public override dispose(): void {
+        this.bridge.unregisterController(this.id);
+    }
+
+    public getConfigurationMessage() {
+        return {
+            type: "UpdateConfiguration",
+            port: this.config.port,
+        } satisfies DmxControllerMessage;
+    }
+
+    public getValueMessage() {
         if (this.controlledFixtures.length === 0) {
-            return;
+            return null;
         }
 
         const channelValues = new Map<number, number>();
@@ -72,7 +93,7 @@ export class DmxController extends BaseController<DmxControllerConfiguration, Dm
 
         const maxChannel = Math.max(0, ...Array.from(channelValues.keys()));
         if (maxChannel <= 0) {
-            return;
+            return null;
         }
 
         const buffer: number[] = new Array(maxChannel + 2);
@@ -82,20 +103,13 @@ export class DmxController extends BaseController<DmxControllerConfiguration, Dm
             buffer[i + 1] = channelValues.get(i) ?? 0;
         }
 
-        this.sendMessage({
+        return {
             type: "Data",
             data: buffer,
-        });
-    }
-
-    public override dispose(): void {
-        this.bridge.unregisterController(this.id);
+        } satisfies DmxControllerMessage;
     }
 
     private sendConfiguration() {
-        this.sendMessage({
-            type: "UpdateConfiguration",
-            port: this.config.port,
-        });
+        this.sendMessage(this.getConfigurationMessage());
     }
 }

@@ -13,7 +13,10 @@ interface WledControllerConfiguration {
     timeout: number;
 }
 
-export class WledController extends BaseController<WledControllerConfiguration, LedStripFixture> implements IBridgeController<void> {
+export class WledController
+    extends BaseController<WledControllerConfiguration, LedStripFixture>
+    implements IBridgeController<WledControllerMessage, void>
+{
     private readonly bridge = useBridge();
     private readonly sendMessage: SendMessageFunction<WledControllerMessage>;
 
@@ -49,14 +52,37 @@ export class WledController extends BaseController<WledControllerConfiguration, 
     }
 
     public send() {
+        const msg = this.getValueMessage();
+        if (msg) {
+            this.sendMessage(msg);
+        }
+    }
+
+    public onBridgeConnected() {
+        this.sendConfiguration();
+    }
+
+    public override dispose(): void {
+        this.bridge.unregisterController(this.id);
+    }
+
+    public getConfigurationMessage() {
+        return {
+            type: "UpdateConfiguration",
+            host: this.config.host,
+            port: this.config.port,
+        } satisfies WledControllerMessage;
+    }
+
+    public getValueMessage() {
         if (this.controlledFixtures.length === 0) {
-            return;
+            return null;
         }
 
         const fixture = this.controlledFixtures[0];
         const colors = fixture.value;
         if (!colors || colors.length !== fixture.config.numLeds) {
-            return;
+            return null;
         }
 
         const buff = new Array(3 * fixture.config.numLeds + 2);
@@ -70,25 +96,13 @@ export class WledController extends BaseController<WledControllerConfiguration, 
             buff[i * 3 + 4] = Math.floor(colors[i][2]);
         }
 
-        this.sendMessage({
+        return {
             type: "Data",
             data: buff,
-        });
-    }
-
-    public onBridgeConnected() {
-        this.sendConfiguration();
-    }
-
-    public override dispose(): void {
-        this.bridge.unregisterController(this.id);
+        } satisfies WledControllerMessage;
     }
 
     private sendConfiguration() {
-        this.sendMessage({
-            type: "UpdateConfiguration",
-            host: this.config.host,
-            port: this.config.port,
-        });
+        this.sendMessage(this.getConfigurationMessage());
     }
 }

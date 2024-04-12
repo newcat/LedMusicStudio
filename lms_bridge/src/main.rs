@@ -5,9 +5,9 @@ mod types;
 use clap::{Parser, Subcommand};
 use flate2::read::GzDecoder;
 use rodio::{Decoder, OutputStream, Sink};
-use serde::Deserialize;
 use std::{io::Cursor, net::TcpListener};
 use tungstenite::{accept, Error as WsError};
+use types::RenderedFile;
 use types::WsMessage;
 
 use crate::bridge::Bridge;
@@ -32,22 +32,6 @@ enum Commands {
     },
 }
 
-/*struct FixtureState {
-    id: String,
-    r#type: ControllerType,
-    value: V,
-    config: C,
-}*/
-
-#[derive(Deserialize)]
-struct RenderedFile {
-    #[serde(with = "serde_bytes")]
-    audio: Vec<u8>,
-    timestamps: Vec<f64>,
-    /*fixtures: FixtureState[];
-    fixtureValues: Record<string, unknown[]>;*/
-}
-
 fn play_rendered(file: &str, volume: f32) {
     println!("Playing rendered file {}", file);
     let file = std::fs::File::open(file).unwrap();
@@ -55,11 +39,35 @@ fn play_rendered(file: &str, volume: f32) {
     let rendered_file: RenderedFile = rmp_serde::from_read(gzip_decoder).unwrap();
     println!("Audio length: {:?}", rendered_file.audio.len());
 
+    assert_eq!(rendered_file.timestamps.len(), rendered_file.commands.len());
+
+    let mut bridge = Bridge::new();
+    for controller in rendered_file.controllers {
+        bridge.handle_message(&controller);
+    }
+
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
     let sink = Sink::try_new(&stream_handle).unwrap();
     let source = Decoder::new_mp3(Cursor::new(rendered_file.audio)).unwrap();
     sink.append(source);
     sink.set_volume(volume);
+
+    let start = std::time::Instant::now();
+    for i in 0..rendered_file.timestamps.len() {
+        let now = std::time::Instant::now();
+        let elapsed = now - start;
+        let target = std::time::Duration::from_secs_f64(rendered_file.timestamps[i]);
+        if elapsed < target {
+            std::thread::sleep(target - elapsed);
+        }
+        for command in &rendered_file.commands[i] {
+            bridge.handle_message(command);
+        }
+        if i % 100 == 0 {
+            println!("Playing at timestamp {}", i);
+        }
+    }
+
     sink.sleep_until_end();
 }
 

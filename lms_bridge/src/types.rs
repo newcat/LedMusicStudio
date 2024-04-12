@@ -37,3 +37,14 @@ pub struct DmxOutputData {
     pub id: String,
     pub data: Vec<u8>,
 }
+
+#[derive(Deserialize, TS)]
+#[ts(export)]
+pub struct RenderedFile {
+    #[serde(with = "serde_bytes")]
+    #[ts(type = "Int8Array")]
+    pub audio: Vec<u8>,
+    pub timestamps: Vec<f64>,
+    pub controllers: Vec<WsMessage>,
+    pub commands: Vec<Vec<WsMessage>>,
+}

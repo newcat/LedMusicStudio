@@ -2,4 +2,4 @@
 import type { WledControllerConfiguration } from "./WledControllerConfiguration";
 import type { WledControllerData } from "./WledControllerData";
 
-export type WledControllerMessage = { type: "UpdateConfiguration" } & WledControllerConfiguration | { type: "Data" } & WledControllerData;
+export type WledControllerMessage = { "type": "UpdateConfiguration" } & WledControllerConfiguration | { "type": "Data" } & WledControllerData;

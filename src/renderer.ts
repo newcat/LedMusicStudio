@@ -3,8 +3,13 @@ import { gzipSync } from "fflate";
 // @ts-expect-error lamejs package does not have types
 import { Mp3Encoder } from "lamejs";
 import { BaklavaEvent } from "@baklavajs/events";
+
+import { RenderedFile } from "lms_bridge/RenderedFile";
+import { WsMessage } from "lms_bridge/WsMessage";
+
+import { useBridge } from "./bridge";
 import { useGlobalState } from "./globalState";
-import { FixtureState, useStage } from "./stage";
+import { useStage } from "./stage";
 import { BaseTimelineProcessor } from "./timeline";
 import { unitToSeconds } from "./utils";
 import { LibraryItemType } from "./library";
@@ -18,16 +23,10 @@ import MPEGMode from "lamejs/src/js/MPEGMode";
 import Lame from "lamejs/src/js/Lame";
 // @ts-expect-error lamejs package does not have types
 import BitStream from "lamejs/src/js/BitStream";
+
 (window as any).MPEGMode = MPEGMode;
 (window as any).Lame = Lame;
 (window as any).BitStream = BitStream;
-
-export interface RenderResult {
-    audio: Int8Array;
-    fixtures: FixtureState[];
-    timestamps: number[];
-    fixtureValues: Record<string, unknown[]>;
-}
 
 export class Renderer {
     public readonly events = {
@@ -37,6 +36,7 @@ export class Renderer {
 
     private readonly globalState = useGlobalState();
     private readonly stage = useStage();
+    private readonly bridge = useBridge();
 
     private cancelRequest = false;
 
@@ -45,7 +45,7 @@ export class Renderer {
         const processor = new BaseTimelineProcessor();
         let nextFrameTime = 0;
         const timestamps: number[] = [];
-        const fixtureValues: Record<string, unknown[]> = {};
+        const commands: WsMessage[][] = [];
 
         this.stage.visualization.pause();
 
@@ -62,12 +62,18 @@ export class Renderer {
             if (nextTimestamp > nextFrameTime) {
                 timestamps.push(nextFrameTime);
                 nextFrameTime += secondsPerFrame;
-                for (const [fixtureId, fixture] of this.stage.fixtures.entries()) {
-                    if (!fixtureValues[fixtureId]) {
-                        fixtureValues[fixtureId] = [];
+                const commandsForFrame: WsMessage[] = [];
+                for (const [id, controller] of this.bridge.controllers) {
+                    const msg = controller.getValueMessage();
+                    if (msg) {
+                        commandsForFrame.push({
+                            type: "CallController",
+                            id,
+                            message: JSON.stringify(msg),
+                        });
                     }
-                    fixtureValues[fixtureId].push(fixture.value);
                 }
+                commands.push(commandsForFrame);
             }
 
             this.events.progress.emit(Math.floor((unit / maxUnit) * 100));
@@ -90,13 +96,28 @@ export class Renderer {
             return null;
         }
 
-        console.log(audio);
+        const controllers: WsMessage[] = [];
+        for (const [id, controller] of this.bridge.controllers) {
+            controllers.push({
+                type: "AddController",
+                controller_type: controller.type,
+                id,
+            });
+            const configMsg = controller.getConfigurationMessage();
+            if (configMsg) {
+                controllers.push({
+                    type: "CallController",
+                    id,
+                    message: JSON.stringify(configMsg),
+                });
+            }
+        }
 
-        const result: RenderResult = {
+        const result: RenderedFile = {
             audio,
-            fixtures: this.stage.save().fixtures,
+            controllers,
             timestamps,
-            fixtureValues,
+            commands,
         };
 
         return gzipSync(pack(result));
