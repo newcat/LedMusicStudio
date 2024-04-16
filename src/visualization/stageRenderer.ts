@@ -4,6 +4,7 @@ import { VisualizationType } from "./fixtureVisualizations/types";
 import type { BaseRenderer } from "./fixtureVisualizations/base.renderer";
 import { LedStripRenderer } from "./fixtureVisualizations/ledStrip/ledStrip.renderer";
 import { SpotRenderer } from "./fixtureVisualizations/spot/spot.renderer";
+import { Ref } from "vue";
 
 type FixtureRenderers = {
     [VisualizationType.LED_STRIP]: LedStripRenderer;
@@ -46,7 +47,7 @@ export class StageRenderer {
 
     private active = false;
     private renderer: THREE.WebGLRenderer | null = null;
-    private canvas: OffscreenCanvas | null = null;
+    private canvas: HTMLCanvasElement | null = null;
 
     public get fixtureRenderers() {
         return this._fixtureRenderers as ReadonlyMap<string, BaseRenderer>;
@@ -60,11 +61,12 @@ export class StageRenderer {
         return this._camera;
     }
 
-    public constructor() {
+    public constructor(private readonly sceneLoadedRef: Ref<boolean>) {
+        sceneLoadedRef.value = false;
         this.render();
     }
 
-    public setCanvas(canvas: OffscreenCanvas | null) {
+    public setCanvas(canvas: HTMLCanvasElement | null) {
         if (this.renderer) {
             this.renderer.dispose();
             this.renderer = null;
@@ -128,6 +130,7 @@ export class StageRenderer {
     public loadScene(baseScene: any) {
         const loader = new THREE.ObjectLoader();
         this._scene = loader.parse(baseScene) as THREE.Scene;
+        this.sceneLoadedRef.value = true;
 
         this._camera = this._scene.children.find((child) => child.type === "PerspectiveCamera") as THREE.PerspectiveCamera;
         if (!this.camera) {

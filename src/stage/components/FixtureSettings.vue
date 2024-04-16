@@ -41,9 +41,9 @@ import Message from "primevue/message";
 import { useErrorHandler } from "@/utils";
 import LabelledInputText from "@/components/LabelledInputText.vue";
 import LabelledFormField from "@/components/LabelledFormField.vue";
+import { VisualizationType } from "@/visualization/fixtureVisualizations/base.visualization";
 import { BaseFixture } from "../fixtures";
 import { useStage } from "../stage";
-import { VisualizationType } from "../visualization/fixtureVisualizations/base.visualization";
 
 const props = defineProps<{
     fixture: BaseFixture;

@@ -1,12 +1,12 @@
 import { Ref, ref } from "vue";
 import { defineStore } from "pinia";
 
+import { ExtendedMap } from "@/utils/extendedMap";
 import { BaseFixture, FixtureState } from "./fixtures";
 import { BaseController, ControllerState } from "./controllers";
-import { StageVisualization, StageVisualizationState } from "./visualization/stageVisualization";
+import { StageVisualization, StageVisualizationState } from "@/visualization/stageVisualization";
 import { createFixture } from "./fixtures/factory";
 import { createController } from "./controllers/factory";
-import { ExtendedMap } from "./extendedMap";
 import { createVisualizationWorkerInstance } from "./visualizationWorkerInstance";
 
 export interface StageState {

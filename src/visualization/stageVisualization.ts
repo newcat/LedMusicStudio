@@ -1,10 +1,9 @@
 import { markRaw, watch } from "vue";
 
-import { BaseFixture } from "../fixtures";
-import { useStage } from "../stage";
+import { ExtendedMap } from "@/utils";
+import { useStage, BaseFixture } from "@/stage";
 import { BaseVisualization, VisualizationState, VisualizationType } from "./fixtureVisualizations/base.visualization";
 import { createFixtureVisualization } from "./fixtureVisualizations/factory";
-import { ExtendedMap } from "../extendedMap";
 
 export interface StageVisualizationState {
     baseScene: unknown;

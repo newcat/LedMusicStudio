@@ -5,11 +5,11 @@
 
 import { markRaw } from "vue";
 import * as Comlink from "comlink";
-import VisualizationWorker from "./visualization/visualization.worker?worker";
-import { RemoteStageRenderer } from "./visualization/stageRenderer";
+import { RemoteStageRenderer } from "@/visualization/stageRenderer";
 
 export function createVisualizationWorkerInstance() {
-    const renderer = Comlink.wrap<RemoteStageRenderer>(new VisualizationWorker());
+    const bc = new BroadcastChannel("visualization");
+    const renderer = Comlink.wrap<RemoteStageRenderer>(bc);
     const rendererProxy = new Proxy<typeof renderer>({} as any, {
         get(target: any, prop) {
             if (typeof prop === "string" && prop.startsWith("__v_")) {
