@@ -39,6 +39,7 @@ export const useLibrary = defineStore("library", () => {
         itemRemoved: new BaklavaEvent<LibraryItem, undefined>(undefined),
     };
 
+    const loading = ref(false);
     const items = ref<LibraryItem[]>([]);
     const selectedItemId = ref<string | null>(null);
 
@@ -54,6 +55,8 @@ export const useLibrary = defineStore("library", () => {
     }
 
     async function load(state: ILibraryState) {
+        loading.value = true;
+
         for (const item of state.items) {
             let libItem = createItemByType(item.type);
             if (!libItem) {
@@ -68,6 +71,7 @@ export const useLibrary = defineStore("library", () => {
             items.value.push(libItem);
         }
 
+        loading.value = false;
         events.loaded.emit();
     }
 
@@ -104,6 +108,7 @@ export const useLibrary = defineStore("library", () => {
 
     return {
         events,
+        loading,
         items: items as Readonly<Ref<ReadonlyArray<LibraryItem>>>,
         selectedItemId,
         save,

@@ -3,9 +3,9 @@ import * as THREE from "three";
 import { scaleColorArray } from "@/utils/scaleColorArray";
 import { Color } from "@/graph/colors";
 import { BaseRenderer } from "../base.renderer";
-import { LedStripRendererConfig } from "./types";
+import type { LedStripVisualizationConfig } from "./types";
 
-export class LedStripRenderer extends BaseRenderer<LedStripRendererConfig, Color[]> {
+export class LedStripRenderer extends BaseRenderer<LedStripVisualizationConfig, Color[]> {
     private leds: THREE.PointLight[] = [];
 
     public dispose() {
@@ -13,7 +13,7 @@ export class LedStripRenderer extends BaseRenderer<LedStripRendererConfig, Color
         super.dispose();
     }
 
-    public override onConfigUpdate(config: LedStripRendererConfig): void {
+    public override onConfigUpdate(config: LedStripVisualizationConfig): void {
         this.disposeLeds();
 
         const start = new THREE.Vector3(...config.start);

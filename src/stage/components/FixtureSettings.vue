@@ -25,8 +25,13 @@
         <LabelledFormField label="Visualization">
             <Dropdown v-model="visualizationType" :options="visualizationTypes" option-label="label" option-value="value" />
         </LabelledFormField>
-        <template v-if="visualization">
-            <component v-if="visualization.settingsComponent" :is="visualization.settingsComponent" :visualization="visualization" />
+        <template v-if="visController">
+            <component
+                v-if="visController.visualization.settingsComponent"
+                :is="visController.visualization.settingsComponent"
+                v-model:config="visController.config"
+                :controller="visController"
+            />
         </template>
     </div>
 </template>
@@ -41,7 +46,7 @@ import Message from "primevue/message";
 import { useErrorHandler } from "@/utils";
 import LabelledInputText from "@/components/LabelledInputText.vue";
 import LabelledFormField from "@/components/LabelledFormField.vue";
-import { VisualizationType } from "@/visualization/fixtureVisualizations/base.visualization";
+import { VisualizationType } from "@/visualization/fixtureVisualization";
 import { BaseFixture } from "../fixtures";
 import { useStage } from "../stage";
 
@@ -77,9 +82,10 @@ const availableControllers = computed(() => {
     return controllers;
 });
 
+const visController = computed(() => stage.visualization.controllers.get(props.fixture.id));
 const visualizationType = computed<VisualizationType | "NONE">({
     get() {
-        return stage.visualization.visualizations.get(props.fixture.id)?.type ?? "NONE";
+        return visController.value?.visualization.type ?? "NONE";
     },
     set(newType) {
         void errorHandler("Could not update visualization", () => {
@@ -87,8 +93,6 @@ const visualizationType = computed<VisualizationType | "NONE">({
         });
     },
 });
-
-const visualization = computed(() => stage.visualization.visualizations.get(props.fixture.id));
 
 const visualizationTypes = computed(() => {
     const types: Array<{ label: string; value: "NONE" | VisualizationType }> = [

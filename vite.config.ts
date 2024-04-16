@@ -32,7 +32,7 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 main: path.resolve(__dirname, "index.html"),
-                visualization: path.resolve(__dirname, "src/visualization/index.html"),
+                visualization: path.resolve(__dirname, "visualization.html"),
             },
         },
     },

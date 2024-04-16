@@ -23,16 +23,16 @@
     </div>
     <div class="flex gap-3">
         <LabelledFormField label="DMX Channel Red">
-            <DmxChannelSelector v-model="config.colorChannels[0]" :fixture="props.visualization.fixture" />
+            <DmxChannelSelector v-model="config.colorChannels[0]" :fixture="controller.fixture" />
         </LabelledFormField>
         <LabelledFormField label="DMX Channel Green">
-            <DmxChannelSelector v-model="config.colorChannels[1]" :fixture="props.visualization.fixture" />
+            <DmxChannelSelector v-model="config.colorChannels[1]" :fixture="controller.fixture" />
         </LabelledFormField>
         <LabelledFormField label="DMX Channel Blue">
-            <DmxChannelSelector v-model="config.colorChannels[2]" :fixture="props.visualization.fixture" />
+            <DmxChannelSelector v-model="config.colorChannels[2]" :fixture="controller.fixture" />
         </LabelledFormField>
         <LabelledFormField label="DMX Channel White">
-            <DmxChannelSelector v-model="config.colorChannels[3]" :fixture="props.visualization.fixture" />
+            <DmxChannelSelector v-model="config.colorChannels[3]" :fixture="controller.fixture" />
         </LabelledFormField>
     </div>
     <div>
@@ -45,19 +45,26 @@ import { toRef } from "vue";
 import InputNumber from "primevue/inputnumber";
 import Button from "primevue/button";
 
+import { DmxFixture } from "@/stage";
 import LabelledFormField from "@/components/LabelledFormField.vue";
 import { useEditClone } from "@/utils";
-import { SpotVisualization } from "./spot.visualization";
 import DmxChannelSelector from "../DmxChannelSelector.vue";
+import { SpotVisualizationConfig } from "./types";
+import { FixtureVisualizationController } from "@/visualization/fixtureVisualizationController";
 
 const props = defineProps<{
-    visualization: SpotVisualization;
+    controller: FixtureVisualizationController<DmxFixture>;
+    config: SpotVisualizationConfig;
 }>();
 
-const { clone: config, dirty } = useEditClone(toRef(props.visualization, "config"));
+const emit = defineEmits<{
+    "update:config": [SpotVisualizationConfig];
+}>();
+
+const { clone: config, dirty } = useEditClone(toRef(props, "config"));
 
 const save = () => {
-    props.visualization.setConfig(config.value);
+    emit("update:config", config.value);
     dirty.value = false;
 };
 </script>

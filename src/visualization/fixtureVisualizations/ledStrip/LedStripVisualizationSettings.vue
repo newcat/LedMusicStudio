@@ -37,16 +37,20 @@ import Button from "primevue/button";
 import LabelledFormField from "@/components/LabelledFormField.vue";
 import { useEditClone } from "@/utils";
 
-import { LedStripVisualization } from "./ledStrip.visualization";
+import { LedStripVisualizationConfig } from "./types";
 
 const props = defineProps<{
-    visualization: LedStripVisualization;
+    config: LedStripVisualizationConfig;
 }>();
 
-const { clone: config, dirty } = useEditClone(toRef(props.visualization, "config"));
+const emit = defineEmits<{
+    "update:config": [LedStripVisualizationConfig];
+}>();
+
+const { clone: config, dirty } = useEditClone(toRef(props, "config"));
 
 const save = () => {
-    props.visualization.setConfig(config.value);
+    emit("update:config", config.value);
     dirty.value = false;
 };
 </script>
