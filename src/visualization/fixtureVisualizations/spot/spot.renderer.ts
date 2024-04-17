@@ -80,10 +80,10 @@ export class SpotRenderer extends BaseRenderer<SpotVisualizationConfig, number[]
 
     public override onFixtureValueUpdate(data: number[]): void {
         const [redChannel, greenChannel, blueChannel, whiteChannel] = this.config.colorChannels;
-        const red = redChannel >= 0 ? data[this.config.colorChannels[0]] ?? 0 : 0;
-        const green = greenChannel >= 0 ? data[this.config.colorChannels[1]] ?? 0 : 0;
-        const blue = blueChannel >= 0 ? data[this.config.colorChannels[2]] ?? 0 : 0;
-        const white = whiteChannel >= 0 ? data[this.config.colorChannels[3]] ?? 0 : 0;
+        const red = redChannel >= 0 ? data[redChannel] ?? 0 : 0;
+        const green = greenChannel >= 0 ? data[greenChannel] ?? 0 : 0;
+        const blue = blueChannel >= 0 ? data[blueChannel] ?? 0 : 0;
+        const white = whiteChannel >= 0 ? data[whiteChannel] ?? 0 : 0;
         const color = new THREE.Color(red / 255, green / 255, blue / 255);
         color.addScalar(white / 255);
         this.volumeMaterial.uniforms.lightColor.value = color;

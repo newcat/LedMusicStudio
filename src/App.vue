@@ -13,7 +13,6 @@
             <div class="content">
                 <Programming v-show="currentView === 'PROGRAMMING'" />
                 <Stage v-show="currentView === 'STAGE'" />
-                <Visualization v-show="currentView === 'VISUALIZATION'" :active="currentView === 'VISUALIZATION'" />
             </div>
         </div>
         <Settings v-model="showSettings" />
@@ -32,7 +31,7 @@ import Settings from "@/components/Settings.vue";
 import Toolbar from "@/components/MainToolbar.vue";
 import LoadingDialog from "@/components/LoadingDialog.vue";
 import RenderDialog from "@/components/RenderDialog.vue";
-import { Programming, Stage, Visualization } from "@/views";
+import { Programming, Stage } from "@/views";
 
 import { useGlobalState } from "@/globalState";
 import { TimelineProcessor } from "@/timeline";

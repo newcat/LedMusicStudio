@@ -29,5 +29,11 @@ export default defineConfig({
     },
     build: {
         sourcemap: true,
+        rollupOptions: {
+            input: {
+                main: path.resolve(__dirname, "index.html"),
+                visualization: path.resolve(__dirname, "visualization.html"),
+            },
+        },
     },
 });

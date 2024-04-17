@@ -101,11 +101,10 @@ const menuItems = computed<MenubarProps["model"]>(() => [
         },
     },
     {
-        label: "Visualization",
+        label: "Open Visualizer",
         icon: "mdi mdi-eye",
-        class: currentView.value === "VISUALIZATION" ? "p-highlight p-menuitem-active" : "",
         command: () => {
-            currentView.value = "VISUALIZATION";
+            window.open("/visualization.html", "_blank");
         },
     },
 ]);

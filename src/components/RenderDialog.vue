@@ -19,7 +19,7 @@ import { useToast } from "primevue/usetoast";
 
 import { useStage } from "@/stage";
 import { getNativeAdapter } from "@/native";
-import { Renderer } from "@/renderer";
+import type { Renderer } from "@/renderer";
 
 const toast = useToast();
 const stage = useStage();
@@ -37,6 +37,7 @@ async function startRender() {
     showDialog.value = true;
     stage.visualization.pause();
 
+    const { Renderer } = await import("@/renderer");
     renderer = new Renderer();
     renderer.events.stepChanged.subscribe(token, (value) => {
         step.value = value;

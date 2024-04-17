@@ -2,6 +2,9 @@
     <LabelledFormField label="Intensity">
         <InputNumber v-model="config.intensity" :max-fraction-digits="5" />
     </LabelledFormField>
+    <LabelledFormField label="Number of LEDs">
+        <InputNumber v-model="config.numLeds" />
+    </LabelledFormField>
     <div class="flex gap-3">
         <LabelledFormField label="Start X">
             <InputNumber v-model="config.start[0]" :max-fraction-digits="3" />
@@ -37,16 +40,20 @@ import Button from "primevue/button";
 import LabelledFormField from "@/components/LabelledFormField.vue";
 import { useEditClone } from "@/utils";
 
-import { LedStripVisualization } from "./ledStrip.visualization";
+import { LedStripVisualizationConfig } from "./types";
 
 const props = defineProps<{
-    visualization: LedStripVisualization;
+    config: LedStripVisualizationConfig;
 }>();
 
-const { clone: config, dirty } = useEditClone(toRef(props.visualization, "config"));
+const emit = defineEmits<{
+    "update:config": [LedStripVisualizationConfig];
+}>();
+
+const { clone: config, dirty } = useEditClone(toRef(props, "config"));
 
 const save = () => {
-    props.visualization.setConfig(config.value);
+    emit("update:config", config.value);
     dirty.value = false;
 };
 </script>

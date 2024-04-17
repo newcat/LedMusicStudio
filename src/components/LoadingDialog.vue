@@ -56,7 +56,7 @@ watch(
             stopWatch = watch(
                 () => items.value,
                 () => {
-                    if (items.value.every((i) => !i.loading && !i.error)) {
+                    if (!library.loading && items.value.every((i) => !i.loading && !i.error)) {
                         close();
                     }
                 },
