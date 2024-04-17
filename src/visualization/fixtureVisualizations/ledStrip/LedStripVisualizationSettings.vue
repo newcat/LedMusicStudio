@@ -2,6 +2,9 @@
     <LabelledFormField label="Intensity">
         <InputNumber v-model="config.intensity" :max-fraction-digits="5" />
     </LabelledFormField>
+    <LabelledFormField label="Number of LEDs">
+        <InputNumber v-model="config.numLeds" />
+    </LabelledFormField>
     <div class="flex gap-3">
         <LabelledFormField label="Start X">
             <InputNumber v-model="config.start[0]" :max-fraction-digits="3" />

@@ -14,4 +14,9 @@ export const SpotVisualization: FixtureVisualization<DmxFixture, SpotVisualizati
         colorChannels: [-1, -1, -1, -1],
     }),
     settingsComponent: markRaw(SpotVisualizationSettings),
+    onFixtureValueUpdate: (value) => {
+        return {
+            value: value,
+        };
+    },
 };

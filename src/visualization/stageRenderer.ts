@@ -24,27 +24,18 @@ function getFixtureRendererType<T extends VisualizationType>(visualizationType: 
     }
 }
 
-export interface RemoteStageRenderer {
-    createFixtureRenderer<T extends VisualizationType>(
-        fixtureId: string,
-        visualizationType: T,
-        initialConfig: FixtureRendererConfig<T>
-    ): Promise<void>;
-    onFixtureConfigUpdate<T extends VisualizationType>(fixtureId: string, config: FixtureRendererConfig<T>): Promise<void>;
-    onFixtureValueUpdate<T extends VisualizationType>(fixtureId: string, value: FixtureRendererValue<T>): Promise<void>;
-    removeFixtureRenderer(fixtureId: string): Promise<void>;
-    loadScene(scene: any): Promise<void>;
-    reset(): Promise<void>;
-}
-
-export interface StageRendererMessages {
-    createFixtureRenderer: [string, VisualizationType, FixtureRendererConfig<any>];
-    onFixtureConfigUpdate: [string, FixtureRendererConfig<any>];
-    onFixtureValueUpdate: [string, FixtureRendererValue<any>];
-    setActive: [boolean];
+export interface StageRendererPayloads {
+    createFixtureRenderer: [string, VisualizationType, FixtureRendererConfig<VisualizationType>];
+    onFixtureConfigUpdate: [string, FixtureRendererConfig<VisualizationType>];
+    onFixtureValueUpdate: [string, FixtureRendererValue<VisualizationType>];
     removeFixtureRenderer: [string];
     loadScene: [any];
     reset: [];
+}
+
+export interface StageRendererMessage<T extends keyof StageRendererPayloads> {
+    type: T;
+    payload: StageRendererPayloads[T];
 }
 
 export class StageRenderer {
@@ -52,7 +43,6 @@ export class StageRenderer {
     private _camera: THREE.PerspectiveCamera | null = null;
     private _fixtureRenderers: Map<string, BaseRenderer> = new Map();
 
-    private active = false;
     private renderer: THREE.WebGLRenderer | null = null;
     private canvas: HTMLCanvasElement | null = null;
 
@@ -73,8 +63,23 @@ export class StageRenderer {
 
         const bc = new BroadcastChannel("visualization");
         bc.addEventListener("message", (ev) => {
-            console.log(ev.data);
+            const data = JSON.parse(ev.data) as StageRendererMessage<keyof StageRendererPayloads>;
+            if (data.type === "createFixtureRenderer") {
+                this.createFixtureRenderer(...(data as StageRendererMessage<"createFixtureRenderer">).payload);
+            } else if (data.type === "onFixtureConfigUpdate") {
+                this.onFixtureConfigUpdate(...(data as StageRendererMessage<"onFixtureConfigUpdate">).payload);
+            } else if (data.type === "onFixtureValueUpdate") {
+                this.onFixtureValueUpdate(...(data as StageRendererMessage<"onFixtureValueUpdate">).payload);
+            } else if (data.type === "removeFixtureRenderer") {
+                this.removeFixtureRenderer(...(data as StageRendererMessage<"removeFixtureRenderer">).payload);
+            } else if (data.type === "loadScene") {
+                this.loadScene(...(data as StageRendererMessage<"loadScene">).payload);
+            } else if (data.type === "reset") {
+                this.reset();
+            }
         });
+
+        bc.postMessage(JSON.stringify({ type: "ready" }));
 
         this.render();
     }
@@ -101,16 +106,11 @@ export class StageRenderer {
         }
     }
 
-    public setActive(active: boolean) {
-        this.active = active;
-    }
-
     public createFixtureRenderer<T extends VisualizationType>(
         fixtureId: string,
         visualizationType: T,
         initialConfig: FixtureRendererConfig<T>
     ) {
-        console.log("createFixtureRenderer", fixtureId, visualizationType, initialConfig);
         this.removeFixtureRenderer(fixtureId);
         const newRenderer = new (getFixtureRendererType<T>(visualizationType))();
         newRenderer.onConfigUpdate(initialConfig as any);
@@ -126,7 +126,6 @@ export class StageRenderer {
     }
 
     public onFixtureValueUpdate<T extends VisualizationType>(fixtureId: string, value: FixtureRendererValue<T>) {
-        console.log("onFixtureValueUpdate", fixtureId, value);
         const fixtureRenderer = this.fixtureRenderers.get(fixtureId);
         if (fixtureRenderer) {
             fixtureRenderer.onFixtureValueUpdate(value);
@@ -167,7 +166,7 @@ export class StageRenderer {
     private render() {
         requestAnimationFrame(() => this.render());
 
-        if (!this.renderer || !this.scene || !this.camera || !this.active) {
+        if (!this.renderer || !this.scene || !this.camera) {
             return;
         }
 

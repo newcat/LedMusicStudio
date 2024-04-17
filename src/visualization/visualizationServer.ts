@@ -5,7 +5,7 @@ import { BaseFixture } from "@/stage";
 import { VisualizationType } from "./fixtureVisualization";
 import { FixtureVisualizationController, FixtureVisualizationState } from "./fixtureVisualizationController";
 import { createFixtureVisualizationController } from "./fixtureVisualizations/factory";
-import { StageRendererMessages } from "./stageRenderer";
+import { StageRendererPayloads, StageRendererMessage } from "./stageRenderer";
 
 export interface VisualizationServerState {
     baseScene: unknown;
@@ -31,6 +31,20 @@ export class VisualizationServer {
             () => fixtures.values(),
             () => this.updateFixtures()
         );
+
+        this.bc.addEventListener("message", (ev) => {
+            const data = JSON.parse(ev.data);
+            if (data.type === "ready") {
+                if (this.baseScene) {
+                    this.send("loadScene", this.baseScene);
+                }
+                for (const [fixtureId, controller] of this.controllers.entries()) {
+                    this.send("createFixtureRenderer", fixtureId, controller.visualization.type, controller.config as any);
+                    this.send("onFixtureConfigUpdate", fixtureId, controller.config as any);
+                    this.send("onFixtureValueUpdate", fixtureId, controller.value as any);
+                }
+            }
+        });
     }
 
     public setVisualization(fixtureId: string, visualizationType: VisualizationType | null, state?: FixtureVisualizationState) {
@@ -120,7 +134,11 @@ export class VisualizationServer {
         }
     }
 
-    private send<K extends keyof StageRendererMessages>(type: K, ...args: StageRendererMessages[K]) {
-        this.bc.postMessage(JSON.stringify({ type, args }));
+    private send<K extends keyof StageRendererPayloads>(type: K, ...args: StageRendererPayloads[K]) {
+        const msg: StageRendererMessage<K> = {
+            type,
+            payload: args,
+        };
+        this.bc.postMessage(JSON.stringify(msg));
     }
 }
