@@ -52,7 +52,12 @@ function createWindow() {
     });
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        shell.openExternal(url);
+        if (url.startsWith("https://open-fixture-library.org/")) {
+            shell.openExternal(url);
+        } else if (true) {
+            // TODO: Only allow opening of visualization URL
+            return { action: "allow", outlivesOpener: false, overrideBrowserWindowOptions: { autoHideMenuBar: true } };
+        }
         return { action: "deny" };
     });
 }
