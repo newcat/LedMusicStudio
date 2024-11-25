@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import { NodeInterface } from "@baklavajs/core";
+import { NodeInterface } from "baklavajs";
 
 defineProps<{
     intf: NodeInterface;

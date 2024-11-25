@@ -1,10 +1,10 @@
 <template>
-    <Dropdown class="dmx-channel-selector" v-model="selectedChannel" :options="options" option-label="label" option-value="value" />
+    <Select class="dmx-channel-selector" v-model="selectedChannel" :options="options" option-label="label" option-value="value" />
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import Dropdown from "primevue/dropdown";
+import Select from "primevue/select";
 
 import { DmxFixture } from "@/stage/fixtures";
 

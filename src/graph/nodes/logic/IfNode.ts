@@ -1,5 +1,5 @@
+import { defineNode, NodeInterface } from "baklavajs";
 import { CheckboxInterface } from "@/graph/interfaces";
-import { defineNode, NodeInterface } from "@baklavajs/core";
 
 export const IfNode = defineNode({
     type: "If",

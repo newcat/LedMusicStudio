@@ -1,4 +1,4 @@
-import { BaklavaInterfaceTypes, NodeInterfaceType } from "@baklavajs/interface-types";
+import { BaklavaInterfaceTypes, NodeInterfaceType } from "baklavajs";
 import { Color } from "./colors";
 
 export const BooleanType = new NodeInterfaceType<boolean>("boolean");

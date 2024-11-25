@@ -1,5 +1,5 @@
 import { watchEffect } from "vue";
-import { SelectInterface } from "@baklavajs/renderer-vue";
+import { SelectInterface } from "baklavajs";
 import { BaseFixture, FixtureType, useStage } from "@/stage";
 
 export class SelectFixtureInterface extends SelectInterface {

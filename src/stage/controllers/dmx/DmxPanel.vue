@@ -3,7 +3,7 @@
         <div class="dmx-control-panel">
             <div class="header">
                 <div>Fixture:</div>
-                <Dropdown v-model="selectedFixture" :options="controller.controlledFixtures" option-label="name" />
+                <Select v-model="selectedFixture" :options="controller.controlledFixtures" option-label="name" />
             </div>
             <div class="sliders">
                 <template v-if="selectedFixture">
@@ -16,7 +16,7 @@
                             :min="0"
                             :max="255"
                             :step="1"
-                            @update:model-value="setValue(i, $event)"
+                            @update:model-value="setValue(i, $event as number)"
                         />
                         <div class="flex gap-2">
                             <Button text icon="pi pi-minus" @click="setValue(i, selectedFixture.value[i] - 1)" />
@@ -33,7 +33,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import Button from "primevue/button";
-import Dropdown from "primevue/dropdown";
+import Select from "primevue/select";
 import Dialog from "primevue/dialog";
 import Slider from "primevue/slider";
 import { DmxController } from "./dmx.controller";

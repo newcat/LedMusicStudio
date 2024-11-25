@@ -29,3 +29,21 @@ const label = computed(() => {
     return Number.isInteger(value) ? value.toString() : "";
 });
 </script>
+
+<style scoped>
+.marker-label {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    font-size: 0.7rem;
+    pointer-events: none;
+}
+
+.marker-label.--major {
+    color: var(--text-color);
+}
+
+.marker-label.--minor {
+    color: var(--text-color-secondary);
+}
+</style>

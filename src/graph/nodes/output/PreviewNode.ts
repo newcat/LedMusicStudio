@@ -1,6 +1,6 @@
+import { defineNode } from "baklavajs";
 import { ColorArrayInterface, IntegerInterface, PreviewInterface } from "@/graph/interfaces";
 import { scaleColorArray } from "@/utils";
-import { defineNode } from "@baklavajs/core";
 
 export const PreviewNode = defineNode({
     type: "Preview",

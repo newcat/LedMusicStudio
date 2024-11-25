@@ -1,6 +1,4 @@
-import { BaklavaInterfaceTypes } from "@baklavajs/interface-types";
-import { applyResult, DependencyEngine } from "@baklavajs/engine";
-import { useBaklava } from "@baklavajs/renderer-vue";
+import { BaklavaInterfaceTypes, applyResult, DependencyEngine, useBaklava } from "baklavajs";
 
 import { registerNodes } from "./nodes/registerNodes";
 import { registerTypes } from "./interface-types";

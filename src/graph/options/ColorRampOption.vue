@@ -5,7 +5,7 @@
             <Button icon="mdi mdi-minus" text rounded @click="removeStop" />
             <Button icon="mdi mdi-dots-vertical" text rounded @click="ctxMenu?.toggle($event)" />
             <Menu ref="ctxMenu" :model="ctxMenuItems" :popup="true" />
-            <Dropdown v-model="modelValue.mode" :options="modes" option-label="label" option-value="value" placeholder="Mode" />
+            <Select v-model="modelValue.mode" :options="modes" option-label="label" option-value="value" placeholder="Mode" />
         </div>
         <div class="color-ramp" ref="colorRampEl" @mousedown="selectedStopId = ''">
             <template v-for="stop in modelValue.stops" :key="stop.id">
@@ -29,7 +29,7 @@ import { ComponentInstance, computed, ref } from "vue";
 import { v4 as uuidv4 } from "uuid";
 import type { InterpolationMode } from "chroma-js";
 import Button from "primevue/button";
-import Dropdown from "primevue/dropdown";
+import Select from "primevue/select";
 import Menu from "primevue/menu";
 import ColorPicker from "./ColorPicker.vue";
 import type { ColorRampStop, ColorRampValue } from "../nodes/colors/ColorRampNode";

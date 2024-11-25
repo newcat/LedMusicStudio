@@ -1,6 +1,6 @@
 <template>
-    <div class="__track">
-        <div class="__header">
+    <div class="track">
+        <div class="track-header">
             <div class="__title">{{ track.name }}</div>
             <div class="__actions" v-if="confirmRemove">
                 <div class="text-caption">Remove?</div>
@@ -15,7 +15,7 @@
             </div>
         </div>
         <div
-            class="__item-container"
+            class="item-container"
             @mouseenter="$emit('mouseenter', $event)"
             @mouseleave="$emit('mouseleave', $event)"
             @mousemove="$emit('mousemove', $event)"
@@ -70,3 +70,49 @@ function remove() {
     timeline.removeTrack(props.track);
 }
 </script>
+
+<style scoped>
+.track {
+    height: var(--rowHeight);
+    border-bottom: 1px solid var(--surface-border);
+    display: flex;
+    z-index: 3;
+}
+
+.track-header {
+    position: sticky;
+    left: 0;
+    min-width: var(--headerWidth);
+    max-width: var(--headerWidth);
+    height: 100%;
+    background-color: var(--surface-card);
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    z-index: 6;
+}
+
+.track-header .__title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.track-header .__actions {
+    margin-top: 0.5rem;
+    opacity: 0.1;
+    transition: opacity 0.2s linear;
+}
+
+.track-header:hover .__actions {
+    opacity: 1;
+}
+
+.item-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+</style>

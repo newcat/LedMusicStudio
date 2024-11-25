@@ -1,5 +1,5 @@
+import { CalculateFunction, Node } from "baklavajs";
 import { ColorArrayInterface, NumberInterface } from "@/graph/interfaces";
-import { CalculateFunction, Node } from "@baklavajs/core";
 import { Color, mix, blend } from "../../colors";
 import { LmsCalculationContext } from "../../types";
 

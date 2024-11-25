@@ -8,16 +8,17 @@ import "./utils/comlinkVueTransferHandler";
 
 import "splitpanes/dist/splitpanes.css";
 import "@baklavajs/themes/dist/syrup-dark.css";
-import "primevue/resources/themes/vela-blue/theme.css";
+import Nora from "@primevue/themes/nora";
 import "primeicons/primeicons.css";
 import "@mdi/font/css/materialdesignicons.css";
+import "@fontsource-variable/inter";
 import "./index.css";
-import "./styles/all.scss";
 
 import App from "./App.vue";
 import PrimeVue from "primevue/config";
 import ToastService from "primevue/toastservice";
 import Tooltip from "primevue/tooltip";
+import { definePreset, palette } from "@primevue/themes";
 
 async function main() {
     await initializeNativeAdapter();
@@ -30,9 +31,24 @@ async function main() {
         routes: [{ path: "/", component: App }],
     });
 
-    document.getElementById("loadingPlaceholder")?.remove();
+    const preset = definePreset(Nora, {
+        semantic: {
+            primary: palette("{sky}"),
+        },
+    });
 
-    createApp(App).use(PrimeVue).use(ToastService).directive("tooltip", Tooltip).use(pinia).use(router).mount("#app");
+    document.getElementById("loadingPlaceholder")?.remove();
+    createApp(App)
+        .use(PrimeVue, {
+            theme: {
+                preset,
+            },
+        })
+        .use(ToastService)
+        .directive("tooltip", Tooltip)
+        .use(pinia)
+        .use(router)
+        .mount("#app");
 }
 
 void main();

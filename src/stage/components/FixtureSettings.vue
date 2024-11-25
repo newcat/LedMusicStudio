@@ -17,13 +17,13 @@
         <Divider />
 
         <LabelledFormField label="Controller">
-            <Dropdown v-model="controllerId" :options="availableControllers" option-label="name" option-value="id" />
+            <Select v-model="controllerId" :options="availableControllers" option-label="name" option-value="id" />
         </LabelledFormField>
 
         <Divider />
 
         <LabelledFormField label="Visualization">
-            <Dropdown v-model="visualizationType" :options="visualizationTypes" option-label="label" option-value="value" />
+            <Select v-model="visualizationType" :options="visualizationTypes" option-label="label" option-value="value" />
         </LabelledFormField>
         <template v-if="visController">
             <component
@@ -39,7 +39,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import Chip from "primevue/chip";
-import Dropdown from "primevue/dropdown";
+import Select from "primevue/select";
 import Divider from "primevue/divider";
 import Message from "primevue/message";
 

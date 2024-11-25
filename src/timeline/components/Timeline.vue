@@ -10,9 +10,9 @@
         @keyup="keyup"
         @wheel="wheel"
     >
-        <div class="__content" :style="contentStyles">
+        <div class="content" :style="contentStyles">
             <position-marker></position-marker>
-            <div class="__header-row" @click="onHeaderClick">
+            <div class="header-row" @click="onHeaderClick">
                 <div class="__spacer"></div>
                 <div class="__container">
                     <marker-label v-for="m in markers" :key="m.unit" :marker="m"></marker-label>
@@ -53,8 +53,6 @@ import { PatternLibraryItem } from "@/pattern";
 import MarkerLabel from "./MarkerLabel.vue";
 import PositionMarker from "./PositionMarker.vue";
 import TrackView from "./Track.vue";
-
-import "../styles/all.scss";
 
 const globalState = useGlobalState();
 const library = useLibrary();
@@ -372,3 +370,61 @@ function createItem(length: number, libraryItem: LibraryItem) {
     return item;
 }
 </script>
+
+<style scoped>
+.timeline {
+    --rowHeight: 100px;
+    --headerWidth: 200px;
+
+    overflow: auto;
+    width: 100%;
+    height: 100%;
+    background-color: var(--p-panel-background);
+}
+
+.timeline:focus {
+    outline: none;
+}
+
+.--disable-child-pointer-events * {
+    pointer-events: none;
+}
+
+.content {
+    position: relative;
+    background-image: linear-gradient(90deg, var(--surface-border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--surface-overlay) 1px, transparent 1px);
+    background-position: calc(var(--headerWidth) - 1px) -1px;
+    background-repeat: repeat;
+    min-width: 100%;
+}
+.content:focus {
+    outline: none;
+}
+
+.content .__header-row {
+    height: 40px;
+    background-color: var(--surface-card);
+    position: sticky;
+    top: 0;
+    z-index: 4;
+}
+
+.content .__header-row > .__spacer {
+    width: var(--headerWidth);
+    height: 100%;
+    position: sticky;
+    background-color: var(--surface-card);
+    left: 0;
+    z-index: 5;
+}
+
+.content .__header-row > .__container {
+    position: absolute;
+    top: 0;
+    left: var(--headerWidth);
+    height: 100%;
+    width: calc(100% - var(--headerWidth));
+    z-index: 4;
+}
+</style>

@@ -1,6 +1,5 @@
+import { CalculateFunction, SelectInterface } from "baklavajs";
 import { NumberInterface } from "@/graph/interfaces";
-import { CalculateFunction } from "@baklavajs/core";
-import { SelectInterface } from "@baklavajs/renderer-vue";
 import { LmsCalculationContext } from "../../types";
 import { TrackInputNode, TrackInputNodeInputs } from "./TrackInputNode";
 
@@ -28,7 +27,6 @@ export class AutomationNode extends TrackInputNode<Inputs, Outputs> {
 
     public constructor() {
         super();
-        this.title = this.type;
         this.initializeIo();
     }
 

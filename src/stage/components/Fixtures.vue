@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { Ref, ref } from "vue";
+import { ComponentInstance, Ref, ref } from "vue";
 import Button from "primevue/button";
 import Listbox from "primevue/listbox";
 import Panel from "primevue/panel";
@@ -50,7 +50,7 @@ import { createFixture } from "../fixtures/factory";
 const stage = useStage();
 
 const selectedFixture = ref<BaseFixture | null>(null) as Ref<BaseFixture | null>;
-const menu = ref<Menu | null>(null);
+const menu = ref<ComponentInstance<typeof Menu> | null>(null);
 
 const addFixtureOptions: MenuProps["model"] = [
     { label: "LED Strip", icon: "mdi mdi-led-on", command: () => addFixture(FixtureType.LED_STRIP) },

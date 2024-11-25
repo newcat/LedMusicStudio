@@ -63,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ComponentInstance, ref } from "vue";
 import Button from "primevue/button";
 import Listbox from "primevue/listbox";
 import Panel from "primevue/panel";
@@ -81,7 +81,7 @@ import { createController } from "../controllers/factory";
 const stage = useStage();
 
 const selectedController = ref<BaseController | null>(null);
-const menu = ref<Menu | null>(null);
+const menu = ref<ComponentInstance<typeof Menu> | null>(null);
 
 const addControllerOptions: MenuProps["model"] = [
     { label: "WLED", icon: "mdi mdi-led-on", command: () => addController(ControllerType.WLED) },

@@ -1,9 +1,8 @@
 import { watch } from "vue";
-import { Node } from "@baklavajs/core";
+import { Node, SelectInterface } from "baklavajs";
 import { useGlobalState } from "@/globalState";
-import { ICalculationData } from "../../types";
 import { INote } from "@/pattern";
-import { SelectInterface } from "@baklavajs/renderer-vue";
+import { ICalculationData } from "../../types";
 
 export interface TrackInputNodeInputs {
     track: string;

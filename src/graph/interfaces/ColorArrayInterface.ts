@@ -1,5 +1,4 @@
-import { NodeInterface } from "@baklavajs/core";
-import { setType } from "@baklavajs/interface-types";
+import { NodeInterface, setType } from "baklavajs";
 import { Color } from "../colors";
 import { ColorArrayType } from "../interface-types";
 

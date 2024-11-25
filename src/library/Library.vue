@@ -34,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from "vue";
+import { computed, reactive, ref, ComponentInstance } from "vue";
 import Toolbar from "primevue/toolbar";
 import Button from "primevue/button";
 import Menu, { MenuProps } from "primevue/menu";
@@ -53,7 +53,7 @@ import LibraryItemView from "./LibraryItem.vue";
 
 const library = useLibrary();
 
-const menu = ref<Menu | null>(null);
+const menu = ref<ComponentInstance<typeof Menu> | null>(null);
 
 const getMenuItem = (type: LibraryItemType) => ({
     label: LibraryItemTypeLabels[type],

@@ -1,5 +1,5 @@
-import { ColorSingleInterface, IntegerInterface } from "@/graph/interfaces";
 import { defineNode } from "baklavajs";
+import { ColorSingleInterface, IntegerInterface } from "@/graph/interfaces";
 
 export const ColorToRgbNode = defineNode({
     type: "ColorToRgb",

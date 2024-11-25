@@ -12,10 +12,12 @@
 </template>
 
 <script setup lang="ts">
+import { Ref, ref } from "vue";
 import ContextMenu, { ContextMenuProps } from "primevue/contextmenu";
 import { EditorComponent, Components, NodeInterface } from "baklavajs";
 import { GraphLibraryItem } from "./graph.libraryItem";
-import { Ref, ref } from "vue";
+
+import "./styles.css";
 
 const NodeComponent = Components.Node;
 const NodeInterfaceComponent = Components.NodeInterface;

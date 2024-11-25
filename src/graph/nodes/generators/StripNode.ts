@@ -1,5 +1,5 @@
+import { defineNode } from "baklavajs";
 import { ColorArrayInterface, ColorSingleInterface, SliderInterface } from "@/graph/interfaces";
-import { defineNode } from "@baklavajs/core";
 import { Color } from "../../colors";
 import { LmsCalculationContext } from "../../types";
 

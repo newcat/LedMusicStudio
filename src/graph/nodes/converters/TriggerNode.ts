@@ -1,7 +1,6 @@
+import { CalculateFunction, Node, NodeInterface } from "baklavajs";
 import { CheckboxInterface } from "@/graph/interfaces";
 import { LmsCalculationContext } from "@/graph/types";
-import { CalculateFunction, Node } from "@baklavajs/core";
-import { NodeInterface } from "baklavajs";
 
 interface Inputs {
     input: any;

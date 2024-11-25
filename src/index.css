@@ -1,19 +1,41 @@
 @tailwind utilities;
 
+html {
+    overflow: hidden !important;
+}
+
+body {
+    font-family: "Inter Variable", sans-serif;
+    font-size: 15px;
+    user-select: none;
+    background-color: black;
+    color: white;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: calc(100vw - (100vw - 100%));
+    height: 100vh;
+}
+
+.slide-fade-enter-active {
+    transition: all 0.15s ease-out;
+}
+.slide-fade-leave-active {
+    transition: all 0.15s ease-out;
+}
+.slide-fade-enter,
+.slide-fade-leave-to {
+    transform: translateY(5px);
+    opacity: 0;
+}
+
 .splitpanes--vertical > .splitpanes__splitter {
     min-width: 0.5rem;
 }
 
 .splitpanes--horizontal > .splitpanes__splitter {
     min-height: 0.5rem;
-}
-
-.n-card.n-modal {
-    width: fit-content;
-    min-width: 400px;
-    max-width: calc(100vw - 6rem);
-}
-
-html {
-    font-size: 15px;
 }

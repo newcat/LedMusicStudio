@@ -1,5 +1,4 @@
-import { defineNode } from "@baklavajs/core";
-import { SelectInterface } from "@baklavajs/renderer-vue";
+import { defineNode, SelectInterface } from "baklavajs";
 import { TICKS_PER_BEAT } from "@/constants";
 import { LmsCalculationContext } from "../../types";
 import { ColorArrayInterface } from "../../interfaces";

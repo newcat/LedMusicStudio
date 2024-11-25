@@ -1,5 +1,4 @@
-import { setType } from "@baklavajs/interface-types";
-import { CheckboxInterface as OriginalCheckboxInterface } from "@baklavajs/renderer-vue";
+import { setType, CheckboxInterface as OriginalCheckboxInterface } from "baklavajs";
 import { BooleanType } from "../interface-types";
 
 export class CheckboxInterface extends OriginalCheckboxInterface {

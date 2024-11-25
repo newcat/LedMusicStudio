@@ -1,5 +1,4 @@
-import { setType } from "@baklavajs/interface-types";
-import { IntegerInterface as OriginalIntegerInterface } from "@baklavajs/renderer-vue";
+import { setType, IntegerInterface as OriginalIntegerInterface } from "baklavajs";
 import { NumberType } from "../interface-types";
 
 export class IntegerInterface extends OriginalIntegerInterface {

@@ -1,4 +1,4 @@
-import { CalculateFunction, Node } from "@baklavajs/core";
+import { CalculateFunction, Node } from "baklavajs";
 import { LmsCalculationContext } from "../../types";
 import { wasmInterop } from "@/wasmInterop";
 import { Color } from "@/graph/colors";

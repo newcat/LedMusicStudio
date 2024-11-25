@@ -1,7 +1,6 @@
-import { defineNode } from "@baklavajs/core";
+import { defineNode, SelectInterface } from "baklavajs";
 import { ColorArrayInterface } from "@/graph/interfaces";
 import { Color, blend } from "../../colors";
-import { SelectInterface } from "@baklavajs/renderer-vue";
 
 const BLEND_MODES = ["Multiply", "Darken", "Lighten", "Screen", "Overlay", "Burn", "Dodge"] as const;
 type BlendModeTuple = typeof BLEND_MODES;
