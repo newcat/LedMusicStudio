@@ -10,19 +10,18 @@ import { ref, onMounted, onBeforeUnmount } from "vue";
 import { useResizeObserver, useThrottleFn } from "@vueuse/core";
 import * as Comlink from "comlink";
 import { StageRenderer } from "./stageRenderer";
+import { modelLibrary } from "./modelLibrary";
 
 const stageViewEl = ref<HTMLElement>();
 const canvas = ref<HTMLCanvasElement>();
 const sceneLoaded = ref(false);
 
-const renderer = new StageRenderer(sceneLoaded);
-const bc = new BroadcastChannel("visualization");
-Comlink.expose(renderer, bc);
+let renderer: StageRenderer | undefined;
 
 const throttledResize = useThrottleFn(() => void onResize(), 100, true);
 useResizeObserver(stageViewEl, () => void throttledResize());
 
-function initialize() {
+async function initialize() {
     if (!stageViewEl.value) {
         console.warn("stageViewEl is not set");
         return;
@@ -32,24 +31,29 @@ function initialize() {
         return;
     }
 
+    await modelLibrary.initialize();
+
+    renderer = new StageRenderer(sceneLoaded);
+    const bc = new BroadcastChannel("visualization");
+    Comlink.expose(renderer, bc);
     renderer.setCanvas(canvas.value);
 }
 
 function onResize() {
-    if (!stageViewEl.value) {
+    if (!stageViewEl.value || !renderer) {
         return;
     }
 
     renderer.setCanvasSize(stageViewEl.value.clientWidth, stageViewEl.value.clientHeight);
 }
 
-onMounted(() => {
-    initialize();
+onMounted(async () => {
+    await initialize();
     onResize();
 });
 
 onBeforeUnmount(() => {
-    renderer.setCanvas(null);
+    renderer?.setCanvas(null);
 });
 </script>
 

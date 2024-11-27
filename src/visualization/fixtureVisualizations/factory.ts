@@ -3,6 +3,7 @@ import { VisualizationType } from "../fixtureVisualization";
 import { FixtureVisualizationController } from "../fixtureVisualizationController";
 import { LedStripVisualization } from "./ledStrip/ledStrip.visualization";
 import { SpotVisualization } from "./spot/spot.visualization";
+import { MovingHeadVisualization } from "./movingHead/movingHead.visualization";
 
 export function createFixtureVisualizationController(
     type: VisualizationType,
@@ -21,6 +22,8 @@ function getVisualizationByType(type: VisualizationType) {
             return LedStripVisualization;
         case VisualizationType.SPOT:
             return SpotVisualization;
+        case VisualizationType.MOVING_HEAD:
+            return MovingHeadVisualization;
         default:
             throw new Error(`No visualization for type ${type}`);
     }

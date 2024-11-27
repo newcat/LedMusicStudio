@@ -4,6 +4,7 @@ import { BaseFixture, FixtureType } from "@/stage";
 export enum VisualizationType {
     LED_STRIP = "Led Strip",
     SPOT = "Spot",
+    MOVING_HEAD = "Moving Head",
 }
 
 export interface FixtureVisualizationContext<Fixture extends BaseFixture, Config, Value> {

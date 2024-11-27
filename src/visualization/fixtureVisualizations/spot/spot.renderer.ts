@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 import fragmentShader from "../../shaders/volumetricSpot.frag?raw";
 import vertexShader from "../../shaders/volumetricSpot.vert?raw";
-import { BaseRenderer } from "../base.renderer";
+import { BaseRenderer, RendererInputs } from "../base.renderer";
 import { SpotVisualizationConfig } from "./types";
 
 export class SpotRenderer extends BaseRenderer<SpotVisualizationConfig, number[]> {
@@ -13,8 +13,8 @@ export class SpotRenderer extends BaseRenderer<SpotVisualizationConfig, number[]
     private spotlightTarget: THREE.Object3D;
     private config!: SpotVisualizationConfig;
 
-    constructor() {
-        super();
+    constructor(inputs: RendererInputs) {
+        super(inputs);
 
         this.volumeMaterial = new THREE.ShaderMaterial({
             uniforms: {

@@ -1,24 +1,28 @@
 import * as THREE from "three";
+import { Ref } from "vue";
 
 import { VisualizationType } from "./fixtureVisualization";
-import type { BaseRenderer } from "./fixtureVisualizations/base.renderer";
+import type { BaseRenderer, RendererInputs } from "./fixtureVisualizations/base.renderer";
 import { LedStripRenderer } from "./fixtureVisualizations/ledStrip/ledStrip.renderer";
 import { SpotRenderer } from "./fixtureVisualizations/spot/spot.renderer";
-import { Ref } from "vue";
+import { MovingHeadRenderer } from "./fixtureVisualizations/movingHead/movingHead.renderer";
 
 type FixtureRenderers = {
     [VisualizationType.LED_STRIP]: LedStripRenderer;
     [VisualizationType.SPOT]: SpotRenderer;
+    [VisualizationType.MOVING_HEAD]: MovingHeadRenderer;
 };
 type FixtureRendererConfig<T extends VisualizationType> = FixtureRenderers[T] extends BaseRenderer<infer C> ? C : never;
 type FixtureRendererValue<T extends VisualizationType> = FixtureRenderers[T] extends BaseRenderer<any, infer V> ? V : never;
 
-function getFixtureRendererType<T extends VisualizationType>(visualizationType: T): new () => FixtureRenderers[T] {
+function getFixtureRendererType<T extends VisualizationType>(visualizationType: T): new (inputs: RendererInputs) => FixtureRenderers[T] {
     switch (visualizationType) {
         case VisualizationType.LED_STRIP:
             return LedStripRenderer as any;
         case VisualizationType.SPOT:
             return SpotRenderer as any;
+        case VisualizationType.MOVING_HEAD:
+            return MovingHeadRenderer as any;
         default:
             throw new Error(`No renderer for visualization type ${visualizationType}`);
     }
@@ -112,7 +116,9 @@ export class StageRenderer {
         initialConfig: FixtureRendererConfig<T>
     ) {
         this.removeFixtureRenderer(fixtureId);
-        const newRenderer = new (getFixtureRendererType<T>(visualizationType))();
+        const newRenderer = new (getFixtureRendererType<T>(visualizationType))({
+            camera: this.camera!,
+        });
         newRenderer.onConfigUpdate(initialConfig as any);
         this._fixtureRenderers.set(fixtureId, newRenderer);
         this._scene?.add(newRenderer);
@@ -143,7 +149,7 @@ export class StageRenderer {
 
     public loadScene(baseScene: any) {
         const loader = new THREE.ObjectLoader();
-        this._scene = loader.parse(baseScene) as THREE.Scene;
+        this._scene = loader.parse("scene" in baseScene ? baseScene.scene : baseScene) as THREE.Scene;
         this.sceneLoadedRef.value = true;
 
         this._camera = this._scene.children.find((child) => child.type === "PerspectiveCamera") as THREE.PerspectiveCamera;
