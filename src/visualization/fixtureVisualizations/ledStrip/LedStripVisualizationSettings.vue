@@ -42,6 +42,8 @@ import { useEditClone } from "@/utils";
 
 import { LedStripVisualizationConfig } from "./types";
 
+defineOptions({ inheritAttrs: false });
+
 const props = defineProps<{
     config: LedStripVisualizationConfig;
 }>();

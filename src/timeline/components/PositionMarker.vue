@@ -20,7 +20,7 @@ const styles = computed(() => ({
     position: absolute;
     height: 100%;
     width: 2px;
-    background-color: var(--primary-color);
+    background-color: var(--p-primary-color);
     z-index: 5;
 }
 
@@ -35,6 +35,6 @@ const styles = computed(() => ({
     transform: translateX(calc(-50% + 1px));
     border-left: var(--arrowSize) solid transparent;
     border-right: var(--arrowSize) solid transparent;
-    border-top: var(--arrowSize) solid var(--primary-color);
+    border-top: var(--arrowSize) solid var(--p-primary-color);
 }
 </style>

@@ -36,7 +36,7 @@
 import { computed, ref } from "vue";
 import Button from "primevue/button";
 
-import { Item, Track, useTimeline } from "../model";
+import { Track, useTimeline } from "../model";
 import TimelineItem from "./TimelineItem.vue";
 import TrackSettings from "./TrackSettings.vue";
 
@@ -51,7 +51,7 @@ const timeline = useTimeline();
 const settingsOpen = ref(false);
 const confirmRemove = ref(false);
 
-const items = computed(() => timeline.items.filter((i) => i.trackId === props.track.id) as Item[]);
+const items = computed(() => timeline.items.filter((i) => i.trackId === props.track.id));
 
 const unitWidth = computed(() => {
     return timeline.unitWidth;
@@ -74,7 +74,7 @@ function remove() {
 <style scoped>
 .track {
     height: var(--rowHeight);
-    border-bottom: 1px solid var(--surface-border);
+    border-bottom: 1px solid var(--p-form-field-disabled-background);
     display: flex;
     z-index: 3;
 }
@@ -85,8 +85,8 @@ function remove() {
     min-width: var(--headerWidth);
     max-width: var(--headerWidth);
     height: 100%;
-    background-color: var(--surface-card);
-    color: var(--text-color);
+    background-color: var(--p-form-field-background);
+    color: var(--p-text-color);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -102,7 +102,7 @@ function remove() {
 
 .track-header .__actions {
     margin-top: 0.5rem;
-    opacity: 0.1;
+    opacity: 0.3;
     transition: opacity 0.2s linear;
 }
 

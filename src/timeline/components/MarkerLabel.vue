@@ -40,10 +40,10 @@ const label = computed(() => {
 }
 
 .marker-label.--major {
-    color: var(--text-color);
+    color: var(--p-text-color);
 }
 
 .marker-label.--minor {
-    color: var(--text-color-secondary);
+    color: var(--p-text-muted-color);
 }
 </style>

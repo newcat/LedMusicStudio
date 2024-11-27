@@ -63,7 +63,7 @@ function dragStart(area: ItemArea) {
     position: absolute;
     height: calc(100% - 10px);
     top: 5px;
-    background-color: var(--surface-hover);
+    background-color: var(--p-mask-background);
     border-radius: 3px;
     border: 2px solid transparent;
     transition: border-color 0.1s;
@@ -71,11 +71,11 @@ function dragStart(area: ItemArea) {
 }
 
 .timeline-item:hover:not(.--selected) {
-    border-color: var(--surface-border);
+    border-color: var(--p-primary-hover-color);
 }
 
 .timeline-item.--selected {
-    border-color: var(--primary-color);
+    border-color: var(--p-primary-color);
     z-index: 1;
 }
 
@@ -85,7 +85,7 @@ function dragStart(area: ItemArea) {
 }
 
 .timeline-item__header-text {
-    color: var(--text-color);
+    color: var(--p-text-color);
     font-size: 0.75rem;
     padding: 0.1rem;
     margin-left: 5px;
@@ -106,7 +106,7 @@ function dragStart(area: ItemArea) {
     height: 50%;
     width: 6px;
     top: 25%;
-    background-color: var(--primary-color);
+    background-color: var(--p-primary-color);
     cursor: col-resize;
 }
 
