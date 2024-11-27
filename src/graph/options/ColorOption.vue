@@ -19,16 +19,15 @@ defineProps<{
 }>();
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .color-option {
     display: flex;
+}
+.__name {
+    flex-grow: 1;
+}
 
-    & > .__name {
-        flex-grow: 1;
-    }
-
-    & > .__color {
-        width: 60px;
-    }
+.__color {
+    width: 60px;
 }
 </style>

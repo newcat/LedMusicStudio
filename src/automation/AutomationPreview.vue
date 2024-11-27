@@ -69,13 +69,14 @@ function getYCoordinate(value: number) {
 }
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .automation-clip {
     width: 100%;
     height: 100%;
-    & line {
-        stroke: white;
-        fill: white;
-    }
+}
+
+.automation-clip line {
+    stroke: white;
+    fill: white;
 }
 </style>

@@ -204,51 +204,51 @@ function clickedOnNote(ev: MouseEvent) {
 }
 </script>
 
-<style lang="scss">
+<style scoped>
 .note-editor {
+    --row-height: 30px;
+    --header-width: 50px;
+
     overflow-y: scroll;
     width: 100%;
+}
 
-    $rowHeight: 30px;
-    $headerWidth: 50px;
+.__content {
+    position: relative;
+    background-image: linear-gradient(90deg, #504f5c 1px, transparent 1px);
+    background-position: calc(var(--header-width) - 1px) -1px;
+    background-repeat: repeat;
+    min-width: 100%;
+}
 
-    .__content {
-        position: relative;
-        background-image: linear-gradient(90deg, #504f5c 1px, transparent 1px);
-        background-position: ($headerWidth - 1px) -1px;
-        background-repeat: repeat;
-        min-width: 100%;
+.__content:focus {
+    outline: none;
+}
 
-        &:focus {
-            outline: none;
-        }
-    }
+.__row {
+    height: var(--row-height);
+    border-bottom: 1px solid #504f5c;
+    display: flex;
+    z-index: 20;
+}
 
-    .__row {
-        height: $rowHeight;
-        border-bottom: 1px solid #504f5c;
-        display: flex;
-        z-index: 20;
+.__header {
+    position: sticky;
+    left: 0;
+    min-width: var(--header-width);
+    max-width: var(--header-width);
+    height: 100%;
+    background-color: #33333d;
+    color: #bbb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
 
-        .__header {
-            position: sticky;
-            left: 0;
-            min-width: $headerWidth;
-            max-width: $headerWidth;
-            height: 100%;
-            background-color: #33333d;
-            color: #bbb;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-        }
-
-        .__note-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-    }
+.__note-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
 }
 </style>

@@ -29,7 +29,7 @@ function resizeStart(ev: MouseEvent) {
 }
 </script>
 
-<style lang="scss">
+<style scoped>
 .note {
     position: absolute;
     height: calc(100% - 2px);
@@ -38,21 +38,21 @@ function resizeStart(ev: MouseEvent) {
     border: 1px solid lighten(#1eb980, 20%);
     border-radius: 3px;
     transition: border 0.1s;
+}
 
-    &:hover {
-        border-color: #fff;
-    }
+.note:hover {
+    border-color: #fff;
+}
 
-    &.--selected {
-        border: 2px solid #fff;
-    }
+.note.--selected {
+    border: 2px solid #fff;
+}
 
-    .__resizeHandle {
-        position: absolute;
-        right: 0;
-        width: 8px;
-        height: 100%;
-        cursor: col-resize;
-    }
+.__resizeHandle {
+    position: absolute;
+    right: 0;
+    width: 8px;
+    height: 100%;
+    cursor: col-resize;
 }
 </style>
