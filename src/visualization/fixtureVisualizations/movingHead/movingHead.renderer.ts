@@ -2,10 +2,11 @@ import * as THREE from "three";
 
 import { modelLibrary } from "../../modelLibrary";
 import { BaseRenderer, RendererInputs } from "../base.renderer";
-import { MovingHeadVisualizationConfig } from "./types";
+import { MovingHeadVisualizationConfig } from "./movingHead.visualizationConfig";
 
 import VOLUMETRIC_BEAM_VERTEX_SHADER from "./beam.vertex.glsl?raw";
 import VOLUMETRIC_BEAM_FRAGMENT_SHADER from "./beam.fragment.glsl?raw";
+import { ChannelMapping } from "../types";
 
 const SPOTLIGHT_PHYSICALLY_CORRECT_DISTANCE = 0;
 const SPOTLIGHT_PHYSICALLY_CORRECT_INTENSITY = 100.0;
@@ -16,7 +17,7 @@ const BEAM_RESOLUTION = 100;
 const BEAM_SEGMENTS = 1;
 const BEAM_LENGTH = 100;
 const BEAM_TOP_RADIUS = 0.09;
-const BEAM_MAX_ANGLE = 45;
+// const BEAM_MAX_ANGLE = 45;
 
 function degToRad(degAngle: number) {
     return degAngle * (Math.PI / 180);
@@ -30,6 +31,9 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
     private readonly cap;
     private readonly target = new THREE.Object3D();
     private readonly spotlight: THREE.SpotLight;
+    private beamMaterial!: THREE.ShaderMaterial;
+
+    private config!: MovingHeadVisualizationConfig;
 
     public constructor(inputs: RendererInputs) {
         super(inputs);
@@ -62,12 +66,6 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
         this.head.attach(this.target);
         this.spotlight.target = this.target;
 
-        this.head.attach(new THREE.Mesh(new THREE.SphereGeometry(0.05)));
-
-        const bh = new THREE.BoxHelper(this.beam, 0xffff00);
-        this.head.attach(bh);
-        bh.update();
-
         this.add(this.base);
 
         this.yoke.rotateY(Math.PI / 4);
@@ -75,12 +73,30 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
     }
 
     public onConfigUpdate(c: MovingHeadVisualizationConfig): void {
-        // TODO
+        this.config = c;
+        this.position.set(c.position[0], c.position[1], c.position[2]);
+        this.rotation.set(degToRad(c.rotation[0]), degToRad(c.rotation[1]), degToRad(c.rotation[2]));
     }
 
     public onFixtureValueUpdate(v: number[]): void {
-        // TODO
+        const pan = this.getChannelValue(this.config.channelMapping.pan, v);
+        const tilt = this.getChannelValue(this.config.channelMapping.tilt, v);
+        const beamAngle = this.getChannelValue(this.config.channelMapping.beamAngle, v);
+        const red = this.getChannelValue(this.config.channelMapping.red, v);
+        const green = this.getChannelValue(this.config.channelMapping.green, v);
+        const blue = this.getChannelValue(this.config.channelMapping.blue, v);
+
+        this.yoke.rotation.y = degToRad(pan);
+        this.head.rotation.x = degToRad(tilt);
+
+        this.spotlight.color.setRGB(red / 255, green / 255, blue / 255);
+        this.beamMaterial.uniforms.color.value = new THREE.Color(red / 255, green / 255, blue / 255);
+
+        this.spotlight.angle = degToRad(beamAngle);
+        this.beamMaterial.uniforms.angle.value = new THREE.Vector3(beamAngle, 0, 0);
     }
+
+    public override dispose(): void {}
 
     private getBeam() {
         const beamLength = BEAM_LENGTH;
@@ -95,68 +111,74 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
             new THREE.BufferAttribute(new Float32Array(verticesIndexBuffer), 1).setUsage(THREE.StaticDrawUsage)
         );
 
-        const beamMesh = new THREE.Mesh(
-            beamGeometry,
-            new THREE.ShaderMaterial({
-                transparent: true,
-                depthWrite: false,
-                clipping: true,
-                side: THREE.DoubleSide,
-                blending: THREE.AdditiveBlending,
-                vertexShader: VOLUMETRIC_BEAM_VERTEX_SHADER,
-                fragmentShader: VOLUMETRIC_BEAM_FRAGMENT_SHADER,
-                fog: false,
-                toneMapped: false,
-                dithering: false,
-                uniforms: {
-                    cameraDir: {
-                        value: this.inputs.camera.getWorldDirection(new THREE.Vector3()),
-                    },
-                    cameraPos: {
-                        value: this.inputs.camera.getWorldPosition(new THREE.Vector3()),
-                    },
-                    vertexCount: {
-                        value: beamGeometry.attributes.position.count,
-                    },
-                    topRadius: {
-                        value: BEAM_TOP_RADIUS,
-                    },
-                    len: {
-                        value: beamLength,
-                    },
-                    color: {
-                        value: new THREE.Color(0xffffff),
-                    },
-                    intensity: {
-                        value: 1.0,
-                    },
-                    wpos: {
-                        value: this.target.getWorldDirection(new THREE.Vector3()).normalize(),
-                    },
-                    direction: {
-                        value: this.target.getWorldDirection(new THREE.Vector3()).normalize(),
-                    },
-                    angle: {
-                        value: new THREE.Vector3(15.0, 1.0, 0.0),
-                    },
-                    time: {
-                        value: 0.0,
-                    },
-                    fogState: {
-                        value: true,
-                    },
-                    fogFactor: {
-                        value: 1.0,
-                    },
-                    fogTurbulence: {
-                        value: 1.0,
-                    },
-                    glowFactor: {
-                        value: 1.0,
-                    },
+        const cameraDir = new THREE.Vector3();
+        const cameraPos = new THREE.Vector3();
+        if (this.inputs.camera) {
+            this.inputs.camera.getWorldDirection(cameraDir);
+            this.inputs.camera.getWorldPosition(cameraPos);
+        }
+
+        this.beamMaterial = new THREE.ShaderMaterial({
+            transparent: true,
+            depthWrite: false,
+            clipping: true,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending,
+            vertexShader: VOLUMETRIC_BEAM_VERTEX_SHADER,
+            fragmentShader: VOLUMETRIC_BEAM_FRAGMENT_SHADER,
+            fog: false,
+            toneMapped: false,
+            dithering: false,
+            uniforms: {
+                cameraDir: {
+                    value: cameraDir,
                 },
-            })
-        );
+                cameraPos: {
+                    value: cameraPos,
+                },
+                vertexCount: {
+                    value: beamGeometry.attributes.position.count,
+                },
+                topRadius: {
+                    value: BEAM_TOP_RADIUS,
+                },
+                len: {
+                    value: beamLength,
+                },
+                color: {
+                    value: new THREE.Color(0xffffff),
+                },
+                intensity: {
+                    value: 1.0,
+                },
+                wpos: {
+                    value: this.target.getWorldDirection(new THREE.Vector3()).normalize(),
+                },
+                direction: {
+                    value: this.target.getWorldDirection(new THREE.Vector3()).normalize(),
+                },
+                angle: {
+                    value: new THREE.Vector3(15.0, 1.0, 0.0),
+                },
+                time: {
+                    value: 0.0,
+                },
+                fogState: {
+                    value: true,
+                },
+                fogFactor: {
+                    value: 1.0,
+                },
+                fogTurbulence: {
+                    value: 1.0,
+                },
+                glowFactor: {
+                    value: 1.0,
+                },
+            },
+        });
+
+        const beamMesh = new THREE.Mesh(beamGeometry, this.beamMaterial);
 
         // beamMesh.rotateX(Math.PI);
         beamMesh.translateY(beamGeometry.parameters.height / 2 + 0.73);
@@ -175,5 +197,22 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
 
         const capMesh = new THREE.Mesh(capGeometry, capMaterial);
         return capMesh;
+    }
+
+    private getChannelValue(channelOrMapping: number | ChannelMapping, channelValues: number[]): number {
+        const channel = typeof channelOrMapping === "number" ? channelOrMapping : channelOrMapping.channel;
+        const defaultValue = typeof channelOrMapping === "number" ? 0 : channelOrMapping.defaultValue;
+        if (channel < 0) {
+            return defaultValue;
+        }
+
+        const channelValue = channelValues[channel];
+        if (channelValue === undefined) {
+            return defaultValue;
+        }
+        if (typeof channelOrMapping === "number") {
+            return channelValue;
+        }
+        return (channelValue / 255) * (channelOrMapping.max - channelOrMapping.min) + channelOrMapping.min;
     }
 }

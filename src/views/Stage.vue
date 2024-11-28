@@ -77,6 +77,7 @@ async function exportStage() {
 .content {
     margin: 1rem;
     display: flex;
+    min-height: 0;
     height: 100%;
     width: calc(100% - 2rem);
 }

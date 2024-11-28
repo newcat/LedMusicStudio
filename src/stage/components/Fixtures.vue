@@ -18,7 +18,11 @@
                 </div>
             </template>
         </Listbox>
-        <Panel header="Fixture Settings" class="flex flex-col" :pt="{ toggleableContent: { class: 'grow' }, content: { class: 'h-full' } }">
+        <Panel
+            header="Fixture Settings"
+            class="flex flex-col overflow-auto"
+            :pt="{ contentContainer: { class: 'overflow-auto' }, content: { class: 'h-full' } }"
+        >
             <template #icons>
                 <button
                     v-tooltip.left="'Remove Fixture'"
