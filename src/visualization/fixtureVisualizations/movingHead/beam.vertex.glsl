@@ -4,7 +4,7 @@ attribute float index;      //fragment index
 
 uniform float vertexCount;  //Total vertex count
 uniform float topRadius;    //Top radius of the cylinder
-uniform float length;       //Maximum length of the cylinder
+uniform float len;       //Maximum length of the cylinder
 uniform vec3 direction;   //beam direction
 uniform vec3 color;       //beam color
 uniform float intensity;  //beam intensity
@@ -30,11 +30,13 @@ varying float vIndex;           //Vertex index
  * @returns vec3 the transformed vertex position vector
  */
 vec3 computeRadiusVertexScaleFactor(vec3 vector) {
-  if(index >= vertexCount / 2.0) {
-    float height = topRadius / tan(radians(angle.x)) + length + 20.0; //20.0 offset seems to be do the job taking into accont that light is emitted from a conical frustum.. There should be a formula capable of handling that more accurately though
-    float radius = tan(radians(angle.x)) * height;
-    float scaleFactor = radius / topRadius;
-    return vector * vec3(scaleFactor, scaleFactor, 1.5);
+  if (index < vertexCount / 2.0) {
+    vec3 center = vec3(0.0, len / 2.0, 0.0);
+    vec3 centerOffset = vector - center;
+    float currentDistance = length(centerOffset);
+    float targetDistance = tan(radians(angle.x)) * len;
+    float scaleFactor = targetDistance / currentDistance;
+    return vector + (centerOffset * scaleFactor);
   }
   return vector;
 }
@@ -52,6 +54,7 @@ void main() {
   vUv = uv;                   //forwarding UV values to fragement shader
   vIndex = index;             //forwarding vertex index to fragement shader
   vPosition = computeRadiusVertexScaleFactor(position);     //Displaing vertex position to match desired angle
+  // vPosition = position;
   vWorldPosition = projectionMatrix * viewMatrix * modelMatrix * vec4(vPosition, 1.0);      //Determining vertex worldspace coordinates
   vNormal = vec3(viewMatrix * modelMatrix * vec4(normal, 0.0));  //Computing instance normal
 

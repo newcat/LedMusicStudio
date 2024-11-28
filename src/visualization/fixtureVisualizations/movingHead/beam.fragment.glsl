@@ -108,6 +108,7 @@ uniform float time;             //Current time
 uniform float vertexCount;      //Per instance vertex count
 uniform vec3 cameraDir;         //Camera direction
 uniform vec3 cameraPos;
+uniform float len;
 
 varying vec3 vPosition;         //Vertex local position
 varying vec3 beamPos;           //Vertex local position
@@ -196,10 +197,12 @@ void main() {
 
   vec3 normal = recomputeVertexNormal();
 
+  vec3 pos = vPosition + vec3(0, len / 2.0, 0);
+
   vec3 dirCamToLight = normalize(cameraPos - beamPos);
   float alignmentFactor = 1.0 - abs(dot(vDirection, dirCamToLight));
   float glareFactor = min(max(1.0 - (dot(-cameraDir, vDirection)), abs(sin(radians(vAngle)))), 0.5);
-  float distance = sqrt(pow(vPosition.x, 2.0) + pow(vPosition.y, 2.0) + pow(vPosition.z, 2.0));
+  float distance = sqrt(pow(pos.x, 2.0) + pow(pos.y, 2.0) + pow(pos.z, 2.0));
   float attenuation = 2.0 / (1.0 + alignmentFactor * distance + radians(vAngle) * distance * distance);
   float anglePower = pow(dot(normalize(vWorldPosition.xyz), (normal)), 4.0 * alignmentFactor);
 
@@ -210,6 +213,4 @@ void main() {
   vec3 rgbColor = hsv2rgb(hsvColor);
 
   gl_FragColor = vec4(rgbColor * computeFog(intensity) * vIntensity, 1.0);
-  // gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-
 }

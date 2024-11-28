@@ -18,10 +18,14 @@ const BEAM_LENGTH = 100;
 const BEAM_TOP_RADIUS = 0.09;
 const BEAM_MAX_ANGLE = 45;
 
+function degToRad(degAngle: number) {
+    return degAngle * (Math.PI / 180);
+}
+
 export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConfig, number[]> {
-    private readonly base: THREE.Object3D;
-    private readonly head: THREE.Object3D;
-    private readonly yoke: THREE.Object3D;
+    private readonly base: THREE.Mesh;
+    private readonly head: THREE.Mesh;
+    private readonly yoke: THREE.Mesh;
     private readonly beam;
     private readonly cap;
     private readonly target = new THREE.Object3D();
@@ -30,21 +34,22 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
     public constructor(inputs: RendererInputs) {
         super(inputs);
 
-        const model = modelLibrary.getModel("MovingHead");
-        this.base = model.children[0].clone();
-        this.head = model.children[1].clone();
-        this.yoke = model.children[2].clone();
+        const model = modelLibrary.getModel("MovingHead").children[0].clone();
+        this.base = model.getObjectByName("base_001")! as THREE.Mesh;
+        this.yoke = model.getObjectByName("yoke_001")! as THREE.Mesh;
+        this.head = model.getObjectByName("head_001")! as THREE.Mesh;
 
         this.spotlight = new THREE.SpotLight(
             0xffffff,
             SPOTLIGHT_PHYSICALLY_CORRECT_INTENSITY,
             SPOTLIGHT_PHYSICALLY_CORRECT_DISTANCE,
-            Math.PI / 22,
+            degToRad(15),
             SPOTLIGHT_PHYSICALLY_CORRECT_PENUMBRA,
             SPOTLIGHT_PHYSICALLY_CORRECT_DECAY
         );
-        this.spotlight.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
-        this.spotlight.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0, 0.9));
+        this.spotlight.applyMatrix4(new THREE.Matrix4().makeTranslation(0, -0.73, 0));
+
+        this.target.translateY(10);
 
         this.beam = this.getBeam();
         this.cap = this.getCap();
@@ -52,10 +57,21 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
         this.base.attach(this.yoke);
         this.yoke.attach(this.head);
         this.head.attach(this.beam);
-        this.beam.attach(this.target);
-        this.beam.attach(this.spotlight);
+        this.head.attach(this.cap);
+        this.head.attach(this.spotlight);
+        this.head.attach(this.target);
         this.spotlight.target = this.target;
-        this.add(this.base, this.cap);
+
+        this.head.attach(new THREE.Mesh(new THREE.SphereGeometry(0.05)));
+
+        const bh = new THREE.BoxHelper(this.beam, 0xffff00);
+        this.head.attach(bh);
+        bh.update();
+
+        this.add(this.base);
+
+        this.yoke.rotateY(Math.PI / 4);
+        this.head.rotateX(Math.PI / 4);
     }
 
     public onConfigUpdate(c: MovingHeadVisualizationConfig): void {
@@ -67,18 +83,8 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
     }
 
     private getBeam() {
-        const beamGeometry = new THREE.CylinderGeometry(
-            BEAM_TOP_RADIUS,
-            BEAM_TOP_RADIUS,
-            BEAM_LENGTH,
-            BEAM_RESOLUTION,
-            BEAM_SEGMENTS,
-            true
-        );
-
-        beamGeometry.applyMatrix4(new THREE.Matrix4().makeTranslation(0, -beamGeometry.parameters.height / 2, 0));
-        beamGeometry.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
-        beamGeometry.applyMatrix4(new THREE.Matrix4().setPosition(0, 0, 0.258));
+        const beamLength = BEAM_LENGTH;
+        const beamGeometry = new THREE.CylinderGeometry(BEAM_TOP_RADIUS, BEAM_TOP_RADIUS, beamLength, BEAM_RESOLUTION, BEAM_SEGMENTS, true);
 
         const verticesIndexBuffer = [];
         for (let i = 0; i < beamGeometry.attributes.position.count; i++) {
@@ -115,8 +121,8 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
                     topRadius: {
                         value: BEAM_TOP_RADIUS,
                     },
-                    length: {
-                        value: BEAM_LENGTH,
+                    len: {
+                        value: beamLength,
                     },
                     color: {
                         value: new THREE.Color(0xffffff),
@@ -152,6 +158,9 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
             })
         );
 
+        // beamMesh.rotateX(Math.PI);
+        beamMesh.translateY(beamGeometry.parameters.height / 2 + 0.73);
+
         return beamMesh;
     }
 
@@ -161,10 +170,10 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
             side: THREE.DoubleSide,
         });
 
-        capGeometry.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0, 0.255));
+        capGeometry.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0, 0.73));
+        capGeometry.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
 
         const capMesh = new THREE.Mesh(capGeometry, capMaterial);
-
         return capMesh;
     }
 }
