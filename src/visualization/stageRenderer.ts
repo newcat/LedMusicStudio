@@ -1,5 +1,9 @@
-import * as THREE from "three";
 import { Ref } from "vue";
+import * as THREE from "three";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass";
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass";
 
 import { VisualizationType } from "./fixtureVisualization";
 import type { BaseRenderer, RendererInputs } from "./fixtureVisualizations/base.renderer";
@@ -42,86 +46,56 @@ export interface StageRendererMessage<T extends keyof StageRendererPayloads> {
     payload: StageRendererPayloads[T];
 }
 
-export class StageRenderer {
-    private _scene: THREE.Scene | null = null;
-    private _camera: THREE.PerspectiveCamera | null = null;
-    private _fixtureRenderers: Map<string, BaseRenderer> = new Map();
+export class RenderingInstance {
+    private continueRendering = true;
 
-    private renderer: THREE.WebGLRenderer | null = null;
-    private canvas: HTMLCanvasElement | null = null;
+    private fixtureRenderers: Map<string, BaseRenderer> = new Map();
+    private renderer: THREE.WebGLRenderer;
+    private composer: EffectComposer;
+    private bloomPass: UnrealBloomPass;
 
-    public get fixtureRenderers() {
-        return this._fixtureRenderers as ReadonlyMap<string, BaseRenderer>;
-    }
+    public constructor(
+        canvas: HTMLCanvasElement,
+        private readonly scene: THREE.Scene,
+        private readonly camera: THREE.PerspectiveCamera,
+    ) {
+        this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 4;
 
-    public get scene() {
-        return this._scene;
-    }
+        const renderScene = new RenderPass(scene, camera);
+        this.bloomPass = new UnrealBloomPass(new THREE.Vector2(canvas.width, canvas.height), 0.2, 0, 0.5);
+        const outputPass = new OutputPass();
 
-    public get camera() {
-        return this._camera;
-    }
-
-    public constructor(private readonly sceneLoadedRef: Ref<boolean>) {
-        sceneLoadedRef.value = false;
-
-        const bc = new BroadcastChannel("visualization");
-        bc.addEventListener("message", (ev) => {
-            const data = JSON.parse(ev.data) as StageRendererMessage<keyof StageRendererPayloads>;
-            if (data.type === "createFixtureRenderer") {
-                this.createFixtureRenderer(...(data as StageRendererMessage<"createFixtureRenderer">).payload);
-            } else if (data.type === "onFixtureConfigUpdate") {
-                this.onFixtureConfigUpdate(...(data as StageRendererMessage<"onFixtureConfigUpdate">).payload);
-            } else if (data.type === "onFixtureValueUpdate") {
-                this.onFixtureValueUpdate(...(data as StageRendererMessage<"onFixtureValueUpdate">).payload);
-            } else if (data.type === "removeFixtureRenderer") {
-                this.removeFixtureRenderer(...(data as StageRendererMessage<"removeFixtureRenderer">).payload);
-            } else if (data.type === "loadScene") {
-                this.loadScene(...(data as StageRendererMessage<"loadScene">).payload);
-            } else if (data.type === "reset") {
-                this.reset();
-            }
-        });
-
-        bc.postMessage(JSON.stringify({ type: "ready" }));
+        this.composer = new EffectComposer(this.renderer);
+        this.composer.addPass(renderScene);
+        this.composer.addPass(this.bloomPass);
+        this.composer.addPass(outputPass);
 
         this.render();
     }
 
-    public setCanvas(canvas: HTMLCanvasElement | null) {
-        if (this.renderer) {
-            this.renderer.dispose();
-            this.renderer = null;
-        }
-
-        this.canvas = canvas;
-        if (canvas) {
-            this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-        }
-    }
-
-    public setCanvasSize(width: number, height: number) {
-        if (this.canvas) {
-            this.canvas.width = width;
-            this.canvas.height = height;
-        }
-        if (this.renderer) {
-            this.renderer.setSize(width, height, false);
-        }
+    public resize(width: number, height: number) {
+        this.renderer.setSize(width, height, false);
+        this.composer.setSize(width, height);
+        this.bloomPass.resolution.set(width, height);
+        this.camera.aspect = width / height;
+        this.camera.updateProjectionMatrix();
     }
 
     public createFixtureRenderer<T extends VisualizationType>(
         fixtureId: string,
         visualizationType: T,
-        initialConfig: FixtureRendererConfig<T>
+        initialConfig: FixtureRendererConfig<T>,
     ) {
         this.removeFixtureRenderer(fixtureId);
         const newRenderer = new (getFixtureRendererType<T>(visualizationType))({
-            camera: this.camera!,
+            camera: this.camera,
         });
         newRenderer.onConfigUpdate(initialConfig as any);
-        this._fixtureRenderers.set(fixtureId, newRenderer);
-        this._scene?.add(newRenderer);
+        this.fixtureRenderers.set(fixtureId, newRenderer);
+        this.scene.add(newRenderer);
     }
 
     public onFixtureConfigUpdate<T extends VisualizationType>(fixtureId: string, config: FixtureRendererConfig<T>) {
@@ -143,39 +117,79 @@ export class StageRenderer {
         if (fixtureRenderer) {
             this.scene?.remove(fixtureRenderer);
             fixtureRenderer.dispose();
-            this._fixtureRenderers.delete(fixtureId);
+            this.fixtureRenderers.delete(fixtureId);
         }
+    }
+
+    public dispose() {
+        this.continueRendering = false;
+        this.renderer.dispose();
+        this.composer.dispose();
+    }
+
+    private render() {
+        if (!this.continueRendering) {
+            return;
+        }
+
+        requestAnimationFrame(() => this.render());
+        this.composer.render();
+    }
+}
+
+export class StageRenderer {
+    private readonly bc: BroadcastChannel;
+    private renderingInstance: RenderingInstance | null = null;
+
+    public constructor(
+        private readonly sceneLoadedRef: Ref<boolean>,
+        private readonly canvas: HTMLCanvasElement,
+    ) {
+        sceneLoadedRef.value = false;
+
+        this.bc = new BroadcastChannel("visualization");
+        this.bc.addEventListener("message", (ev) => {
+            const data = JSON.parse(ev.data) as StageRendererMessage<keyof StageRendererPayloads>;
+            if (data.type === "createFixtureRenderer") {
+                this.renderingInstance?.createFixtureRenderer(...(data as StageRendererMessage<"createFixtureRenderer">).payload);
+            } else if (data.type === "onFixtureConfigUpdate") {
+                this.renderingInstance?.onFixtureConfigUpdate(...(data as StageRendererMessage<"onFixtureConfigUpdate">).payload);
+            } else if (data.type === "onFixtureValueUpdate") {
+                this.renderingInstance?.onFixtureValueUpdate(...(data as StageRendererMessage<"onFixtureValueUpdate">).payload);
+            } else if (data.type === "removeFixtureRenderer") {
+                this.renderingInstance?.removeFixtureRenderer(...(data as StageRendererMessage<"removeFixtureRenderer">).payload);
+            } else if (data.type === "loadScene") {
+                this.loadScene(...(data as StageRendererMessage<"loadScene">).payload);
+            } else if (data.type === "reset") {
+                this.reset();
+            }
+        });
+
+        this.bc.postMessage(JSON.stringify({ type: "ready" }));
+    }
+
+    public setCanvasSize(width: number, height: number) {
+        if (this.canvas) {
+            this.canvas.width = width;
+            this.canvas.height = height;
+        }
+        this.renderingInstance?.resize(width, height);
     }
 
     public loadScene(baseScene: any) {
         const loader = new THREE.ObjectLoader();
-        this._scene = loader.parse("scene" in baseScene ? baseScene.scene : baseScene) as THREE.Scene;
+        const scene = loader.parse("scene" in baseScene ? baseScene.scene : baseScene) as THREE.Scene;
         this.sceneLoadedRef.value = true;
 
-        this._camera = this._scene.children.find((child) => child.type === "PerspectiveCamera") as THREE.PerspectiveCamera;
-        if (!this.camera) {
+        const camera = scene.children.find((child) => child.type === "PerspectiveCamera") as THREE.PerspectiveCamera;
+        if (!camera) {
             throw new Error("No camera found in scene");
         }
 
-        for (const fixtureRenderer of this.fixtureRenderers.values()) {
-            this._scene.add(fixtureRenderer);
-        }
+        this.renderingInstance = new RenderingInstance(this.canvas, scene, camera);
     }
 
     public reset() {
-        for (const visualization of this.fixtureRenderers.values()) {
-            visualization.dispose();
-        }
-        this._fixtureRenderers.clear();
-    }
-
-    private render() {
-        requestAnimationFrame(() => this.render());
-
-        if (!this.renderer || !this.scene || !this.camera) {
-            return;
-        }
-
-        this.renderer.render(this.scene, this.camera);
+        this.renderingInstance?.dispose();
     }
 }

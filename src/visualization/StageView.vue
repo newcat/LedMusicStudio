@@ -33,10 +33,9 @@ async function initialize() {
 
     await modelLibrary.initialize();
 
-    renderer = new StageRenderer(sceneLoaded);
+    renderer = new StageRenderer(sceneLoaded, canvas.value);
     const bc = new BroadcastChannel("visualization");
     Comlink.expose(renderer, bc);
-    renderer.setCanvas(canvas.value);
 }
 
 function onResize() {
@@ -53,7 +52,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-    renderer?.setCanvas(null);
+    renderer?.reset();
 });
 </script>
 

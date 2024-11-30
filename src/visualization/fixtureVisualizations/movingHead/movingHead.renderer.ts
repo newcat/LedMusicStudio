@@ -49,7 +49,7 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
             SPOTLIGHT_PHYSICALLY_CORRECT_DISTANCE,
             degToRad(15),
             SPOTLIGHT_PHYSICALLY_CORRECT_PENUMBRA,
-            SPOTLIGHT_PHYSICALLY_CORRECT_DECAY
+            SPOTLIGHT_PHYSICALLY_CORRECT_DECAY,
         );
         this.spotlight.applyMatrix4(new THREE.Matrix4().makeTranslation(0, -0.73, 0));
 
@@ -91,6 +91,8 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
 
         this.spotlight.color.setRGB(red / 255, green / 255, blue / 255);
         this.beamMaterial.uniforms.color.value = new THREE.Color(red / 255, green / 255, blue / 255);
+        this.cap.material.color.setRGB(red / 255, green / 255, blue / 255);
+        this.cap.material.emissive.setRGB(red / 255, green / 255, blue / 255);
 
         this.spotlight.angle = degToRad(beamAngle);
         this.beamMaterial.uniforms.angle.value = new THREE.Vector3(beamAngle, 0, 0);
@@ -108,7 +110,7 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
         }
         beamGeometry.setAttribute(
             "index",
-            new THREE.BufferAttribute(new Float32Array(verticesIndexBuffer), 1).setUsage(THREE.StaticDrawUsage)
+            new THREE.BufferAttribute(new Float32Array(verticesIndexBuffer), 1).setUsage(THREE.StaticDrawUsage),
         );
 
         const cameraDir = new THREE.Vector3();
@@ -188,8 +190,10 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
 
     private getCap() {
         const capGeometry = new THREE.CircleGeometry(BEAM_TOP_RADIUS, 40);
-        const capMaterial = new THREE.MeshBasicMaterial({
+        const capMaterial = new THREE.MeshStandardMaterial({
             side: THREE.DoubleSide,
+            emissive: 0xffffff,
+            emissiveIntensity: 10.0,
         });
 
         capGeometry.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0, 0.73));
