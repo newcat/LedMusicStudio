@@ -27,14 +27,14 @@ jobs:
             - name: Set up Node
               uses: actions/setup-node@v3
               with:
-                  node-version: 21
-                  cache: "yarn"
-            - name: Setup Yarn v4
+                  node-version: 22
+                  cache: "pnpm"
+            - name: Setup PNPM
               run: |
                   corepack enable
-                  corepack prepare yarn@stable --activate
+                  corepack install
             - name: Install dependencies
-              run: yarn install
+              run: pnpm install
             - name: Build WASM
               working-directory: ./src/rust
               run: |
