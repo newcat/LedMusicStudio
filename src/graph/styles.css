@@ -1,6 +1,6 @@
 :root {
-    --baklava-control-color-primary: var(--primary-color);
-    --baklava-node-color-hover: var(--primary-800);
+    --baklava-control-color-primary: var(--p-primary-color);
+    --baklava-node-color-hover: var(--p-primary-800);
 }
 
 .node-editor > .background {
