@@ -24,14 +24,24 @@
             :pt="{ contentContainer: { class: 'overflow-auto' }, content: { class: 'h-full' } }"
         >
             <template #icons>
-                <button
+                <Button
+                    v-tooltip.left="'Clone Fixture'"
+                    icon="pi pi-clone"
+                    severity="secondary"
+                    rounded
+                    text
+                    :disabled="!selectedFixture"
+                    @click="cloneSelectedFixture"
+                ></Button>
+                <Button
                     v-tooltip.left="'Remove Fixture'"
-                    class="p-panel-header-icon p-link"
+                    icon="pi pi-trash"
+                    severity="secondary"
+                    rounded
+                    text
                     :disabled="!selectedFixture"
                     @click="removeSelectedFixture"
-                >
-                    <span class="pi pi-trash"></span>
-                </button>
+                ></Button>
             </template>
 
             <FixtureSettings v-if="selectedFixture" :key="selectedFixture.id" :fixture="selectedFixture" />
@@ -40,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { ComponentInstance, Ref, ref } from "vue";
+import { ComponentInstance, reactive, Ref, ref } from "vue";
 import Button from "primevue/button";
 import Listbox from "primevue/listbox";
 import Panel from "primevue/panel";
@@ -62,8 +72,32 @@ const addFixtureOptions: MenuProps["model"] = [
 ];
 
 function addFixture(type: FixtureType) {
-    const newFixture = createFixture(type);
+    const newFixture = reactive(createFixture(type)) as BaseFixture;
     stage.fixtures.set(newFixture.id, newFixture);
+    return newFixture;
+}
+
+function cloneSelectedFixture() {
+    if (!selectedFixture.value) {
+        return;
+    }
+
+    const newFixture = addFixture(selectedFixture.value.type);
+    newFixture.setConfig(JSON.parse(JSON.stringify(selectedFixture.value.config)));
+    newFixture.name = `${selectedFixture.value.name} (Copy)`;
+
+    const controller = stage.controllers
+        .getArray()
+        .find((controller) => controller.controlledFixtures.some((f) => f.id === selectedFixture.value!.id));
+    if (controller) {
+        controller.addFixture(newFixture);
+    }
+
+    const visController = stage.visualization.controllers.get(selectedFixture.value.id);
+    if (visController) {
+        stage.visualization.setVisualization(newFixture.id, visController.type);
+        stage.visualization.controllers.get(newFixture.id)!.config = JSON.parse(JSON.stringify(visController.config));
+    }
 }
 
 function removeSelectedFixture() {

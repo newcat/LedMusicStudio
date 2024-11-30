@@ -24,14 +24,15 @@
             :pt="{ toggleableContent: { class: 'grow' }, content: { class: 'h-full' } }"
         >
             <template #icons>
-                <button
+                <Button
                     v-tooltip.left="'Remove Controller'"
-                    class="p-panel-header-icon p-link"
+                    icon="pi pi-trash"
+                    severity="secondary"
+                    rounded
+                    text
                     :disabled="!selectedController"
                     @click="removeSelectedController"
-                >
-                    <span class="pi pi-trash"></span>
-                </button>
+                ></Button>
             </template>
 
             <div v-if="selectedController" class="controller-settings">

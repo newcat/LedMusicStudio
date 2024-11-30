@@ -16,7 +16,8 @@
         "app:build": "pnpm build:for:electron && pnpm build:electron && pnpm electron:builder",
         "build:wasm": "wasm-pack build ./src/rust --target web",
         "build:electron": "tsc -p tsconfig.main.json && node ./postbuild.mjs",
-        "lint": "eslint --ext .js,.ts,.vue src"
+        "lint": "eslint --ext .js,.ts,.vue src",
+        "generate:fixture-types": "json2ts --cwd ./src/stage/fixtures/dmx/fixture-schemas ./src/stage/fixtures/dmx/fixture-schemas/fixture.json -o --output ./src/stage/fixtures/dmx/open-fixture.ts"
     },
     "dependencies": {
         "@baklavajs/events": "^2.5.0",
@@ -68,6 +69,7 @@
         "electron-devtools-installer": "^3.2.0",
         "eslint": "^8.57.1",
         "eslint-plugin-vue": "^9.31.0",
+        "json-schema-to-typescript": "^15.0.3",
         "postcss": "^8.4.49",
         "rollup-plugin-visualizer": "^5.12.0",
         "tailwindcss": "^3.4.15",

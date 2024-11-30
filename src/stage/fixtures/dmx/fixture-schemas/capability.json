@@ -1,6 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://raw.githubusercontent.com/OpenLightingProject/open-fixture-library/master/schemas/capability.json",
+  "title": "Capability",
 
   "$comment": "This file is used by another schema file and should not be used directly as a JSON schema.",
 
@@ -279,10 +280,6 @@
         "switchChannels": { "$ref": "#/definitions/switchChannels" }
       },
       "required": ["type"],
-      "oneOf": [
-        { "required": ["angle"] },
-        { "required": ["angleStart"] }
-      ],
       "dependencies": {
         "angleStart": ["angleEnd"],
         "angleEnd": ["angleStart"]
@@ -325,10 +322,6 @@
         "switchChannels": { "$ref": "#/definitions/switchChannels" }
       },
       "required": ["type"],
-      "oneOf": [
-        { "required": ["angle"] },
-        { "required": ["angleStart"] }
-      ],
       "dependencies": {
         "angleStart": ["angleEnd"],
         "angleEnd": ["angleStart"]
@@ -742,10 +735,6 @@
         "switchChannels": { "$ref": "#/definitions/switchChannels" }
       },
       "required": ["type"],
-      "oneOf": [
-        { "required": ["angle"] },
-        { "required": ["angleStart"] }
-      ],
       "dependencies": {
         "angleStart": ["angleEnd"],
         "angleEnd": ["angleStart"]
@@ -822,10 +811,6 @@
         "switchChannels": { "$ref": "#/definitions/switchChannels" }
       },
       "required": ["type"],
-      "oneOf": [
-        { "required": ["angle"] },
-        { "required": ["angleStart"] }
-      ],
       "dependencies": {
         "angleStart": ["angleEnd"],
         "angleEnd": ["angleStart"]

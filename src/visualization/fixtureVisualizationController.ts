@@ -43,6 +43,10 @@ export class FixtureVisualizationController<
         this.events.valueChanged.emit(value);
     }
 
+    public get type() {
+        return this.visualization.type;
+    }
+
     public constructor(public readonly visualization: V, public readonly fixture: Fixture) {
         this.config = visualization.defaultConfig(fixture);
         this.updateValue();
