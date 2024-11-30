@@ -9,6 +9,7 @@ interface Outputs {
 
 export class PatternNode extends TrackInputNode<TrackInputNodeInputs, Outputs> {
     public type = "Pattern";
+    protected _title = this.type;
 
     public inputs = {
         track: new SelectInterface("Track", "", []).setPort(false),

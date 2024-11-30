@@ -14,6 +14,7 @@ interface Outputs {
 
 export class AutomationNode extends TrackInputNode<Inputs, Outputs> {
     public type = "Automation";
+    protected _title = this.type;
 
     public inputs = {
         track: new SelectInterface("Track", "", []).setPort(false),
