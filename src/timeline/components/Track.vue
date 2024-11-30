@@ -2,12 +2,12 @@
     <div class="track">
         <div class="track-header">
             <div class="__title">{{ track.name }}</div>
-            <div class="__actions" v-if="confirmRemove">
+            <div v-if="confirmRemove" class="__actions">
                 <div class="text-caption">Remove?</div>
                 <Button text size="small" @click="remove">Yes</Button>
                 <Button text size="small" @click="confirmRemove = false">No</Button>
             </div>
-            <div class="__actions" v-else>
+            <div v-else class="__actions">
                 <Button text size="small" icon="mdi mdi-pencil" @click="settingsOpen = true"> </Button>
                 <Button text size="small" icon="mdi mdi-chevron-up" @click="moveUp"> </Button>
                 <Button text size="small" icon="mdi mdi-chevron-down" @click="moveDown"> </Button>
@@ -24,7 +24,7 @@
                 v-for="item in items"
                 :key="item.id"
                 :item="item"
-                :unitWidth="unitWidth"
+                :unit-width="unitWidth"
                 @drag-start="$emit('dragStart', item, $event)"
             ></timeline-item>
         </div>

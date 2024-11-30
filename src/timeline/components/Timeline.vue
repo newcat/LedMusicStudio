@@ -67,7 +67,7 @@ const dragArea = ref<ItemArea | "">("");
 const dragItem = ref<Item | null>(null);
 const dragStartPosition = ref({ x: 0, y: 0 });
 const dragStartTrack = ref<Track | null>(null) as Ref<Track | null>;
-const dragStartStates = ref<Array<{ item: IItemState; trackIndex: number }>>([]);
+const dragStartStates = ref<{ item: IItemState; trackIndex: number }[]>([]);
 const hoveredTrack = ref<Track | null>(null) as Ref<Track | null>;
 
 const timelineElBounds = useElementBounding(el);
@@ -271,7 +271,7 @@ function drop(track: Track, ev: DragEvent) {
         // check, whether the track is free
         let chosenTrack: Track | undefined;
         const trackItems = timeline.items.filter((i) => i.trackId === track.id);
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+         
         if (!trackItems.some((i) => isOverlapping(i as Item, item!))) {
             chosenTrack = track;
         }
@@ -280,7 +280,7 @@ function drop(track: Track, ev: DragEvent) {
         if (!chosenTrack) {
             chosenTrack = timeline.tracks.find((t) => {
                 const trackItems = timeline.items.filter((i) => i.trackId === t.id);
-                // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+                 
                 return !trackItems.some((i) => isOverlapping(i as Item, item!));
             }) as Track;
         }

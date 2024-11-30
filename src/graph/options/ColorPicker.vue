@@ -1,5 +1,5 @@
 <template>
-    <div ref="el" class="color-picker" @click.self="open = true" :style="{ backgroundColor: hexColor }">
+    <div ref="el" class="color-picker" :style="{ backgroundColor: hexColor }" @click.self="open = true">
         <transition name="slide-fade">
             <cp-chrome
                 v-show="open"

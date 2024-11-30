@@ -15,9 +15,9 @@
             <line class="border" :x1="getXCoordinate(0)" :x2="getXCoordinate(0)" :y1="getYCoordinate(0)" :y2="getYCoordinate(1)"></line>
             <!-- horizontal-->
             <line
-                class="h-grid-line"
                 v-for="i in 5"
                 :key="i"
+                class="h-grid-line"
                 :x1="getXCoordinate(0)"
                 :x2="horizontalLineWidth"
                 :y1="getYCoordinate(i / 5)"
@@ -25,9 +25,9 @@
             ></line>
             <!-- vertical-->
             <line
-                class="v-grid-line"
                 v-for="(x, i) in verticalLines"
                 :key="i"
+                class="v-grid-line"
                 :x1="x"
                 :x2="x"
                 :y1="getYCoordinate(0)"
@@ -68,12 +68,12 @@
             <!-- points ----->
             <circle
                 v-for="p in points"
-                @mousedown="mousedown($event, p.id)"
                 :key="p.id + '-point'"
                 :class="{ '--dragged': draggedPoint === p }"
                 :cx="getXCoordinate(p.unit)"
                 :cy="getYCoordinate(p.value)"
                 r="5"
+                @mousedown="mousedown($event, p.id)"
             ></circle>
 
             <!-- drag value popup ----->
@@ -129,7 +129,7 @@ const horizontalLineWidth = computed(() => {
 const verticalLines = computed(() => {
     const xCoords = [];
     let unit = 0;
-    // eslint-disable-next-line no-constant-condition
+     
     while (true) {
         unit += globalState.snapUnits * 4;
         const x = getXCoordinate(unit);

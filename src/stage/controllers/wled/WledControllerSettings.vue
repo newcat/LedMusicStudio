@@ -1,7 +1,7 @@
 <template>
     <LabelledInputText v-model="host">Host</LabelledInputText>
     <LabelledFormField label="Port">
-        <InputNumber v-model="port" :min="0" :max="65535" :useGrouping="false" />
+        <InputNumber v-model="port" :min="0" :max="65535" :use-grouping="false" />
     </LabelledFormField>
     <LabelledFormField label="Timeout">
         <InputNumber v-model="timeout" :min="0" :max="255" />

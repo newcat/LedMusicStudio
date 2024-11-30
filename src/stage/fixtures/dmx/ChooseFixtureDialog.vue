@@ -12,20 +12,20 @@
                 <Button outlined label="Use OFL fixture file" @click="useCustomFixture"></Button>
             </div>
             <Listbox
-                class="manufacturer-list"
                 v-model="selectedManufacturer"
+                class="manufacturer-list"
                 :options="fixtureLibrary.fixtures"
-                optionLabel="name"
+                option-label="name"
                 :filter="true"
-                listStyle="max-height: 100%"
+                list-style="max-height: 100%"
             ></Listbox>
             <Listbox
-                class="fixture-list"
                 v-model="selectedFixture"
+                class="fixture-list"
                 :options="selectedManufacturer?.fixtures ?? []"
-                optionLabel="name"
+                option-label="name"
                 :filter="true"
-                listStyle="max-height: 100%"
+                list-style="max-height: 100%"
             ></Listbox>
         </div>
 
@@ -49,9 +49,7 @@ import { Fixture } from "./open-fixture";
 import { Manufacturer, useFixtureLibrary } from "./fixtureLibrary";
 
 const visible = defineModel<boolean>({ required: true });
-const emit = defineEmits<{
-    (e: "setFixture", fixture: Fixture): void;
-}>();
+const emit = defineEmits<(e: "setFixture", fixture: Fixture) => void>();
 
 const toast = useToast();
 const fixtureLibrary = useFixtureLibrary();

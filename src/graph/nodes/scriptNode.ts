@@ -4,8 +4,8 @@ import { ScriptNodeConfigurationInterface } from "../interfaces";
 import { OpenSidebarOption } from "../options";
 
 interface ScriptNodeInputs extends Record<string, any> {
-    openSidebar: void;
-    config: void;
+    openSidebar: undefined;
+    config: undefined;
 }
 
 interface ScriptNodeInterface {
@@ -25,14 +25,14 @@ interface ScriptNodeState extends INodeState<ScriptNodeInputs, Record<string, an
 export default class ScriptNode extends Node<ScriptNodeInputs, Record<string, any>> {
     public override readonly type = "Script";
     public override inputs: NodeInterfaceDefinition<ScriptNodeInputs> = {
-        openSidebar: new NodeInterface<void>("Configure", undefined).setComponent(markRaw(OpenSidebarOption)).setPort(false),
+        openSidebar: new NodeInterface<undefined>("Configure", undefined).setComponent(markRaw(OpenSidebarOption)).setPort(false),
         config: new ScriptNodeConfigurationInterface(this).setHidden(true),
     };
     public override outputs: NodeInterfaceDefinition<Record<string, any>> = {};
 
     public code = "return {\n  output: this.input\n};";
     public codeChangedSinceLastCalculate = false;
-    // eslint-disable-next-line @typescript-eslint/ban-types
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
     public calcFunction: Function | undefined;
 
     public functionState: Record<string, any> = {};
@@ -44,7 +44,6 @@ export default class ScriptNode extends Node<ScriptNodeInputs, Record<string, an
 
     public override calculate = (inputs: Record<string, any>) => {
         if (this.calcFunction === undefined || this.codeChangedSinceLastCalculate) {
-            // eslint-disable-next-line @typescript-eslint/no-implied-eval
             this.calcFunction = new Function(this.code);
             this.codeChangedSinceLastCalculate = false;
         }

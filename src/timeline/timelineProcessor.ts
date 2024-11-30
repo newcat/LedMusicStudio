@@ -14,7 +14,7 @@ export class TimelineProcessor extends BaseTimelineProcessor {
     };
 
     private timer?: ReturnType<typeof setInterval>;
-    private observers: Array<() => void> = [];
+    private observers: (() => void)[] = [];
 
     private audioProcessor: AudioProcessor;
     private metronome: Metronome;

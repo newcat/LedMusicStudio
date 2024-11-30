@@ -4,12 +4,12 @@
             <h2 class="m-4 font-bold text-xl">{{ title }}</h2>
         </template>
         <template #content>
-            <GraphEditor v-if="isGraph(selectedItem)" :graph="selectedItem" :key="'g' + selectedItem.id"></GraphEditor>
-            <NoteEditor v-else-if="isPattern(selectedItem)" :notePattern="selectedItem" :key="'p' + selectedItem.id"></NoteEditor>
+            <GraphEditor v-if="isGraph(selectedItem)" :key="'g' + selectedItem.id" :graph="selectedItem"></GraphEditor>
+            <NoteEditor v-else-if="isPattern(selectedItem)" :key="'p' + selectedItem.id" :note-pattern="selectedItem"></NoteEditor>
             <AutomationEditor
                 v-else-if="isAutomation(selectedItem)"
-                :automationClip="selectedItem"
                 :key="'a' + selectedItem.id"
+                :automation-clip="selectedItem"
             ></AutomationEditor>
         </template>
     </Card>

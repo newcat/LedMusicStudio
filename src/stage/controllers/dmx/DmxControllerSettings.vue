@@ -4,7 +4,7 @@
     <div>
         <Button outlined label="Open DMX Control Panel" @click="panelVisible = true" />
     </div>
-    <DmxPanel :controller="controller" v-model:visible="panelVisible" />
+    <DmxPanel v-model:visible="panelVisible" :controller="controller" />
 </template>
 
 <script setup lang="ts">

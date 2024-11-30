@@ -21,7 +21,7 @@ export abstract class BaseController<C = unknown, F extends BaseFixture = BaseFi
     public abstract readonly type: ControllerType;
     public abstract readonly compatibleFixtures: FixtureType[];
 
-    public name: string = "Controller";
+    public name = "Controller";
 
     public readonly settingsComponent: Component | null = null;
 
@@ -81,5 +81,6 @@ export abstract class BaseController<C = unknown, F extends BaseFixture = BaseFi
     public abstract send(): void | Promise<void>;
 
     /** @virtual */
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
     public dispose() {}
 }

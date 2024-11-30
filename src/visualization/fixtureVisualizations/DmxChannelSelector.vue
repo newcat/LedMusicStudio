@@ -1,5 +1,5 @@
 <template>
-    <Select class="dmx-channel-selector" v-model="selectedChannel" :options="options" option-label="label" option-value="value" />
+    <Select v-model="selectedChannel" class="dmx-channel-selector" :options="options" option-label="label" option-value="value" />
 </template>
 
 <script setup lang="ts">

@@ -7,7 +7,7 @@
             <Menu ref="ctxMenu" :model="ctxMenuItems" :popup="true" />
             <Select v-model="modelValue.mode" :options="modes" option-label="label" option-value="value" placeholder="Mode" />
         </div>
-        <div class="color-ramp" ref="colorRampEl" @mousedown="selectedStopId = ''">
+        <div ref="colorRampEl" class="color-ramp" @mousedown="selectedStopId = ''">
             <template v-for="stop in modelValue.stops" :key="stop.id">
                 <div class="color-stop-indicator" :style="{ left: `${Math.round(100 * stop.position)}%` }"></div>
                 <div
@@ -19,7 +19,7 @@
             </template>
         </div>
         <div class="flex gap-2 h-4">
-            <ColorPicker class="w-full" v-if="selectedStop" v-model="selectedStop.color" />
+            <ColorPicker v-if="selectedStop" v-model="selectedStop.color" class="w-full" />
         </div>
     </div>
 </template>
@@ -34,7 +34,7 @@ import Menu from "primevue/menu";
 import ColorPicker from "./ColorPicker.vue";
 import type { ColorRampStop, ColorRampValue } from "../nodes/colors/ColorRampNode";
 
-const modes: Array<{ label: string; value: InterpolationMode }> = [
+const modes: { label: string; value: InterpolationMode }[] = [
     { label: "RGB", value: "rgb" },
     { label: "HSL", value: "hsl" },
 ];

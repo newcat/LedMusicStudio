@@ -40,5 +40,7 @@ export abstract class LibraryItem<S = unknown> {
     public abstract save(): S;
     public abstract load(state: S): void | Promise<void>;
 
+    // default implementation does nothing
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
     public async destroy(): Promise<void> {}
 }

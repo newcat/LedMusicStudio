@@ -12,7 +12,7 @@
             <Chip>{{ fixture.type }}</Chip>
         </div>
         <LabelledInputText v-model="fixture.name">Name</LabelledInputText>
-        <component v-if="fixture.settingsComponent" :is="fixture.settingsComponent" :fixture="fixture" />
+        <component :is="fixture.settingsComponent" v-if="fixture.settingsComponent" :fixture="fixture" />
 
         <Divider />
 
@@ -27,8 +27,8 @@
         </LabelledFormField>
         <template v-if="visController">
             <component
-                v-if="visController.visualization.settingsComponent"
                 :is="visController.visualization.settingsComponent"
+                v-if="visController.visualization.settingsComponent"
                 v-model:config="visController.config"
                 :controller="visController"
             />
@@ -73,7 +73,7 @@ const controllerId = computed<string>({
 });
 
 const availableControllers = computed(() => {
-    const controllers: Array<{ name: string; id: string }> = [{ id: "NONE", name: "None" }];
+    const controllers: { name: string; id: string }[] = [{ id: "NONE", name: "None" }];
     if (props.fixture.value) {
         controllers.push(
             ...stage.controllers.getArray().filter((controller) => controller.compatibleFixtures.includes(props.fixture.type))
@@ -95,7 +95,7 @@ const visualizationType = computed<VisualizationType | "NONE">({
 });
 
 const visualizationTypes = computed(() => {
-    const types: Array<{ label: string; value: "NONE" | VisualizationType }> = [
+    const types: { label: string; value: "NONE" | VisualizationType }[] = [
         { label: "None", value: "NONE" },
         ...Object.values(VisualizationType).map((type) => ({ label: type, value: type })),
     ];

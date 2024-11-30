@@ -41,7 +41,7 @@ export abstract class TrackInputNode<I extends TrackInputNodeInputs, O> extends 
     }
 
     private updateAvailableTracks() {
-        const optionItems: Array<{ text: string; value: string }> = [];
+        const optionItems: { text: string; value: string }[] = [];
         for (const track of this.globalState.timeline.tracks) {
             optionItems.push({ text: track.name, value: track.id });
         }

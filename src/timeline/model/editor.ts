@@ -152,8 +152,8 @@ export const useTimeline = defineStore("timeline", () => {
 
     return {
         events,
-        tracks: tracks as Readonly<Ref<ReadonlyArray<Track>>>,
-        items: items as Readonly<Ref<ReadonlyArray<Item>>>,
+        tracks: tracks as Readonly<Ref<readonly Track[]>>,
+        items: items as Readonly<Ref<readonly Item[]>>,
         unitWidth,
         headerWidth,
         reset,

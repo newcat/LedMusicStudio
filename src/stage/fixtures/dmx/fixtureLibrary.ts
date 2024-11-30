@@ -1,7 +1,7 @@
 import { ref } from "vue";
 import { useLocalStorage } from "@vueuse/core";
 import { defineStore } from "pinia";
-import { Fixture, OFLManufacturers } from "./open-fixture";
+import { Fixture } from "./open-fixture";
 
 import SelfHostedOfl from "./ofl_export_ofl.zip?url";
 
@@ -9,6 +9,13 @@ export interface Manufacturer {
     name: string;
     fixtures: Fixture[];
 }
+
+type OFLManufacturers = Record<string, {
+        name: string;
+        comment?: string;
+        website?: string;
+        rdmId?: number;
+    }>;
 
 export const useFixtureLibrary = defineStore("fixtureLibrary", () => {
     const fixtures = useLocalStorage<Manufacturer[]>("fixtureLibrary", []);
@@ -43,7 +50,7 @@ export const useFixtureLibrary = defineStore("fixtureLibrary", () => {
     async function applyOflData(data: Blob) {
         try {
             updating.value = true;
-            // eslint-disable-next-line @typescript-eslint/unbound-method
+             
             const { loadAsync } = await import("jszip");
 
             const zip = await loadAsync(data);

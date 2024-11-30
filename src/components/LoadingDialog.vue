@@ -1,7 +1,7 @@
 <template>
-    <Dialog :visible="modelValue" @update:visible="emit('update:modelValue', $event)" header="Loading" modal>
+    <Dialog :visible="modelValue" header="Loading" modal @update:visible="emit('update:modelValue', $event)">
         <template v-for="item in items">
-            <div class="my-3" v-if="item.loading || item.error" :key="item.id">
+            <div v-if="item.loading || item.error" :key="item.id" class="my-3">
                 <div class="flex flex-nowrap align-items-center">
                     <div class="mr-2">
                         <i v-if="item.loading" class="pi pi-spin pi-spinner"></i>
@@ -11,8 +11,8 @@
                         <div>{{ item.name }}</div>
                         <Button
                             v-if="isAudioLibraryItem(item) && item.error"
-                            @click="isAudioLibraryItem(item) ? item.chooseAudioFile() : undefined"
                             size="small"
+                            @click="isAudioLibraryItem(item) ? item.chooseAudioFile() : undefined"
                         >
                             Choose File
                         </Button>

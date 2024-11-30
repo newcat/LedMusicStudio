@@ -1,5 +1,5 @@
 <template>
-    <Dialog :visible="modelValue" :style="{ width: '50vw' }" @update:visible="emit('update:modelValue', $event)" header="Settings" modal>
+    <Dialog :visible="modelValue" :style="{ width: '50vw' }" header="Settings" modal @update:visible="emit('update:modelValue', $event)">
         <div class="settings">
             <LabelledInputText v-model="vResolution">Resolution</LabelledInputText>
             <LabelledInputText v-model="vFps">FPS</LabelledInputText>

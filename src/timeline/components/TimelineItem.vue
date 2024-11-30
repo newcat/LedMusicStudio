@@ -3,10 +3,10 @@
         <div class="timeline-item__header" :title="name" @mousedown="dragStart('center')">
             <div class="timeline-item__header-text">{{ name }}</div>
         </div>
-        <div class="drag-handle --left" v-show="item.resizable &amp;&amp; item.selected" @mousedown="dragStart('leftHandle')"></div>
-        <div class="drag-handle --right" v-show="item.resizable &amp;&amp; item.selected" @mousedown="dragStart('rightHandle')"></div>
-        <div class="preview-container" v-if="previewComponent" @mousedown="dragStart('center')">
-            <component :is="previewComponent" :item="item" :unitWidth="unitWidth"></component>
+        <div v-show="item.resizable &amp;&amp; item.selected" class="drag-handle --left" @mousedown="dragStart('leftHandle')"></div>
+        <div v-show="item.resizable &amp;&amp; item.selected" class="drag-handle --right" @mousedown="dragStart('rightHandle')"></div>
+        <div v-if="previewComponent" class="preview-container" @mousedown="dragStart('center')">
+            <component :is="previewComponent" :item="item" :unit-width="unitWidth"></component>
         </div>
     </div>
 </template>

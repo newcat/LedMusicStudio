@@ -2,9 +2,9 @@
     <div class="audio-file">
         <template v-if="libraryItem.waveform">
             <WaveformPart
-                class="waveform-part"
                 v-for="p in libraryItem.waveform.parts"
                 :key="`${p.start}-${p.end}`"
+                class="waveform-part"
                 :total-parts="libraryItem.waveform.count"
                 :part="p"
             />

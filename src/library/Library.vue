@@ -12,13 +12,13 @@
         <Card class="menu-container">
             <template #content>
                 <Listbox
-                    :options="libraryItems"
                     v-model="library.selectedItemId"
-                    optionLabel="label"
-                    optionValue="key"
-                    optionDisabled="loading"
-                    optionGroupLabel="label"
-                    optionGroupChildren="items"
+                    :options="libraryItems"
+                    option-label="label"
+                    option-value="key"
+                    option-disabled="loading"
+                    option-group-label="label"
+                    option-group-children="items"
                 >
                     <template #optiongroup="{ option }">
                         <i :class="option.icon"></i>

@@ -8,7 +8,7 @@ const MODEL_FILES: Record<ModelType, string> = {
 } as const;
 
 class ModelLibrary {
-    private readonly models: Map<ModelType, Group<Object3DEventMap>> = new Map();
+    private readonly models = new Map<ModelType, Group<Object3DEventMap>>();
 
     public async initialize(): Promise<void> {
         for (const modelType of Object.keys(MODEL_FILES) as ModelType[]) {

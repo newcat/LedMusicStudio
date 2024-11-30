@@ -3,11 +3,11 @@
         <div id="app-container">
             <Toolbar
                 v-model:view="currentView"
-                @newProject="newProject"
+                @new-project="newProject"
                 @load="load"
                 @save="save"
-                @saveAs="saveAs"
-                @showSettings="showSettings = true"
+                @save-as="saveAs"
+                @show-settings="showSettings = true"
                 @render="renderDialog?.startRender()"
             />
             <div class="content">

@@ -53,8 +53,8 @@ async function importStage() {
     if (!result) {
         return;
     }
-    await errorHandler("Failed to import stage", async () => {
-        await stage.load(JSON.parse(result.dataAsString));
+    await errorHandler("Failed to import stage", () => {
+        stage.load(JSON.parse(result.dataAsString));
         toast.add({ severity: "success", summary: "Success", detail: "Stage successfully imported", life: 2000 });
     });
 }

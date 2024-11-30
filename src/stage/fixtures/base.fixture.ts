@@ -18,7 +18,7 @@ export interface FixtureState<V = unknown, C = unknown> {
 export abstract class BaseFixture<V = unknown, C = unknown> {
     public id = uuidv4();
     public abstract readonly type: FixtureType;
-    public name: string = "Fixture";
+    public name = "Fixture";
     public readonly settingsComponent: Component | null = null;
 
     public readonly events = {

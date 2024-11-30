@@ -9,12 +9,12 @@ import { PatternLibraryItem } from "@/pattern";
 import { LibraryItem, LibraryItemType } from "./libraryItem";
 
 export interface ILibraryState {
-    items: Array<{
+    items: {
         id: string;
         type: LibraryItemType;
         name: string;
         state: unknown;
-    }>;
+    }[];
 }
 
 function createItemByType(type: LibraryItemType): LibraryItem | undefined {
@@ -109,7 +109,7 @@ export const useLibrary = defineStore("library", () => {
     return {
         events,
         loading,
-        items: items as Readonly<Ref<ReadonlyArray<LibraryItem>>>,
+        items: items as Readonly<Ref<readonly LibraryItem[]>>,
         selectedItemId,
         save,
         load,

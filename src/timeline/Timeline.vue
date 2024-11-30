@@ -6,15 +6,15 @@
             <span class="mr-4 mdi mdi-ruler" style="font-size: 1.5em"></span>
             <Select
                 :model-value="snapUnits"
-                @update:model-value="setSnap"
                 :options="snapItems"
                 option-label="label"
                 option-value="value"
                 style="width: 9em"
+                @update:model-value="setSnap"
             ></Select>
             <Divider layout="vertical" />
             <div class="mr-4">BPM</div>
-            <InputText :model-value="bpm" @update:model-value="(v) => setBpm(v ?? '0')" style="max-width: 4em"></InputText>
+            <InputText :model-value="bpm" style="max-width: 4em" @update:model-value="(v) => setBpm(v ?? '0')"></InputText>
             <ToggleButton
                 v-model="globalState.metronome"
                 class="ml-4"
@@ -27,10 +27,10 @@
             <span class="mr-4 mdi mdi-volume-high" style="font-size: 1.5em"></span>
             <Slider
                 :model-value="volume * 100"
-                @update:model-value="v => setVolume(v as number)"
                 :min="0"
                 :max="100"
                 style="width: 7em"
+                @update:model-value="v => setVolume(v as number)"
             ></Slider>
         </div>
         <div id="wrapper">

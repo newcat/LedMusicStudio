@@ -26,12 +26,12 @@
     <Fieldset legend="Channel Mapping" toggleable>
         <Button severity="secondary" outlined @click="autoAssignChannels">Auto-Assign</Button>
         <div class="channel-mapping-grid">
-            <ChannelMapping label="Pan" v-model="config.channelMapping.pan" :fixture="controller.fixture" />
-            <ChannelMapping label="Tilt" v-model="config.channelMapping.tilt" :fixture="controller.fixture" />
-            <ChannelMapping label="Beam Angle" v-model="config.channelMapping.beamAngle" :fixture="controller.fixture" />
-            <ChannelMapping label="Red" v-model="config.channelMapping.red" :fixture="controller.fixture" />
-            <ChannelMapping label="Green" v-model="config.channelMapping.green" :fixture="controller.fixture" />
-            <ChannelMapping label="Blue" v-model="config.channelMapping.blue" :fixture="controller.fixture" />
+            <ChannelMapping v-model="config.channelMapping.pan" label="Pan" :fixture="controller.fixture" />
+            <ChannelMapping v-model="config.channelMapping.tilt" label="Tilt" :fixture="controller.fixture" />
+            <ChannelMapping v-model="config.channelMapping.beamAngle" label="Beam Angle" :fixture="controller.fixture" />
+            <ChannelMapping v-model="config.channelMapping.red" label="Red" :fixture="controller.fixture" />
+            <ChannelMapping v-model="config.channelMapping.green" label="Green" :fixture="controller.fixture" />
+            <ChannelMapping v-model="config.channelMapping.blue" label="Blue" :fixture="controller.fixture" />
         </div>
     </Fieldset>
     <div>

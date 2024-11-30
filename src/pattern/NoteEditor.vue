@@ -10,7 +10,7 @@
             @keydown="keydown"
             @keyup="keyup"
         >
-            <div class="__row" v-for="i in 128" :key="i" :data-row-value="i">
+            <div v-for="i in 128" :key="i" class="__row" :data-row-value="i">
                 <div class="__header">
                     <div>{{ i }}</div>
                 </div>
@@ -24,7 +24,7 @@
                         v-for="n in getNotesForTrack(i)"
                         :key="n.id"
                         :note="n"
-                        :tickWidth="tickWidth"
+                        :tick-width="tickWidth"
                         :style="{ pointerEvents: disableNotePointerEvents ? 'none' : undefined }"
                         @drag-start="onDragStart(n, $event)"
                         @resize-start="onResizeStart(n, $event)"
@@ -200,7 +200,7 @@ function clickedOnNote(ev: MouseEvent) {
     return ev
         .composedPath()
         .filter((t) => t instanceof HTMLElement)
-        .some((t) => (t as HTMLElement).matches(".note"));
+        .some((t) => t.matches(".note"));
 }
 </script>
 

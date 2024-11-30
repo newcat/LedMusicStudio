@@ -39,7 +39,7 @@ export class BaseTimelineProcessor {
         /** maps trackId -> value */
         const trackValues = this.getTrackValues(currentActiveItems, unit);
 
-        const uncontrolledFixtures = new Set(this.stage.fixtures.values()) as Set<BaseFixture>;
+        const uncontrolledFixtures = new Set(this.stage.fixtures.values());
         const graphs = currentActiveItems.filter((i) => this.isType(i, LibraryItemType.GRAPH));
         if (graphs.length > 0) {
             let timeDomainData = new Float32Array(FFT_SIZE);
@@ -85,11 +85,11 @@ export class BaseTimelineProcessor {
     }
 
     /** @virtual */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars
     protected activate(item: Item) {}
 
     /** @virtual */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars
     protected deactivate(item: Item) {}
 
     private isType(item: Item, type: LibraryItemType): boolean {
@@ -159,7 +159,7 @@ export class BaseTimelineProcessor {
             } else if (nodeResults.has("fixtureId")) {
                 const fixture = this.stage.fixtures.get(nodeResults.get("fixtureId") as string);
                 if (fixture) {
-                    uncontrolledFixtures.delete(fixture as BaseFixture);
+                    uncontrolledFixtures.delete(fixture);
                     fixture.setValue(nodeResults.get("data"));
                 }
             }

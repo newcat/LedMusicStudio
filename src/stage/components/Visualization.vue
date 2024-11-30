@@ -25,8 +25,8 @@ async function loadScene() {
         return;
     }
 
-    await errorHandler("Could not load scene", async () => {
-        await stage.visualization.loadScene(JSON.parse(result.dataAsString));
+    await errorHandler("Could not load scene", () => {
+        stage.visualization.loadScene(JSON.parse(result.dataAsString));
     });
 }
 </script>

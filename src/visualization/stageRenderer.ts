@@ -11,11 +11,11 @@ import { SpotRenderer } from "./fixtureVisualizations/spot/spot.renderer";
 import { MovingHeadRenderer } from "./fixtureVisualizations/movingHead/movingHead.renderer";
 import { UnrealBloomPass } from "./bloom";
 
-type FixtureRenderers = {
+interface FixtureRenderers {
     [VisualizationType.LED_STRIP]: LedStripRenderer;
     [VisualizationType.SPOT]: SpotRenderer;
     [VisualizationType.MOVING_HEAD]: MovingHeadRenderer;
-};
+}
 type FixtureRendererConfig<T extends VisualizationType> = FixtureRenderers[T] extends BaseRenderer<infer C> ? C : never;
 type FixtureRendererValue<T extends VisualizationType> = FixtureRenderers[T] extends BaseRenderer<any, infer V> ? V : never;
 
@@ -49,7 +49,7 @@ export interface StageRendererMessage<T extends keyof StageRendererPayloads> {
 export class RenderingInstance {
     private continueRendering = true;
 
-    private fixtureRenderers: Map<string, BaseRenderer> = new Map();
+    private fixtureRenderers = new Map<string, BaseRenderer>();
     private renderer: THREE.WebGLRenderer;
     private composer: EffectComposer;
     private bloomPass: UnrealBloomPass;

@@ -1,5 +1,5 @@
 <template>
-    <Dialog :visible="modelValue" @update:visible="emit('update:modelValue', $event)" header="Edit Library Item" modal>
+    <Dialog :visible="modelValue" header="Edit Library Item" modal @update:visible="emit('update:modelValue', $event)">
         <LabelledInputText v-model="vName">Name</LabelledInputText>
         <template #footer>
             <Button @click="cancel">Cancel</Button>

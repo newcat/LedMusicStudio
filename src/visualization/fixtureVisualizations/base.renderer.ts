@@ -10,5 +10,7 @@ export abstract class BaseRenderer<C = unknown, V = unknown> extends THREE.Group
     }
     public abstract onConfigUpdate(c: C): void;
     public abstract onFixtureValueUpdate(v: V): void;
+    /** @virtual */
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
     public dispose() {}
 }

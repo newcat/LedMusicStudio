@@ -1,8 +1,8 @@
 <template>
-    <Dialog :visible="modelValue" @update:visible="emit('update:modelValue', $event)" header="Track Settings">
+    <Dialog :visible="modelValue" header="Track Settings" @update:visible="emit('update:modelValue', $event)">
         <div class="field">
             <label for="name">Name</label>
-            <InputText v-model="vName" id="name" type="text" />
+            <InputText id="name" v-model="vName" type="text" />
         </div>
         <template #footer>
             <Button @click="cancel">Cancel</Button>

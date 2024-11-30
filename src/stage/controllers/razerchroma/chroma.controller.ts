@@ -36,8 +36,8 @@ export class RazerChromaController extends BaseController<Record<string, never>,
         const fixture = this.controlledFixtures[0];
         const colors = scaleColorArray(fixture.value, 22);
         const row: number[] = [];
-        for (let i = 0; i < colors.length; i++) {
-            row.push(256 * 256 * colors[i][2] + 256 * colors[i][1] + colors[i][0]);
+        for (const c of colors) {
+            row.push(256 * 256 * c[2] + 256 * c[1] + c[0]);
         }
 
         const data = [row, row, row, row, row, row];

@@ -15,7 +15,7 @@ export interface VisualizationServerState {
 export class VisualizationServer {
     private baseScene: unknown = null;
     private paused = false;
-    private _controllers: ExtendedMap<string, FixtureVisualizationController> = new ExtendedMap();
+    private _controllers = new ExtendedMap<string, FixtureVisualizationController>();
     private readonly bc = new BroadcastChannel("visualization");
 
     public get isSceneLoaded() {

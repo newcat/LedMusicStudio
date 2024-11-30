@@ -141,18 +141,18 @@ class UnrealBloomPass extends Pass {
     }
 
     dispose() {
-        for (let i = 0; i < this.renderTargetsHorizontal.length; i++) {
-            this.renderTargetsHorizontal[i].dispose();
+        for (const t of this.renderTargetsHorizontal) {
+            t.dispose();
         }
 
-        for (let i = 0; i < this.renderTargetsVertical.length; i++) {
-            this.renderTargetsVertical[i].dispose();
+        for (const t of this.renderTargetsVertical) {
+            t.dispose();
         }
 
         this.renderTargetBright.dispose();
 
-        for (let i = 0; i < this.separableBlurMaterials.length; i++) {
-            this.separableBlurMaterials[i].dispose();
+        for (const t of this.separableBlurMaterials) {
+            t.dispose();
         }
 
         this.compositeMaterial.dispose();

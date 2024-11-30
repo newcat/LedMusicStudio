@@ -50,8 +50,8 @@
 
                 <LabelledInputText v-model="selectedController.name">Name</LabelledInputText>
                 <component
-                    v-if="selectedController.settingsComponent"
                     :is="selectedController.settingsComponent"
+                    v-if="selectedController.settingsComponent"
                     :controller="selectedController"
                 />
 

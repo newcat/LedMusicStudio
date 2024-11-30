@@ -14,9 +14,7 @@ const props = defineProps<{
     modelValue: string;
 }>();
 
-const emit = defineEmits<{
-    (e: "update:modelValue", v: string): void;
-}>();
+const emit = defineEmits<(e: "update:modelValue", v: string) => void>();
 
 const id = uuidv4();
 

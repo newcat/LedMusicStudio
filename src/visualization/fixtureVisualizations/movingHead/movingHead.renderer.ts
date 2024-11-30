@@ -98,6 +98,8 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
         this.beamMaterial.uniforms.angle.value = new THREE.Vector3(beamAngle, 0, 0);
     }
 
+    /** @virtual */
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
     public override dispose(): void {}
 
     private getBeam() {

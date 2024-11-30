@@ -46,7 +46,7 @@ const INTERPOLATION_FUNCTIONS: { [V in keyof VALUE_TYPES]: InterpolationFunction
 };
 
 export class KeyframeManager {
-    public keyframes: Map<string, InterfaceKeyframes> = new Map();
+    public keyframes = new Map<string, InterfaceKeyframes>();
 
     public constructor(private readonly item: GraphLibraryItem) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
