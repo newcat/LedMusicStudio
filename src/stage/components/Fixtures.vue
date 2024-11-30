@@ -6,7 +6,7 @@
                 <Menu ref="menu" :model="addFixtureOptions" :popup="true"></Menu>
             </div>
         </div>
-        <Listbox v-model="selectedFixture" :options="stage.fixtures.getArray()" empty-message="No fixtures added.">
+        <Listbox v-model="selectedFixture" :options="stage.fixtures.getArray()" empty-message="No fixtures added." scroll-height="">
             <template #option="{ option }">
                 <div class="flex align-items-center">
                     <i

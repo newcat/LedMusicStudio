@@ -6,7 +6,7 @@
                 <Menu ref="menu" :model="addControllerOptions" :popup="true"></Menu>
             </div>
         </div>
-        <Listbox v-model="selectedController" :options="stage.controllers.getArray()" empty-message="No controllers added.">
+        <Listbox v-model="selectedController" :options="stage.controllers.getArray()" empty-message="No controllers added." scroll-height="">
             <template #option="{ option }">
                 <div class="flex align-items-center">
                     <i
