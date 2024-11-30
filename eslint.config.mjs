@@ -7,7 +7,7 @@ import pluginVue from "eslint-plugin-vue";
 
 export default tseslint.config(
     {
-        ignores: ["*.d.ts", "**/coverage", "**/dist", "src/stage/fixtures/dmx/open-fixture.ts", "src/rust/pkg/rust.js"],
+        ignores: ["**/*.d.ts", "**/coverage", "**/dist", "src/stage/fixtures/dmx/open-fixture.ts", "src/rust/pkg/rust.js"],
     },
     {
         extends: [
