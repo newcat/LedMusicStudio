@@ -2,7 +2,6 @@ import { Ref } from "vue";
 import * as THREE from "three";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass";
-import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass";
 
 import { VisualizationType } from "./fixtureVisualization";
@@ -10,6 +9,7 @@ import type { BaseRenderer, RendererInputs } from "./fixtureVisualizations/base.
 import { LedStripRenderer } from "./fixtureVisualizations/ledStrip/ledStrip.renderer";
 import { SpotRenderer } from "./fixtureVisualizations/spot/spot.renderer";
 import { MovingHeadRenderer } from "./fixtureVisualizations/movingHead/movingHead.renderer";
+import { UnrealBloomPass } from "./bloom";
 
 type FixtureRenderers = {
     [VisualizationType.LED_STRIP]: LedStripRenderer;
