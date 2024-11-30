@@ -1,6 +1,5 @@
+import { CalculateFunction, SelectInterface } from "baklavajs";
 import { NumberInterface } from "@/graph/interfaces";
-import { CalculateFunction } from "@baklavajs/core";
-import { SelectInterface } from "@baklavajs/renderer-vue";
 import { LmsCalculationContext } from "../../types";
 import { TrackInputNode, TrackInputNodeInputs } from "./TrackInputNode";
 
@@ -10,6 +9,7 @@ interface Outputs {
 
 export class PatternNode extends TrackInputNode<TrackInputNodeInputs, Outputs> {
     public type = "Pattern";
+    protected _title = this.type;
 
     public inputs = {
         track: new SelectInterface("Track", "", []).setPort(false),
@@ -21,7 +21,6 @@ export class PatternNode extends TrackInputNode<TrackInputNodeInputs, Outputs> {
 
     public constructor() {
         super();
-        this.title = this.type;
         this.initializeIo();
     }
 

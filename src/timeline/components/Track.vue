@@ -1,6 +1,6 @@
 <template>
-    <div class="__track">
-        <div class="__header">
+    <div class="track">
+        <div class="track-header">
             <div class="__title">{{ track.name }}</div>
             <div class="__actions" v-if="confirmRemove">
                 <div class="text-caption">Remove?</div>
@@ -15,7 +15,7 @@
             </div>
         </div>
         <div
-            class="__item-container"
+            class="item-container"
             @mouseenter="$emit('mouseenter', $event)"
             @mouseleave="$emit('mouseleave', $event)"
             @mousemove="$emit('mousemove', $event)"
@@ -36,7 +36,7 @@
 import { computed, ref } from "vue";
 import Button from "primevue/button";
 
-import { Item, Track, useTimeline } from "../model";
+import { Track, useTimeline } from "../model";
 import TimelineItem from "./TimelineItem.vue";
 import TrackSettings from "./TrackSettings.vue";
 
@@ -51,7 +51,7 @@ const timeline = useTimeline();
 const settingsOpen = ref(false);
 const confirmRemove = ref(false);
 
-const items = computed(() => timeline.items.filter((i) => i.trackId === props.track.id) as Item[]);
+const items = computed(() => timeline.items.filter((i) => i.trackId === props.track.id));
 
 const unitWidth = computed(() => {
     return timeline.unitWidth;
@@ -70,3 +70,49 @@ function remove() {
     timeline.removeTrack(props.track);
 }
 </script>
+
+<style scoped>
+.track {
+    height: var(--rowHeight);
+    border-bottom: 1px solid var(--p-form-field-disabled-background);
+    display: flex;
+    z-index: 3;
+}
+
+.track-header {
+    position: sticky;
+    left: 0;
+    min-width: var(--headerWidth);
+    max-width: var(--headerWidth);
+    height: 100%;
+    background-color: var(--p-form-field-background);
+    color: var(--p-text-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    z-index: 6;
+}
+
+.track-header .__title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.track-header .__actions {
+    margin-top: 0.5rem;
+    opacity: 0.3;
+    transition: opacity 0.2s linear;
+}
+
+.track-header:hover .__actions {
+    opacity: 1;
+}
+
+.item-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+</style>

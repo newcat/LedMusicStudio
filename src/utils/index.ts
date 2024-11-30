@@ -1,4 +1,5 @@
 export * from "./clamp";
+export * from "./extendedMap";
 export * from "./libraryItemTypeGuards";
 export * from "./normalizeMouseWheel";
 export * from "./scaleColorArray";

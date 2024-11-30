@@ -1,9 +1,9 @@
+import { CalculateFunction, NodeInterface } from "baklavajs";
+import { FixtureType } from "@/stage";
 import { Color } from "@/graph/colors";
 import { ColorArrayInterface, PreviewInterface } from "@/graph/interfaces";
-import { CalculateFunction, NodeInterface } from "@baklavajs/core";
-import { BaseOutputNode, BaseOutputNodeInputs, BaseOutputNodeOutputs } from "./BaseOutputNode";
 import { SelectFixtureInterface } from "@/graph/interfaces/SelectFixtureInterface";
-import { FixtureType } from "@/stage";
+import { BaseOutputNode, BaseOutputNodeInputs, BaseOutputNodeOutputs } from "./BaseOutputNode";
 
 interface Inputs extends BaseOutputNodeInputs {
     colors: Color[];

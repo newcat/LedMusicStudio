@@ -1,7 +1,7 @@
+import { markRaw } from "vue";
+import { defineNode, NodeInterface } from "baklavajs";
 import { NumberInterface } from "@/graph/interfaces";
 import SpectrumOptionVue from "@/graph/options/SpectrumOption.vue";
-import { defineNode, NodeInterface } from "@baklavajs/core";
-import { markRaw } from "vue";
 import { LmsCalculationContext } from "../../types";
 
 function getBinIndexByFrequency(f: number, sampleRate: number, fftSize: number) {

@@ -1,8 +1,7 @@
-import { defineNode } from "@baklavajs/core";
+import { defineNode, SelectInterface } from "baklavajs";
 import { TICKS_PER_BEAT } from "@/constants";
-import { LmsCalculationContext } from "../../types";
 import { CheckboxInterface, NumberInterface, SliderInterface } from "@/graph/interfaces";
-import { SelectInterface } from "@baklavajs/renderer-vue";
+import { LmsCalculationContext } from "../../types";
 
 const rates = [
     { text: "1/8 Beat", value: TICKS_PER_BEAT / 8 },

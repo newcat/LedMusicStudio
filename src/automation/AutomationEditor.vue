@@ -252,7 +252,7 @@ function wheel(ev: WheelEvent) {
 }
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .automation-editor {
     width: 100%;
     height: 100%;
@@ -263,22 +263,22 @@ function wheel(ev: WheelEvent) {
 svg {
     min-width: 100%;
     height: 100%;
+}
 
-    & line {
-        stroke: white;
-    }
+svg line {
+    stroke: white;
+}
 
-    & circle {
-        stroke: darkgray;
-        fill: darkgray;
-        z-index: 4;
-        transition: fill 0.2s linear, stroke 0.2s linear;
-    }
-    & circle:hover,
-    & circle.--dragged {
-        stroke: white;
-        fill: white;
-    }
+svg circle {
+    stroke: darkgray;
+    fill: darkgray;
+    z-index: 4;
+    transition: fill 0.2s linear, stroke 0.2s linear;
+}
+svg circle:hover,
+svg circle.--dragged {
+    stroke: white;
+    fill: white;
 }
 
 .border {

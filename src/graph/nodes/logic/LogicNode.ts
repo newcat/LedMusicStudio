@@ -1,6 +1,5 @@
+import { defineNode, SelectInterface } from "baklavajs";
 import { CheckboxInterface } from "@/graph/interfaces";
-import { defineNode } from "@baklavajs/core";
-import { SelectInterface } from "@baklavajs/renderer-vue";
 
 const operations = ["AND", "OR", "XOR", "NAND", "NOR", "XNOR"];
 

@@ -1,6 +1,6 @@
+import { CalculateFunction, Node } from "baklavajs";
 import { CheckboxInterface, NumberInterface } from "@/graph/interfaces";
 import { LmsCalculationContext } from "@/graph/types";
-import { CalculateFunction, Node } from "@baklavajs/core";
 
 type Phase = "Attack" | "Decay" | "Sustain" | "Release" | "None";
 

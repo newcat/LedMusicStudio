@@ -1,5 +1,4 @@
-import { setType } from "@baklavajs/interface-types";
-import { SliderInterface as OriginalSliderInterface } from "@baklavajs/renderer-vue";
+import { setType, SliderInterface as OriginalSliderInterface } from "baklavajs";
 import { NumberType } from "../interface-types";
 
 export class SliderInterface extends OriginalSliderInterface {

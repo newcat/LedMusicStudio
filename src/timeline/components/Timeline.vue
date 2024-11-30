@@ -10,9 +10,9 @@
         @keyup="keyup"
         @wheel="wheel"
     >
-        <div class="__content" :style="contentStyles">
+        <div ref="contentEl" class="content" :style="contentStyles">
             <position-marker></position-marker>
-            <div class="__header-row" @click="onHeaderClick">
+            <div class="header-row" @click="onHeaderClick">
                 <div class="__spacer"></div>
                 <div class="__container">
                     <marker-label v-for="m in markers" :key="m.unit" :marker="m"></marker-label>
@@ -54,13 +54,12 @@ import MarkerLabel from "./MarkerLabel.vue";
 import PositionMarker from "./PositionMarker.vue";
 import TrackView from "./Track.vue";
 
-import "../styles/all.scss";
-
 const globalState = useGlobalState();
 const library = useLibrary();
 const timeline = useTimeline();
 
 const el = ref<HTMLElement | null>(null);
+const contentEl = ref<HTMLElement | null>(null);
 const lastItemEnd = ref(0);
 const ctrlPressed = ref(false);
 const isDragging = ref(false);
@@ -152,7 +151,7 @@ function keydown(ev: KeyboardEvent) {
     ev.preventDefault();
     if (ev.key === "Delete") {
         const itemsToDelete = timeline.items.filter((i) => i.selected);
-        itemsToDelete.forEach((i) => timeline.removeItem(i as Item));
+        itemsToDelete.forEach((i) => timeline.removeItem(i));
     } else if (ev.key === " ") {
         globalState.isPlaying = !globalState.isPlaying;
     } else if (ev.key === "Control") {
@@ -309,10 +308,14 @@ function onHeaderClick(ev: MouseEvent): void {
 
 function wheel(ev: WheelEvent) {
     ev.preventDefault();
+
+    if (!contentEl.value) {
+        return;
+    }
+
     const amount = normalizeMouseWheel(ev);
-    const contentEl = el.value!.querySelector(".__content") as HTMLElement;
     // get offset relative to the content element
-    const bb = contentEl.getBoundingClientRect();
+    const bb = contentEl.value.getBoundingClientRect();
     const offsetX = ev.screenX - bb.left - timeline.headerWidth;
     const unit = pixelToUnit(offsetX); // the unit which is currently hovered
     timeline.unitWidth *= 1 - amount / 1500;
@@ -372,3 +375,61 @@ function createItem(length: number, libraryItem: LibraryItem) {
     return item;
 }
 </script>
+
+<style scoped>
+.timeline {
+    --rowHeight: 100px;
+    --headerWidth: 200px;
+
+    overflow: auto;
+    width: 100%;
+    height: 100%;
+    background-color: var(--p-panel-background);
+}
+
+.timeline:focus {
+    outline: none;
+}
+
+.--disable-child-pointer-events * {
+    pointer-events: none;
+}
+
+.content {
+    position: relative;
+    background-image: linear-gradient(90deg, var(--p-form-field-disabled-background) 1px, transparent 1px),
+        linear-gradient(90deg, var(--p-form-field-filled-background) 1px, transparent 1px);
+    background-position: calc(var(--headerWidth) - 1px) -1px;
+    background-repeat: repeat;
+    min-width: 100%;
+}
+.content:focus {
+    outline: none;
+}
+
+.header-row {
+    height: 40px;
+    background-color: var(--p-form-field-background);
+    position: sticky;
+    top: 0;
+    z-index: 4;
+}
+
+.header-row > .__spacer {
+    width: var(--headerWidth);
+    height: 100%;
+    position: sticky;
+    background-color: var(--p-form-field-background);
+    left: 0;
+    z-index: 5;
+}
+
+.header-row > .__container {
+    position: absolute;
+    top: 0;
+    left: var(--headerWidth);
+    height: 100%;
+    width: calc(100% - var(--headerWidth));
+    z-index: 4;
+}
+</style>

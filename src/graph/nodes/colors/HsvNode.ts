@@ -1,5 +1,5 @@
+import { defineNode } from "baklavajs";
 import { ColorSingleInterface, PreviewInterface, SliderInterface } from "@/graph/interfaces";
-import { defineNode } from "@baklavajs/core";
 import { fromChroma, chroma } from "../../colors";
 
 export const HsvNode = defineNode({

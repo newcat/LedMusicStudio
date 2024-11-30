@@ -1,5 +1,5 @@
+import { defineNode } from "baklavajs";
 import { ColorArrayInterface, SliderInterface } from "@/graph/interfaces";
-import { defineNode } from "@baklavajs/core";
 import { Color, mix, blend } from "../../colors";
 
 export const MirrorNode = defineNode({

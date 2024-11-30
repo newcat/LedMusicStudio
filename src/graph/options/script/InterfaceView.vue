@@ -3,7 +3,7 @@
         <div v-if="!editmode" class="grow">{{ intf.name }} ({{ typeNames[type] }})</div>
         <template v-else>
             <InputText v-model="tempname" />
-            <Dropdown v-model="type" :options="typeOptions" option-label="label" option-value="value" />
+            <Select v-model="type" :options="typeOptions" option-label="label" option-value="value" />
         </template>
         <Button text size="small" @click="toggle">{{ editmode ? "Save" : "Edit" }}</Button>
         <Button text size="small" @click="emit('remove')">Remove</Button>
@@ -14,7 +14,7 @@
 import { computed, ref } from "vue";
 import Button from "primevue/button";
 import InputText from "primevue/inputtext";
-import Dropdown from "primevue/dropdown";
+import Select from "primevue/select";
 import { NodeInterface } from "baklavajs";
 
 import { BooleanType, ColorArrayType, ColorSingleType, NumberType } from "@/graph/interface-types";

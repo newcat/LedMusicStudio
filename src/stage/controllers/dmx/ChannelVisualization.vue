@@ -47,7 +47,7 @@ defineProps<{
 .fixture {
     height: 0.5rem;
     border-radius: 0.5rem;
-    background-color: var(--primary-color);
+    background-color: var(--p-primary-color);
     grid-row: 1;
     cursor: pointer;
     transition: background-color 0.1s linear;

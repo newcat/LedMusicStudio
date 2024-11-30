@@ -1,4 +1,4 @@
-import { Node } from "@baklavajs/core";
+import { Node } from "baklavajs";
 import { SelectFixtureInterface } from "@/graph/interfaces/SelectFixtureInterface";
 
 export interface BaseOutputNodeInputs {

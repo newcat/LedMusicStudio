@@ -1,7 +1,7 @@
+import { markRaw } from "vue";
+import { defineNode, NodeInterface } from "baklavajs";
 import { NumberInterface } from "@/graph/interfaces";
 import PeakOptionVue from "@/graph/options/PeakOption.vue";
-import { defineNode, NodeInterface } from "@baklavajs/core";
-import { markRaw } from "vue";
 import { LmsCalculationContext } from "../../types";
 
 export const PeakNode = defineNode({

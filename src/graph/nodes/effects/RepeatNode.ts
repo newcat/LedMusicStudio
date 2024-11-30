@@ -1,4 +1,4 @@
-import { defineNode } from "@baklavajs/core";
+import { defineNode } from "baklavajs";
 import { scaleColorArray } from "@/utils";
 import { LmsCalculationContext } from "../../types";
 import { ColorArrayInterface, IntegerInterface } from "../../interfaces";

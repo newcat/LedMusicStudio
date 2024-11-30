@@ -88,7 +88,7 @@ export const useGlobalState = defineStore("globalState", () => {
 
     async function load(raw: string) {
         const data: SavedState = JSON.parse(raw) as SavedState;
-        await stage.load(data.stage);
+        stage.load(data.stage);
         graphTemplates.load(data.graphTemplates ?? []);
         graphTemplates.skipSync.value = true;
         await library.load(data.library);

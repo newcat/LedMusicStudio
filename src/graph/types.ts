@@ -1,4 +1,4 @@
-import { CalculationContext } from "@baklavajs/core";
+import { CalculationContext } from "baklavajs";
 import { INote } from "@/pattern";
 
 export interface ICalculationData {

@@ -1,6 +1,5 @@
 import type { InterpolationMode } from "chroma-js";
-import { defineNode } from "@baklavajs/core";
-import { SelectInterface } from "@baklavajs/renderer-vue";
+import { defineNode, SelectInterface } from "baklavajs";
 import { ColorArrayInterface, SliderInterface } from "@/graph/interfaces";
 import { Color, mix } from "../../colors";
 

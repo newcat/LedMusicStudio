@@ -4,28 +4,34 @@
             <Button outlined size="small" @click="() => editor.addDefaultTrack()">Add Track</Button>
             <Divider layout="vertical" />
             <span class="mr-4 mdi mdi-ruler" style="font-size: 1.5em"></span>
-            <Dropdown
+            <Select
                 :model-value="snapUnits"
                 @update:model-value="setSnap"
                 :options="snapItems"
                 option-label="label"
                 option-value="value"
                 style="width: 9em"
-            ></Dropdown>
+            ></Select>
             <Divider layout="vertical" />
             <div class="mr-4">BPM</div>
-            <InputText :model-value="bpm" @update:model-value="setBpm" style="max-width: 4em"></InputText>
+            <InputText :model-value="bpm" @update:model-value="(v) => setBpm(v ?? '0')" style="max-width: 4em"></InputText>
             <ToggleButton
                 v-model="globalState.metronome"
                 class="ml-4"
                 on-icon="mdi mdi-metronome"
                 off-icon="mdi mdi-metronome"
-                on-label=""
-                off-label=""
+                on-label="Metronome"
+                off-label="Metronome"
             ></ToggleButton>
             <div class="__spacer"></div>
             <span class="mr-4 mdi mdi-volume-high" style="font-size: 1.5em"></span>
-            <Slider :model-value="volume * 100" @update:model-value="setVolume" :min="0" :max="100" style="width: 7em"></Slider>
+            <Slider
+                :model-value="volume * 100"
+                @update:model-value="v => setVolume(v as number)"
+                :min="0"
+                :max="100"
+                style="width: 7em"
+            ></Slider>
         </div>
         <div id="wrapper">
             <timeline-base></timeline-base>
@@ -39,7 +45,7 @@ import Button from "primevue/button";
 import Divider from "primevue/divider";
 import Slider from "primevue/slider";
 import ToggleButton from "primevue/togglebutton";
-import Dropdown, { DropdownProps } from "primevue/dropdown";
+import Select, { SelectProps } from "primevue/select";
 import InputText from "primevue/inputtext";
 
 import { TICKS_PER_BEAT } from "@/constants";
@@ -48,7 +54,7 @@ import TimelineBase from "./components/Timeline.vue";
 
 const globalState = useGlobalState();
 
-const snapItems: DropdownProps["options"] = [
+const snapItems: SelectProps["options"] = [
     { label: "Disabled", value: "1" },
     { label: "1/8 Beat", value: (TICKS_PER_BEAT / 8).toString() },
     { label: "1/6 Beat", value: (TICKS_PER_BEAT / 6).toString() },
@@ -107,8 +113,8 @@ function setSnap(value: string) {
     align-items: center;
     justify-content: space-between;
     padding: 1rem;
-    background-color: var(--surface-card);
-    border-bottom: 1px solid var(--surface-border);
+    background-color: var(--p-menubar-background);
+    border-bottom: 1px solid var(--p-menubar-border-color);
 }
 
 .timeline-toolbar .__spacer {

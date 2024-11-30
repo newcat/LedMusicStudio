@@ -27,12 +27,12 @@
         </div>
         <div>
             <LabelledFormField label="Mode">
-                <Dropdown
+                <Select
                     :model-value="fixture.config.mode"
                     :options="fixture.config.definition.modes"
                     option-label="name"
                     @update:model-value="setMode"
-                ></Dropdown>
+                ></Select>
             </LabelledFormField>
         </div>
     </template>
@@ -44,7 +44,7 @@
 import { ref } from "vue";
 import Button from "primevue/button";
 import InputNumber from "primevue/inputnumber";
-import Dropdown from "primevue/dropdown";
+import Select from "primevue/select";
 
 import LabelledFormField from "@/components/LabelledFormField.vue";
 import { DmxFixture } from "./dmx.fixture";

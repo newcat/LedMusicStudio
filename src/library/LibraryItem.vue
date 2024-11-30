@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { ComponentInstance, computed, ref } from "vue";
 import Menu, { MenuProps } from "primevue/menu";
 
 import { useLibrary } from "./libraryModel";
@@ -26,7 +26,7 @@ const library = useLibrary();
 
 const item = computed(() => library.items.find((it) => it.id === props.itemId));
 
-const menu = ref<Menu | null>(null);
+const menu = ref<ComponentInstance<typeof Menu> | null>(null);
 const popupMenu: MenuProps["model"] = [
     {
         label: "Rename",

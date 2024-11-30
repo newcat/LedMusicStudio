@@ -6,7 +6,7 @@
                 <Menu ref="menu" :model="addControllerOptions" :popup="true"></Menu>
             </div>
         </div>
-        <Listbox v-model="selectedController" :options="stage.controllers.getArray()" empty-message="No controllers added.">
+        <Listbox v-model="selectedController" :options="stage.controllers.getArray()" empty-message="No controllers added." scroll-height="">
             <template #option="{ option }">
                 <div class="flex align-items-center">
                     <i
@@ -24,14 +24,15 @@
             :pt="{ toggleableContent: { class: 'grow' }, content: { class: 'h-full' } }"
         >
             <template #icons>
-                <button
+                <Button
                     v-tooltip.left="'Remove Controller'"
-                    class="p-panel-header-icon p-link"
+                    icon="pi pi-trash"
+                    severity="secondary"
+                    rounded
+                    text
                     :disabled="!selectedController"
                     @click="removeSelectedController"
-                >
-                    <span class="pi pi-trash"></span>
-                </button>
+                ></Button>
             </template>
 
             <div v-if="selectedController" class="controller-settings">
@@ -63,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ComponentInstance, ref } from "vue";
 import Button from "primevue/button";
 import Listbox from "primevue/listbox";
 import Panel from "primevue/panel";
@@ -81,7 +82,7 @@ import { createController } from "../controllers/factory";
 const stage = useStage();
 
 const selectedController = ref<BaseController | null>(null);
-const menu = ref<Menu | null>(null);
+const menu = ref<ComponentInstance<typeof Menu> | null>(null);
 
 const addControllerOptions: MenuProps["model"] = [
     { label: "WLED", icon: "mdi mdi-led-on", command: () => addController(ControllerType.WLED) },

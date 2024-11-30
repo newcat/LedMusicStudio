@@ -1,4 +1,4 @@
-import { defineNode } from "@baklavajs/core";
+import { defineNode } from "baklavajs";
 import { ColorSingleInterface, PreviewInterface, SliderInterface } from "@/graph/interfaces";
 import { fromChroma, chroma } from "../../colors";
 

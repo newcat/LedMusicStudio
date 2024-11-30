@@ -1,6 +1,5 @@
+import { defineNode, SelectInterface } from "baklavajs";
 import { ColorArrayInterface, ColorSingleInterface, NumberInterface, SliderInterface } from "@/graph/interfaces";
-import { defineNode } from "@baklavajs/core";
-import { SelectInterface } from "@baklavajs/renderer-vue";
 import { Color, toChroma, fromChroma } from "../../colors";
 import { LmsCalculationContext } from "../../types";
 

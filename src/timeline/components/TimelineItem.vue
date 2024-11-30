@@ -3,8 +3,8 @@
         <div class="timeline-item__header" :title="name" @mousedown="dragStart('center')">
             <div class="timeline-item__header-text">{{ name }}</div>
         </div>
-        <div class="__drag-handle --left" v-show="item.resizable &amp;&amp; item.selected" @mousedown="dragStart('leftHandle')"></div>
-        <div class="__drag-handle --right" v-show="item.resizable &amp;&amp; item.selected" @mousedown="dragStart('rightHandle')"></div>
+        <div class="drag-handle --left" v-show="item.resizable &amp;&amp; item.selected" @mousedown="dragStart('leftHandle')"></div>
+        <div class="drag-handle --right" v-show="item.resizable &amp;&amp; item.selected" @mousedown="dragStart('rightHandle')"></div>
         <div class="preview-container" v-if="previewComponent" @mousedown="dragStart('center')">
             <component :is="previewComponent" :item="item" :unitWidth="unitWidth"></component>
         </div>
@@ -55,3 +55,68 @@ function dragStart(area: ItemArea) {
     emit("dragStart", area);
 }
 </script>
+
+<style scoped>
+.timeline-item {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    height: calc(100% - 10px);
+    top: 5px;
+    background-color: var(--p-mask-background);
+    border-radius: 3px;
+    border: 2px solid transparent;
+    transition: border-color 0.1s;
+    z-index: 0;
+}
+
+.timeline-item:hover:not(.--selected) {
+    border-color: var(--p-primary-hover-color);
+}
+
+.timeline-item.--selected {
+    border-color: var(--p-primary-color);
+    z-index: 1;
+}
+
+.timeline-item__header {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.timeline-item__header-text {
+    color: var(--p-text-color);
+    font-size: 0.75rem;
+    padding: 0.1rem;
+    margin-left: 5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.preview-container {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+.drag-handle {
+    position: absolute;
+    height: 50%;
+    width: 6px;
+    top: 25%;
+    background-color: var(--p-primary-color);
+    cursor: col-resize;
+}
+
+.drag-handle.--left {
+    left: -6px;
+    border-radius: 3px 0 0 3px;
+}
+
+.drag-handle.--right {
+    right: -6px;
+    border-radius: 0 3px 3px 0;
+}
+</style>
