@@ -61,11 +61,11 @@ export class RenderingInstance {
     ) {
         this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 4;
+        // this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        // this.renderer.toneMappingExposure = 2;
 
         const renderScene = new RenderPass(scene, camera);
-        this.bloomPass = new UnrealBloomPass(new THREE.Vector2(canvas.width, canvas.height), 0.2, 0, 0.5);
+        this.bloomPass = new UnrealBloomPass(new THREE.Vector2(4096, 4096), 0.3, 0.0, 0.5);
         const outputPass = new OutputPass();
 
         this.composer = new EffectComposer(this.renderer);
@@ -79,7 +79,7 @@ export class RenderingInstance {
     public resize(width: number, height: number) {
         this.renderer.setSize(width, height, false);
         this.composer.setSize(width, height);
-        this.bloomPass.resolution.set(width, height);
+        // this.bloomPass.resolution.set(width, height);
         this.camera.aspect = width / height;
         this.camera.updateProjectionMatrix();
     }

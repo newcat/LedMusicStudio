@@ -162,6 +162,8 @@ class UnrealBloomPass extends Pass {
     }
 
     setSize(width: number, height: number) {
+        return;
+
         let resx = Math.round(width / 2);
         let resy = Math.round(height / 2);
 
@@ -297,13 +299,13 @@ class UnrealBloomPass extends Pass {
 
 				void main() {
 					float weightSum = gaussianCoefficients[0];
-					vec3 diffuseSum = texture2D( colorTexture, vUv ).rgb * weightSum;
+					vec3 diffuseSum = max( texture2D( colorTexture, vUv ).rgb, 0.0) * weightSum;
 					for( int i = 1; i < KERNEL_RADIUS; i ++ ) {
 						float x = float(i);
 						float w = gaussianCoefficients[i];
 						vec2 uvOffset = direction * invSize * x;
-						vec3 sample1 = texture2D( colorTexture, vUv + uvOffset ).rgb;
-						vec3 sample2 = texture2D( colorTexture, vUv - uvOffset ).rgb;
+                        vec3 sample1 = max( texture2D( colorTexture, vUv + uvOffset ).rgb, 0.0);
+						vec3 sample2 = max( texture2D( colorTexture, vUv - uvOffset ).rgb, 0.0);
 						diffuseSum += (sample1 + sample2) * w;
 						weightSum += 2.0 * w;
 					}
