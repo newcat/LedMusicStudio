@@ -4,13 +4,14 @@
             <h2 class="m-4 font-bold text-xl">{{ title }}</h2>
         </template>
         <template #content>
-            <GraphEditor v-if="isGraph(selectedItem)" :key="'g' + selectedItem.id" :graph="selectedItem"></GraphEditor>
+            <ScriptEditor />
+            <!--<GraphEditor v-if="isGraph(selectedItem)" :key="'g' + selectedItem.id" :graph="selectedItem"></GraphEditor>
             <NoteEditor v-else-if="isPattern(selectedItem)" :key="'p' + selectedItem.id" :note-pattern="selectedItem"></NoteEditor>
             <AutomationEditor
                 v-else-if="isAutomation(selectedItem)"
                 :key="'a' + selectedItem.id"
                 :automation-clip="selectedItem"
-            ></AutomationEditor>
+            ></AutomationEditor>-->
         </template>
     </Card>
 </template>
@@ -23,6 +24,7 @@ import { LibraryItem, LibraryItemType, useLibrary } from "@/library";
 import { NoteEditor, PatternLibraryItem } from "@/pattern";
 import { AutomationEditor, AutomationLibraryItem } from "@/automation";
 import { GraphEditor, GraphLibraryItem } from "@/graph";
+import ScriptEditor from "@/scripting/ScriptEditor.vue";
 
 const library = useLibrary();
 
