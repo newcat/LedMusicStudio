@@ -1,5 +1,5 @@
 <template>
-    <Menubar :model="menuItems">
+    <Menubar class="main-toolbar" :model="menuItems">
         <template #end>
             <div v-tooltip="{ value: tooltipText }">
                 <Button
@@ -87,7 +87,7 @@ const menuItems = computed<MenubarProps["model"]>(() => [
     {
         label: "Stage",
         icon: "mdi mdi-cast-variant",
-        class: currentView.value === "STAGE" ? "p-highlight p-menuitem-active" : "",
+        class: currentView.value === "STAGE" ? "active" : "",
         command: () => {
             currentView.value = "STAGE";
         },
@@ -95,7 +95,7 @@ const menuItems = computed<MenubarProps["model"]>(() => [
     {
         label: "Programming",
         icon: "mdi mdi-code-braces",
-        class: currentView.value === "PROGRAMMING" ? "p-highlight p-menuitem-active" : "",
+        class: currentView.value === "PROGRAMMING" ? "active" : "",
         command: () => {
             currentView.value = "PROGRAMMING";
         },
@@ -113,5 +113,18 @@ const menuItems = computed<MenubarProps["model"]>(() => [
 <style scoped>
 .status-button {
     opacity: 1;
+}
+
+.main-toolbar :deep(.active .p-menubar-item-content) {
+    outline: 1px solid var(--p-primary-color);
+    color: var(--p-primary-color) !important;
+}
+
+.main-toolbar :deep(.active .p-menubar-item-icon) {
+    color: var(--p-primary-color) !important;
+}
+
+.main-toolbar :deep(.p-menubar-submenu) {
+    z-index: 10;
 }
 </style>

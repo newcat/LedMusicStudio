@@ -1,9 +1,16 @@
 <template>
-    <div v-if="item" class="library-item" draggable="true" @dragstart="dragstart">
+    <div
+        v-if="item"
+        class="library-item"
+        :class="{ '--selected': library.selectedItemId === itemId }"
+        draggable="true"
+        @dragstart="dragstart"
+        @click="selectItem"
+    >
         <div v-if="item.loading" class="mr-4"><i class="pi pi-spin pi-spinner"></i></div>
         <div v-else-if="item.error" class="mr-4" :title="item.error"><i class="mdi mdi-alert"></i></div>
         <div class="grow">{{ item.name }}</div>
-        <div class="__menu">
+        <div>
             <i class="pi pi-ellipsis-v" @click.stop="menu?.toggle"></i>
             <Menu ref="menu" :model="popupMenu" :popup="true" />
         </div>
@@ -55,13 +62,31 @@ const showItemSettings = ref(false);
 function dragstart(ev: DragEvent) {
     ev.dataTransfer!.setData("id", props.itemId);
 }
+
+function selectItem() {
+    library.selectedItemId = props.itemId;
+}
 </script>
 
 <style scoped>
 .library-item {
     display: flex;
-    margin-left: 1.35rem;
     align-items: center;
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: var(--p-content-border-radius);
+    transition:
+        background var(--p-transition-duration),
+        border-color var(--p-transition-duration);
+    border: 1px solid transparent;
+}
+
+.library-item.--selected {
+    background-color: var(--p-highlight-background);
+}
+
+.library-item:hover {
+    border-color: var(--p-primary-hover-color);
 }
 
 .status-indicator {

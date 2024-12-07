@@ -2,7 +2,7 @@
     <div v-if="loading">Loading...</div>
     <Codemirror
         v-else
-        v-model="code"
+        v-model="props.script.script"
         :style="{ width: '100%', height: '100%' }"
         :indent-with-tab="true"
         :tab-size="2"
@@ -19,13 +19,17 @@ import ts from "typescript";
 import { Codemirror } from "vue-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { autocompletion } from "@codemirror/autocomplete";
-import { oneDark } from "@codemirror/theme-one-dark";
 import { tsSync, tsFacet, tsHover, tsLinter, tsAutocomplete } from "@valtown/codemirror-ts";
 
 import apiDefinition from "./lib.lmsApi.d.ts?raw";
 import { LMSApiImpl } from "./api/lms.api";
+import { ScriptLibraryItem } from "./script.libraryItem";
+import { oneDark } from "./theme";
 
-const code = ref("const x = 3;");
+const props = defineProps<{
+    script: ScriptLibraryItem;
+}>();
+
 const loading = ref(true);
 
 let extensions: any[] = [];

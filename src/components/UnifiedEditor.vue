@@ -4,14 +4,14 @@
             <h2 class="m-4 font-bold text-xl">{{ title }}</h2>
         </template>
         <template #content>
-            <ScriptEditor />
-            <!--<GraphEditor v-if="isGraph(selectedItem)" :key="'g' + selectedItem.id" :graph="selectedItem"></GraphEditor>
+            <GraphEditor v-if="isGraph(selectedItem)" :key="'g' + selectedItem.id" :graph="selectedItem"></GraphEditor>
             <NoteEditor v-else-if="isPattern(selectedItem)" :key="'p' + selectedItem.id" :note-pattern="selectedItem"></NoteEditor>
             <AutomationEditor
                 v-else-if="isAutomation(selectedItem)"
                 :key="'a' + selectedItem.id"
                 :automation-clip="selectedItem"
-            ></AutomationEditor>-->
+            ></AutomationEditor>
+            <ScriptEditor v-if="isScript(selectedItem)" :key="'s' + selectedItem.id" :script="selectedItem" />
         </template>
     </Card>
 </template>
@@ -24,7 +24,7 @@ import { LibraryItem, LibraryItemType, useLibrary } from "@/library";
 import { NoteEditor, PatternLibraryItem } from "@/pattern";
 import { AutomationEditor, AutomationLibraryItem } from "@/automation";
 import { GraphEditor, GraphLibraryItem } from "@/graph";
-import ScriptEditor from "@/scripting/ScriptEditor.vue";
+import { ScriptEditor, ScriptLibraryItem } from "@/scripting";
 
 const library = useLibrary();
 
@@ -51,16 +51,21 @@ function isAutomation(item?: LibraryItem): item is AutomationLibraryItem {
 function isPattern(item?: LibraryItem): item is PatternLibraryItem {
     return !!item && item.type === LibraryItemType.PATTERN;
 }
+
+function isScript(item?: LibraryItem): item is ScriptLibraryItem {
+    return !!item && item.type === LibraryItemType.SCRIPT;
+}
 </script>
 
-<style>
+<style scoped>
 .unified-editor {
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
-.unified-editor > .p-card-body,
-.unified-editor > .p-card-body > .p-card-content {
+.unified-editor > :deep(.p-card-body),
+.unified-editor > :deep(.p-card-body > .p-card-content) {
     padding: 0;
     width: 100%;
     flex-grow: 1;

@@ -2,7 +2,7 @@
     <Dialog :visible="modelValue" header="Edit Library Item" modal @update:visible="emit('update:modelValue', $event)">
         <LabelledInputText v-model="vName">Name</LabelledInputText>
         <template #footer>
-            <Button @click="cancel">Cancel</Button>
+            <Button severity="secondary" @click="cancel">Cancel</Button>
             <Button @click="save">Save</Button>
         </template>
     </Dialog>
@@ -29,7 +29,7 @@ watch(
     () => props.modelValue,
     () => {
         vName.value = props.item.name;
-    }
+    },
 );
 
 function cancel() {

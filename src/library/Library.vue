@@ -9,37 +9,31 @@
                 <Menu ref="menu" :model="addItemOptions" :popup="true"></Menu>
             </template>
         </Toolbar>
-        <Card class="menu-container">
+        <Card class="menu-container" :pt="{ body: { class: 'h-full' }, content: { class: 'h-full' } }">
             <template #content>
-                <Listbox
-                    v-model="library.selectedItemId"
-                    :options="libraryItems"
-                    option-label="label"
-                    option-value="key"
-                    option-disabled="loading"
-                    option-group-label="label"
-                    option-group-children="items"
-                >
-                    <template #optiongroup="{ option }">
-                        <i :class="option.icon"></i>
-                        {{ option.label }}
+                <div class="items-container">
+                    <template v-for="type in LibraryItemTypeList" :key="type">
+                        <h3 class="m-0">
+                            <i :class="`mdi mdi-${LibraryItemTypeIcons[type]}`" />
+                            {{ LibraryItemTypeLabels[type] }}
+                        </h3>
+                        <div>
+                            <LibraryItemView v-for="item in getLibraryItemsByType(type)" :key="item.id" :item-id="item.id" />
+                        </div>
+                        <hr class="w-full" />
                     </template>
-                    <template #option="{ option }">
-                        <LibraryItemView :item-id="option.key" />
-                    </template>
-                </Listbox>
+                </div>
             </template>
         </Card>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, ComponentInstance } from "vue";
+import { reactive, ref, ComponentInstance } from "vue";
 import Toolbar from "primevue/toolbar";
 import Button from "primevue/button";
 import Menu, { MenuProps } from "primevue/menu";
 import Card from "primevue/card";
-import Listbox, { ListboxProps } from "primevue/listbox";
 
 import { useLibrary } from "./libraryModel";
 
@@ -47,6 +41,7 @@ import { AudioLibraryItem } from "@/audio/audio.libraryItem";
 import { AutomationLibraryItem } from "@/automation/automation.libraryItem";
 import { GraphLibraryItem } from "@/graph/graph.libraryItem";
 import { PatternLibraryItem } from "@/pattern/pattern.libraryItem";
+import { ScriptLibraryItem } from "@/scripting/script.libraryItem";
 import { LibraryItemType, LibraryItem, LibraryItemTypeIcons, LibraryItemTypeLabels, LibraryItemTypeList } from "./libraryItem";
 
 import LibraryItemView from "./LibraryItem.vue";
@@ -62,22 +57,12 @@ const getMenuItem = (type: LibraryItemType) => ({
 });
 const addItemOptions: MenuProps["model"] = LibraryItemTypeList.map((type) => getMenuItem(type));
 
-const libraryItems = computed<ListboxProps["options"]>(() => {
-    return LibraryItemTypeList.map((type) => ({
-        key: `LIT_${type}`,
-        label: LibraryItemTypeLabels[type],
-        icon: `mdi mdi-${LibraryItemTypeIcons[type]}`,
-        items: library.items
-            .filter((it) => it.type === type)
-            .map((it) => ({
-                key: it.id,
-                loading: it.loading,
-            })),
-    }));
-});
-
 function toggleAddItemMenu(ev: Event) {
     menu.value!.toggle(ev);
+}
+
+function getLibraryItemsByType(type: LibraryItemType) {
+    return library.items.filter((it) => it.type === type);
 }
 
 async function loadAudio() {
@@ -104,6 +89,9 @@ async function addItem(key: LibraryItemType) {
         case LibraryItemType.PATTERN:
             item = PatternLibraryItem;
             break;
+        case LibraryItemType.SCRIPT:
+            item = ScriptLibraryItem;
+            break;
         default:
             return;
     }
@@ -125,11 +113,9 @@ async function addItem(key: LibraryItemType) {
     flex-grow: 1;
 }
 
-.menu-container :deep(.p-card-body) {
-    padding: 0;
-}
-
-.menu-container :deep(.p-card-content) {
-    padding: 0;
+.items-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 </style>

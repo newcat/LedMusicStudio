@@ -5,6 +5,8 @@ export enum LibraryItemType {
     GRAPH = "GRAPH",
     AUTOMATION = "AUTOMATION",
     PATTERN = "PATTERN",
+    SCRIPT = "SCRIPT",
+    SCRIPT_LIBRARY = "SCRIPT_LIBRARY",
 }
 
 export const LibraryItemTypeList = [
@@ -12,6 +14,8 @@ export const LibraryItemTypeList = [
     LibraryItemType.GRAPH,
     LibraryItemType.AUTOMATION,
     LibraryItemType.PATTERN,
+    LibraryItemType.SCRIPT,
+    LibraryItemType.SCRIPT_LIBRARY,
 ] as const;
 
 export const LibraryItemTypeLabels: Record<LibraryItemType, string> = {
@@ -19,6 +23,8 @@ export const LibraryItemTypeLabels: Record<LibraryItemType, string> = {
     [LibraryItemType.GRAPH]: "Graph",
     [LibraryItemType.AUTOMATION]: "Automation Clip",
     [LibraryItemType.PATTERN]: "Note Pattern",
+    [LibraryItemType.SCRIPT]: "Script",
+    [LibraryItemType.SCRIPT_LIBRARY]: "Script Library",
 } as const;
 
 export const LibraryItemTypeIcons: Record<LibraryItemType, string> = {
@@ -26,6 +32,8 @@ export const LibraryItemTypeIcons: Record<LibraryItemType, string> = {
     [LibraryItemType.GRAPH]: "graph-outline",
     [LibraryItemType.AUTOMATION]: "chart-bell-curve",
     [LibraryItemType.PATTERN]: "music",
+    [LibraryItemType.SCRIPT]: "script-text-outline",
+    [LibraryItemType.SCRIPT_LIBRARY]: "library-outline",
 } as const;
 
 export abstract class LibraryItem<S = unknown> {
