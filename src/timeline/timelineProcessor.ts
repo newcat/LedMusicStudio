@@ -14,7 +14,7 @@ export class TimelineProcessor extends BaseTimelineProcessor {
     };
 
     private timer?: ReturnType<typeof setInterval>;
-    private observers: (() => void)[] = [];
+    private observers: Array<() => void> = [];
 
     private audioProcessor: AudioProcessor;
     private metronome: Metronome;
@@ -66,7 +66,8 @@ export class TimelineProcessor extends BaseTimelineProcessor {
         this.events.tick.emit();
     }
 
-    protected override activate(item: Item) {
+    protected override async activate(item: Item) {
+        await super.activate(item);
         if (item.libraryItem.type === LibraryItemType.AUDIO) {
             const af = item.libraryItem as AudioLibraryItem;
             if (af.loading) {
@@ -90,7 +91,8 @@ export class TimelineProcessor extends BaseTimelineProcessor {
         }
     }
 
-    protected override deactivate(item: Item) {
+    protected override async deactivate(item: Item) {
+        await super.deactivate(item);
         if (item.libraryItem.type === LibraryItemType.AUDIO) {
             const af = item.libraryItem as AudioLibraryItem;
             item.events.moved.unsubscribe(this);

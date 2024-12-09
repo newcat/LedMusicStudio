@@ -1,20 +1,43 @@
-interface LMSDmxFixture {
+declare interface LMSDmxFixture {
     type: "dmx";
     setValue(channel: number, value: number): void;
 }
 
-interface LMSFixturesApi {
+declare interface LMSFixturesApi {
     findFixtureByName(name: string): LMSDmxFixture | null;
 }
 
-interface LMSStageApi {
+declare interface LMSStageApi {
     readonly fixtures: LMSFixturesApi;
 }
 
-interface LMSApi {
+declare interface LMSApi {
     readonly stage: LMSStageApi;
 }
 
-declare var lmsApi: LMSApi;
+declare interface LMSScript {
+    activate?(): Promise<void> | void;
+    deactivate?(): Promise<void> | void;
+    tick?(data: LMSCalculationData): Promise<void> | void;
+}
 
-declare function thisIsAnExampleFunction(): void;
+declare interface LMSNote {
+    id: string;
+    value: number;
+    start: number;
+    end: number;
+    selected: boolean;
+}
+
+declare interface LMSCalculationData {
+    resolution: number;
+    fps: number;
+    position: number;
+    sampleRate: number;
+    timeDomainData: Float32Array;
+    frequencyData: Float32Array;
+    trackValues: Map<string, number | LMSNote[]>;
+    relativeTrackItemProgress: number;
+}
+
+declare const lmsApi: LMSApi;

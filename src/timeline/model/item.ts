@@ -11,7 +11,7 @@ export interface IItemState {
     libraryItemId: string;
 }
 
-export class Item {
+export class Item<L extends LibraryItem = LibraryItem> {
     public static load(state: IItemState): Item {
         const library = useLibrary();
         const libraryItem = library.getItemById(state.libraryItemId || (state as any).data?.libraryItemId)!;
@@ -26,7 +26,7 @@ export class Item {
     public selected = false;
     public resizable = true;
     public temporary = false;
-    public libraryItem: LibraryItem;
+    public libraryItem: L;
 
     public events = {
         beforeMoved: new PreventableBaklavaEvent<{ start: number; end: number }, this>(this),
@@ -43,7 +43,7 @@ export class Item {
         return this._end;
     }
 
-    public constructor(libraryItem: LibraryItem, trackId: string, start: number, end: number) {
+    public constructor(libraryItem: L, trackId: string, start: number, end: number) {
         this.libraryItem = libraryItem;
         this.trackId = trackId;
         this._start = start;

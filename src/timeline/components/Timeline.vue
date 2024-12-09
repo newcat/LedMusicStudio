@@ -46,13 +46,14 @@ import { Item, Track, IItemState, useTimeline } from "../model";
 
 import { LibraryItem, LibraryItemType, useLibrary } from "@/library";
 import { AudioLibraryItem } from "@/audio";
-import { GraphLibraryItem } from "@/graph";
 import { AutomationLibraryItem } from "@/automation";
 import { PatternLibraryItem } from "@/pattern";
 
 import MarkerLabel from "./MarkerLabel.vue";
 import PositionMarker from "./PositionMarker.vue";
 import TrackView from "./Track.vue";
+
+const DEFAULT_ITEM_LENGTH = TICKS_PER_BEAT * 4;
 
 const globalState = useGlobalState();
 const library = useLibrary();
@@ -101,7 +102,7 @@ const markers = computed(() => {
     const markers: IMarker[] = [];
     const maxUnit = Math.max(
         pixelToUnit(timelineElBounds.width.value - timeline.headerWidth - 10),
-        lastItemEnd.value + globalState.snapUnits
+        lastItemEnd.value + globalState.snapUnits,
     );
 
     for (let unit = markerSpacing.value.space; unit < maxUnit; unit += markerSpacing.value.space) {
@@ -251,13 +252,16 @@ function drop(track: Track, ev: DragEvent) {
             item = addMusicItem(libraryItem as AudioLibraryItem);
             break;
         case LibraryItemType.GRAPH:
-            item = addGraphItem(libraryItem as GraphLibraryItem);
+            item = createItem(DEFAULT_ITEM_LENGTH, libraryItem);
             break;
         case LibraryItemType.AUTOMATION:
             item = addAutomationItem(libraryItem as AutomationLibraryItem);
             break;
         case LibraryItemType.PATTERN:
             item = addPatternItem(libraryItem as PatternLibraryItem);
+            break;
+        case LibraryItemType.SCRIPT:
+            item = createItem(DEFAULT_ITEM_LENGTH, libraryItem);
             break;
     }
 
@@ -271,7 +275,7 @@ function drop(track: Track, ev: DragEvent) {
         // check, whether the track is free
         let chosenTrack: Track | undefined;
         const trackItems = timeline.items.filter((i) => i.trackId === track.id);
-         
+
         if (!trackItems.some((i) => isOverlapping(i as Item, item!))) {
             chosenTrack = track;
         }
@@ -280,7 +284,7 @@ function drop(track: Track, ev: DragEvent) {
         if (!chosenTrack) {
             chosenTrack = timeline.tracks.find((t) => {
                 const trackItems = timeline.items.filter((i) => i.trackId === t.id);
-                 
+
                 return !trackItems.some((i) => isOverlapping(i as Item, item!));
             }) as Track;
         }
@@ -352,11 +356,6 @@ function addMusicItem(libraryItem: AudioLibraryItem): Item | undefined {
     const item = createItem(length, libraryItem);
     item.resizable = false;
     return item;
-}
-
-function addGraphItem(libraryItem: GraphLibraryItem): Item {
-    const length = TICKS_PER_BEAT * 4;
-    return createItem(length, libraryItem);
 }
 
 function addAutomationItem(libraryItem: AutomationLibraryItem): Item {
