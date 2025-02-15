@@ -1,7 +1,6 @@
 import * as path from "path";
 import * as url from "url";
 import { app, BrowserWindow, dialog, ipcMain, OpenDialogOptions, SaveDialogOptions, shell } from "electron";
-import installExtension, { VUEJS3_DEVTOOLS } from "electron-devtools-installer";
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
@@ -74,10 +73,6 @@ app.whenReady().then(() => {
         // dock icon is clicked and there are no other windows open.
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
-
-    /*installExtension(VUEJS3_DEVTOOLS)
-        .then((name) => console.log(`Added Extension:  ${name}`))
-        .catch((err) => console.log("An error occurred: ", err));*/
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
