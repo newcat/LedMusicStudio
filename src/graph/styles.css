@@ -15,7 +15,7 @@
     --baklava-toolbar-background: var(--p-form-field-background);
     --baklava-node-palette-background: var(--p-overlay-select-background);
 
-    --baklava-sidebar-color-background: #1b202c;
+    --baklava-sidebar-color-background: var(--p-overlay-select-background);
     --baklava-sidebar-color-foreground: white;
 
     --baklava-node-color-background: var(--p-surface-900);
