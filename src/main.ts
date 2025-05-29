@@ -34,6 +34,11 @@ async function main() {
     const preset = definePreset(Aura, {
         semantic: {
             primary: palette("{sky}"),
+            colorScheme: {
+                dark: {
+                    surface: palette("{gray}"),
+                },
+            },
         },
     });
 
