@@ -70,12 +70,12 @@ export class AudioLibraryItem extends LibraryItem<AudioLibraryItemState> {
             if (!this.name) {
                 this.name = result.path!;
             }
-            await this.loadAudio(result.data);
+            await this.loadAudio(result.data as Uint8Array<ArrayBuffer>);
         }
         return true;
     }
 
-    public async loadAudio(data?: Uint8Array) {
+    public async loadAudio(data?: Uint8Array<ArrayBuffer>) {
         this.loading = true;
         this.error = "";
 
@@ -94,7 +94,7 @@ export class AudioLibraryItem extends LibraryItem<AudioLibraryItemState> {
             }
 
             try {
-                data = await nativeAdapter.readFile(this.path);
+                data = (await nativeAdapter.readFile(this.path)) as Buffer<ArrayBuffer>;
             } catch (err) {
                 console.warn(err);
                 this.loading = false;
@@ -105,7 +105,7 @@ export class AudioLibraryItem extends LibraryItem<AudioLibraryItemState> {
 
         try {
             const offlineAudioContext = new OfflineAudioContext(1, 2, AudioLibraryItem.sampleRate);
-            this.audioBuffer = await offlineAudioContext.decodeAudioData(data.buffer);
+            this.audioBuffer = await offlineAudioContext.decodeAudioData(data!.buffer);
             this.waveform = await this.generateWaveform();
         } catch (err) {
             console.warn(err);

@@ -1,4 +1,4 @@
-import type { InterpolationMode } from "chroma-js";
+import type chroma from "chroma-js";
 import { defineNode, SelectInterface } from "baklavajs";
 import { ColorArrayInterface, SliderInterface } from "@/graph/interfaces";
 import { Color, mix } from "../../colors";
@@ -21,7 +21,7 @@ export const MixColorNode = defineNode({
         for (let i = 0; i < length; i++) {
             const a = i < color1.length ? color1[i] : color1[color1.length - 1];
             const b = i < color2.length ? color2[i] : color2[color2.length - 1];
-            result[i] = mix(a, b, factor, colorSpace.toLowerCase() as InterpolationMode);
+            result[i] = mix(a, b, factor, colorSpace.toLowerCase() as chroma.InterpolationMode);
         }
 
         return { output: result };

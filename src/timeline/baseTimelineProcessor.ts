@@ -50,8 +50,8 @@ export class BaseTimelineProcessor {
         /** maps trackId -> value */
         const trackValues = this.getTrackValues(currentActiveItems, unit);
 
-        let timeDomainData = new Float32Array(FFT_SIZE);
-        let frequencyData = new Float32Array(FFT_SIZE);
+        let timeDomainData: Float32Array = new Float32Array(FFT_SIZE);
+        let frequencyData: Float32Array = new Float32Array(FFT_SIZE);
         // TODO: handle multiple audio items?
         const audioItem = currentActiveItems.find((i) => isAudioLibraryItem(i.libraryItem));
         if (audioItem) {
