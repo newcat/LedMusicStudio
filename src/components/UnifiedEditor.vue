@@ -4,27 +4,36 @@
             <h2 class="m-4 font-bold text-xl">{{ title }}</h2>
         </template>
         <template #content>
-            <GraphEditor v-if="isGraph(selectedItem)" :key="'g' + selectedItem.id" :graph="selectedItem"></GraphEditor>
-            <NoteEditor v-else-if="isPattern(selectedItem)" :key="'p' + selectedItem.id" :note-pattern="selectedItem"></NoteEditor>
-            <AutomationEditor
-                v-else-if="isAutomation(selectedItem)"
-                :key="'a' + selectedItem.id"
-                :automation-clip="selectedItem"
-            ></AutomationEditor>
-            <ScriptEditor v-if="isScript(selectedItem)" :key="'s' + selectedItem.id" :script="selectedItem" />
+            <Suspense>
+                <GraphEditor v-if="isGraph(selectedItem)" :key="'g' + selectedItem.id" :graph="selectedItem"></GraphEditor>
+                <NoteEditor v-else-if="isPattern(selectedItem)" :key="'p' + selectedItem.id" :note-pattern="selectedItem"></NoteEditor>
+                <AutomationEditor
+                    v-else-if="isAutomation(selectedItem)"
+                    :key="'a' + selectedItem.id"
+                    :automation-clip="selectedItem"
+                ></AutomationEditor>
+                <ScriptEditor v-if="isScript(selectedItem)" :key="'s' + selectedItem.id" :script="selectedItem" />
+
+                <template #fallback> Loading editor... </template>
+            </Suspense>
         </template>
     </Card>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, defineAsyncComponent } from "vue";
 import Card from "primevue/card";
 
 import { LibraryItem, LibraryItemType, useLibrary } from "@/library";
-import { NoteEditor, PatternLibraryItem } from "@/pattern";
-import { AutomationEditor, AutomationLibraryItem } from "@/automation";
-import { GraphEditor, GraphLibraryItem } from "@/graph";
-import { ScriptEditor, ScriptLibraryItem } from "@/scripting";
+import { PatternLibraryItem } from "@/pattern";
+import { AutomationLibraryItem } from "@/automation";
+import { GraphLibraryItem } from "@/graph";
+import { ScriptLibraryItem } from "@/scripting";
+
+const NoteEditor = defineAsyncComponent(() => import("@/pattern/NoteEditor.vue"));
+const AutomationEditor = defineAsyncComponent(() => import("@/automation/AutomationEditor.vue"));
+const GraphEditor = defineAsyncComponent(() => import("@/graph/GraphEditor.vue"));
+const ScriptEditor = defineAsyncComponent(() => import("@/scripting/ScriptEditor.vue"));
 
 const library = useLibrary();
 

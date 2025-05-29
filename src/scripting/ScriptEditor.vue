@@ -16,11 +16,10 @@
 import { onMounted, ref } from "vue";
 import { useToast } from "primevue/usetoast";
 import { createDefaultMapFromCDN, createSystem, createVirtualTypeScriptEnvironment, createVirtualCompilerHost } from "@typescript/vfs";
-import ts from "typescript";
+import type ts from "typescript";
 import { Codemirror } from "vue-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { autocompletion } from "@codemirror/autocomplete";
-import { tsSync, tsFacet, tsHover, tsLinter, tsAutocomplete } from "@valtown/codemirror-ts";
 
 import apiDefinition from "./lib.lmsApi.d.ts?raw";
 import { ScriptLibraryItem } from "./script.libraryItem";
@@ -38,13 +37,15 @@ let extensions: any[] = [];
 let system: ts.System;
 
 onMounted(async () => {
-    const fsMap = await createDefaultMapFromCDN({ target: ts.ScriptTarget.ES2022, lib: ["dom"] }, "5.6.3", false, ts);
+    const tsInstance = await import("typescript");
+    const { tsSync, tsFacet, tsHover, tsLinter, tsAutocomplete } = await import("@valtown/codemirror-ts");
+    const fsMap = await createDefaultMapFromCDN({ target: tsInstance.ScriptTarget.ES2022, lib: ["dom"] }, "5.6.3", false, tsInstance);
     fsMap.set("/lmsApi.d.ts", apiDefinition);
     system = createSystem(fsMap);
     const compilerOpts = {
         lib: ["dom", "es2022", "lmsApi"],
     };
-    const env = createVirtualTypeScriptEnvironment(system, [], ts, compilerOpts);
+    const env = createVirtualTypeScriptEnvironment(system, [], tsInstance, compilerOpts);
 
     extensions = [
         javascript({
@@ -65,19 +66,21 @@ onMounted(async () => {
 });
 
 async function compile() {
+    const tsInstance = await import("typescript");
+
     const host = createVirtualCompilerHost(
         system,
         {
             lib: ["dom", "es2022", "lmsApi"],
-            module: ts.ModuleKind.UMD,
+            module: tsInstance.ModuleKind.UMD,
         },
-        ts,
+        tsInstance
     );
-    const program = ts.createProgram({
+    const program = tsInstance.createProgram({
         host: host.compilerHost,
         rootNames: ["/index.ts"],
         options: {
-            module: ts.ModuleKind.UMD,
+            module: tsInstance.ModuleKind.UMD,
         },
     });
 
