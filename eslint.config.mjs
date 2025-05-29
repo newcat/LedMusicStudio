@@ -41,6 +41,7 @@ export default tseslint.config(
                     destructuredArrayIgnorePattern: "^_",
                 },
             ],
+            "@typescript-eslint/array-type": ["error", { default: "array-simple" }],
         },
     },
 );

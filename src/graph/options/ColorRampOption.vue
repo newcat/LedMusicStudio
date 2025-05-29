@@ -27,14 +27,14 @@
 <script setup lang="ts">
 import { ComponentInstance, computed, ref } from "vue";
 import { v4 as uuidv4 } from "uuid";
-import type { InterpolationMode } from "chroma-js";
+import type chroma from "chroma-js";
 import Button from "primevue/button";
 import Select from "primevue/select";
 import Menu from "primevue/menu";
 import ColorPicker from "./ColorPicker.vue";
 import type { ColorRampStop, ColorRampValue } from "../nodes/colors/ColorRampNode";
 
-const modes: { label: string; value: InterpolationMode }[] = [
+const modes: Array<{ label: string; value: chroma.InterpolationMode }> = [
     { label: "RGB", value: "rgb" },
     { label: "HSL", value: "hsl" },
 ];

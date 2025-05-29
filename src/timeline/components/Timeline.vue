@@ -39,20 +39,21 @@ import { useElementBounding } from "@vueuse/core";
 
 import { useGlobalState } from "@/globalState";
 import { TICKS_PER_BEAT } from "@/constants";
-import { normalizeMouseWheel, snap } from "@/utils";
+import { normalizeMouseWheel, snap, useTimelineBackground } from "@/utils";
 
-import { ItemArea, IMarker } from "../types";
+import { ItemArea } from "../types";
 import { Item, Track, IItemState, useTimeline } from "../model";
 
 import { LibraryItem, LibraryItemType, useLibrary } from "@/library";
 import { AudioLibraryItem } from "@/audio";
-import { GraphLibraryItem } from "@/graph";
 import { AutomationLibraryItem } from "@/automation";
 import { PatternLibraryItem } from "@/pattern";
 
-import MarkerLabel from "./MarkerLabel.vue";
+import MarkerLabel from "@/components/MarkerLabel.vue";
 import PositionMarker from "./PositionMarker.vue";
 import TrackView from "./Track.vue";
+
+const DEFAULT_ITEM_LENGTH = TICKS_PER_BEAT * 4;
 
 const globalState = useGlobalState();
 const library = useLibrary();
@@ -67,53 +68,29 @@ const dragArea = ref<ItemArea | "">("");
 const dragItem = ref<Item | null>(null);
 const dragStartPosition = ref({ x: 0, y: 0 });
 const dragStartTrack = ref<Track | null>(null) as Ref<Track | null>;
-const dragStartStates = ref<{ item: IItemState; trackIndex: number }[]>([]);
+const dragStartStates = ref<Array<{ item: IItemState; trackIndex: number }>>([]);
 const hoveredTrack = ref<Track | null>(null) as Ref<Track | null>;
 
 const timelineElBounds = useElementBounding(el);
 
+const maxUnit = computed(() => {
+    return Math.max(pixelToUnit(timelineElBounds.width.value - timeline.headerWidth - 10), lastItemEnd.value + globalState.snapUnits);
+});
+
+const { markers, styles: backgroundStyles } = useTimelineBackground(
+    computed(() => timeline.unitWidth),
+    maxUnit
+);
+
 const contentStyles = computed(() => {
-    const baseBgSize = markerSpacing.value.space * timeline.unitWidth;
     return {
         width: `${(lastItemEnd.value + globalState.snapUnits) * timeline.unitWidth + timeline.headerWidth}px`,
-        backgroundSize: `${4 * baseBgSize}px ${4 * baseBgSize}px, ${baseBgSize}px ${baseBgSize}px`,
+        ...backgroundStyles.value,
     };
 });
 
 const tracks = computed(() => {
     return timeline.tracks as Track[];
-});
-
-const markerSpacing = computed(() => {
-    if (timeline.unitWidth < 0.25) {
-        return { space: TICKS_PER_BEAT * 16, majorMultiplier: 1 };
-    } else if (timeline.unitWidth > 2) {
-        return { space: TICKS_PER_BEAT, majorMultiplier: 4 };
-    } else {
-        return { space: TICKS_PER_BEAT * 4, majorMultiplier: 4 };
-    }
-});
-
-const markers = computed(() => {
-    if (timeline.unitWidth <= 0) {
-        return [];
-    }
-    const markers: IMarker[] = [];
-    const maxUnit = Math.max(
-        pixelToUnit(timelineElBounds.width.value - timeline.headerWidth - 10),
-        lastItemEnd.value + globalState.snapUnits
-    );
-
-    for (let unit = markerSpacing.value.space; unit < maxUnit; unit += markerSpacing.value.space) {
-        const x = unitToPixel(unit);
-        const nthMarker = Math.floor(unit / markerSpacing.value.space);
-        if (nthMarker % markerSpacing.value.majorMultiplier === 0) {
-            markers.push({ type: "major", unit, position: x });
-        } else {
-            markers.push({ type: "minor", unit, position: x });
-        }
-    }
-    return markers;
 });
 
 function unselectAllItems() {
@@ -251,13 +228,16 @@ function drop(track: Track, ev: DragEvent) {
             item = addMusicItem(libraryItem as AudioLibraryItem);
             break;
         case LibraryItemType.GRAPH:
-            item = addGraphItem(libraryItem as GraphLibraryItem);
+            item = createItem(DEFAULT_ITEM_LENGTH, libraryItem);
             break;
         case LibraryItemType.AUTOMATION:
             item = addAutomationItem(libraryItem as AutomationLibraryItem);
             break;
         case LibraryItemType.PATTERN:
             item = addPatternItem(libraryItem as PatternLibraryItem);
+            break;
+        case LibraryItemType.SCRIPT:
+            item = createItem(DEFAULT_ITEM_LENGTH, libraryItem);
             break;
     }
 
@@ -271,7 +251,7 @@ function drop(track: Track, ev: DragEvent) {
         // check, whether the track is free
         let chosenTrack: Track | undefined;
         const trackItems = timeline.items.filter((i) => i.trackId === track.id);
-         
+
         if (!trackItems.some((i) => isOverlapping(i as Item, item!))) {
             chosenTrack = track;
         }
@@ -280,7 +260,7 @@ function drop(track: Track, ev: DragEvent) {
         if (!chosenTrack) {
             chosenTrack = timeline.tracks.find((t) => {
                 const trackItems = timeline.items.filter((i) => i.trackId === t.id);
-                 
+
                 return !trackItems.some((i) => isOverlapping(i as Item, item!));
             }) as Track;
         }
@@ -354,11 +334,6 @@ function addMusicItem(libraryItem: AudioLibraryItem): Item | undefined {
     return item;
 }
 
-function addGraphItem(libraryItem: GraphLibraryItem): Item {
-    const length = TICKS_PER_BEAT * 4;
-    return createItem(length, libraryItem);
-}
-
 function addAutomationItem(libraryItem: AutomationLibraryItem): Item {
     const length = libraryItem.points.reduce((p, c) => Math.max(p, c.unit), 0);
     return createItem(length, libraryItem);
@@ -397,10 +372,7 @@ function createItem(length: number, libraryItem: LibraryItem) {
 
 .content {
     position: relative;
-    background-image: linear-gradient(90deg, var(--p-form-field-disabled-background) 1px, transparent 1px),
-        linear-gradient(90deg, var(--p-form-field-filled-background) 1px, transparent 1px);
     background-position: calc(var(--headerWidth) - 1px) -1px;
-    background-repeat: repeat;
     min-width: 100%;
 }
 .content:focus {

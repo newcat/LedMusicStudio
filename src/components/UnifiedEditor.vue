@@ -11,18 +11,25 @@
                 :key="'a' + selectedItem.id"
                 :automation-clip="selectedItem"
             ></AutomationEditor>
+            <ScriptEditor v-if="isScript(selectedItem)" :key="'s' + selectedItem.id" :script="selectedItem" />
         </template>
     </Card>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, defineAsyncComponent } from "vue";
 import Card from "primevue/card";
 
 import { LibraryItem, LibraryItemType, useLibrary } from "@/library";
-import { NoteEditor, PatternLibraryItem } from "@/pattern";
-import { AutomationEditor, AutomationLibraryItem } from "@/automation";
-import { GraphEditor, GraphLibraryItem } from "@/graph";
+import { PatternLibraryItem } from "@/pattern";
+import { AutomationLibraryItem } from "@/automation";
+import { GraphLibraryItem } from "@/graph";
+import { ScriptLibraryItem } from "@/scripting";
+
+const NoteEditor = defineAsyncComponent(() => import("@/pattern/NoteEditor.vue"));
+const AutomationEditor = defineAsyncComponent(() => import("@/automation/AutomationEditor.vue"));
+const GraphEditor = defineAsyncComponent(() => import("@/graph/GraphEditor.vue"));
+const ScriptEditor = defineAsyncComponent(() => import("@/scripting/ScriptEditor.vue"));
 
 const library = useLibrary();
 
@@ -49,16 +56,21 @@ function isAutomation(item?: LibraryItem): item is AutomationLibraryItem {
 function isPattern(item?: LibraryItem): item is PatternLibraryItem {
     return !!item && item.type === LibraryItemType.PATTERN;
 }
+
+function isScript(item?: LibraryItem): item is ScriptLibraryItem {
+    return !!item && item.type === LibraryItemType.SCRIPT;
+}
 </script>
 
-<style>
+<style scoped>
 .unified-editor {
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
-.unified-editor > .p-card-body,
-.unified-editor > .p-card-body > .p-card-content {
+.unified-editor > :deep(.p-card-body),
+.unified-editor > :deep(.p-card-body > .p-card-content) {
     padding: 0;
     width: 100%;
     flex-grow: 1;

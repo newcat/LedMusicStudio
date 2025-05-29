@@ -10,6 +10,13 @@
             @keydown="keydown"
             @keyup="keyup"
         >
+            <div class="__header-row">
+                <div class="__header"></div>
+                <div class="__marker-container">
+                    <MarkerLabel v-for="m in background.markers.value" :key="m.unit" :marker="m"></MarkerLabel>
+                </div>
+            </div>
+
             <div v-for="i in 128" :key="i" class="__row" :data-row-value="i">
                 <div class="__header">
                     <div>{{ i }}</div>
@@ -40,16 +47,22 @@ import type { PatternLibraryItem } from "./pattern.libraryItem";
 
 import { v4 as uuidv4 } from "uuid";
 import { computed, ref, watch } from "vue";
+import { useElementBounding } from "@vueuse/core";
 
 import { useGlobalState } from "@/globalState";
-import { normalizeMouseWheel } from "@/utils";
+import { normalizeMouseWheel, useTimelineBackground } from "@/utils";
 import { INote } from "./types";
 import CNote from "./Note.vue";
+import MarkerLabel from "@/components/MarkerLabel.vue";
+
+const props = defineProps({
+    notePattern: { type: Object as () => PatternLibraryItem, required: true },
+});
 
 const globalState = useGlobalState();
 
 const el = ref<HTMLElement | null>(null);
-const tickWidth = ref(1.5);
+const tickWidth = ref(6);
 const headerWidth = ref(50);
 const lastNoteEnd = ref(0);
 const altKeyPressed = ref(false);
@@ -60,14 +73,16 @@ const dragOffset = ref(0);
 const resizedNote = ref<INote | null>(null);
 const resizeOffset = ref(0);
 
-const props = defineProps({
-    notePattern: { type: Object as () => PatternLibraryItem, required: true },
+const bounds = useElementBounding(el);
+const maxUnit = computed(() => {
+    return Math.max(Math.floor((bounds.width.value - headerWidth.value - 10) / tickWidth.value), lastNoteEnd.value + globalState.snapUnits);
 });
+const background = useTimelineBackground(tickWidth, maxUnit);
 
 const contentStyles = computed(() => {
     return {
         width: `${(lastNoteEnd.value + snap.value) * tickWidth.value + headerWidth.value}px`,
-        backgroundSize: `${snap.value * tickWidth.value}px ${snap.value * tickWidth.value}px`,
+        ...background.styles.value,
     };
 });
 
@@ -215,9 +230,7 @@ function clickedOnNote(ev: MouseEvent) {
 
 .__content {
     position: relative;
-    background-image: linear-gradient(90deg, #504f5c 1px, transparent 1px);
     background-position: calc(var(--header-width) - 1px) -1px;
-    background-repeat: repeat;
     min-width: 100%;
 }
 
@@ -227,7 +240,7 @@ function clickedOnNote(ev: MouseEvent) {
 
 .__row {
     height: var(--row-height);
-    border-bottom: 1px solid #504f5c;
+    border-bottom: 1px solid var(--p-form-field-disabled-background);
     display: flex;
     z-index: 20;
 }
@@ -238,12 +251,23 @@ function clickedOnNote(ev: MouseEvent) {
     min-width: var(--header-width);
     max-width: var(--header-width);
     height: 100%;
-    background-color: #33333d;
+    background-color: var(--p-form-field-background);
     color: #bbb;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10;
+}
+
+.__header-row {
+    width: 100%;
+    height: var(--row-height);
+    background-color: var(--p-form-field-background);
+    display: flex;
+}
+
+.__marker-container {
+    position: relative;
 }
 
 .__note-container {

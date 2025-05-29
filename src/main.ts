@@ -8,7 +8,7 @@ import "./utils/comlinkVueTransferHandler";
 
 import "splitpanes/dist/splitpanes.css";
 import "@baklavajs/themes/dist/syrup-dark.css";
-import Nora from "@primevue/themes/nora";
+import Aura from "@primevue/themes/aura";
 import "primeicons/primeicons.css";
 import "@mdi/font/css/materialdesignicons.css";
 import "@fontsource-variable/inter";
@@ -31,9 +31,14 @@ async function main() {
         routes: [{ path: "/", component: App }],
     });
 
-    const preset = definePreset(Nora, {
+    const preset = definePreset(Aura, {
         semantic: {
             primary: palette("{sky}"),
+            colorScheme: {
+                dark: {
+                    surface: palette("{gray}"),
+                },
+            },
         },
     });
 

@@ -1,4 +1,4 @@
-@tailwind utilities;
+@import "tailwindcss";
 
 html {
     overflow: hidden !important;

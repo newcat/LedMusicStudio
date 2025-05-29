@@ -3,8 +3,8 @@
         <div class="timeline-item__header" :title="name" @mousedown="dragStart('center')">
             <div class="timeline-item__header-text">{{ name }}</div>
         </div>
-        <div v-show="item.resizable &amp;&amp; item.selected" class="drag-handle --left" @mousedown="dragStart('leftHandle')"></div>
-        <div v-show="item.resizable &amp;&amp; item.selected" class="drag-handle --right" @mousedown="dragStart('rightHandle')"></div>
+        <div v-show="item.resizable && item.selected" class="drag-handle --left" @mousedown="dragStart('leftHandle')"></div>
+        <div v-show="item.resizable && item.selected" class="drag-handle --right" @mousedown="dragStart('rightHandle')"></div>
         <div v-if="previewComponent" class="preview-container" @mousedown="dragStart('center')">
             <component :is="previewComponent" :item="item" :unit-width="unitWidth"></component>
         </div>
@@ -22,7 +22,7 @@ import AutomationPreview from "@/automation/AutomationPreview.vue";
 import GraphPreview from "@/graph/GraphPreview.vue";
 import PatternPreview from "@/pattern/PatternPreview.vue";
 
-const ITEM_COMPONENT_MAPPING: Record<LibraryItemType, ComponentOptions<any>> = markRaw({
+const ITEM_COMPONENT_MAPPING: Partial<Record<LibraryItemType, ComponentOptions<any>>> = markRaw({
     [LibraryItemType.AUDIO]: AudioPreview,
     [LibraryItemType.GRAPH]: GraphPreview,
     [LibraryItemType.AUTOMATION]: AutomationPreview,

@@ -5,11 +5,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { TICKS_PER_BEAT } from "@/constants";
-import { IMarker } from "../types";
+import { IMarker } from "@/utils";
 
-const props = defineProps({
-    marker: { type: Object as () => IMarker, required: true },
-});
+const props = defineProps<{
+    marker: IMarker;
+}>();
 
 const classes = computed(() => {
     return {

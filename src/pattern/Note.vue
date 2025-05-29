@@ -34,8 +34,8 @@ function resizeStart(ev: MouseEvent) {
     position: absolute;
     height: calc(100% - 2px);
     top: 1px;
-    background-color: #1eb980;
-    border: 1px solid lighten(#1eb980, 20%);
+    background-color: var(--p-primary-800);
+    border: 1px solid var(--p-primary-500);
     border-radius: 3px;
     transition: border 0.1s;
 }

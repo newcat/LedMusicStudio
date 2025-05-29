@@ -51,14 +51,16 @@ export default class ScriptNode extends Node<ScriptNodeInputs, Record<string, an
         // map inputs (object id -> value) to their names (creating an object name -> value)
         const inputValues = Object.fromEntries(Object.entries(inputs).map(([key, value]) => [this.inputs[key].name, value]));
 
-        const outputValues = this.calcFunction.call({ inputs: inputValues, state: this.functionState });
+        const response = this.calcFunction.call({ inputs: inputValues, state: this.functionState });
 
         // map outputs back to their ids
         const outputs: Record<string, any> = {};
-        for (const [key, value] of Object.entries(outputValues)) {
+        for (const [key, value] of Object.entries(response.outputs ?? {})) {
             const [k] = Object.entries(this.outputs).find(([_k, v]) => v.name === key)!;
             outputs[k] = value;
         }
+
+        this.functionState = response.state ?? {};
 
         return outputs;
     };

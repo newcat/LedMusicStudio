@@ -6,7 +6,7 @@
             <LabelledInputText v-model="vBridgeUrl">Bridge URL</LabelledInputText>
         </div>
         <template #footer>
-            <Button label="Cancel" @click="cancel"></Button>
+            <Button label="Cancel" severity="secondary" @click="cancel"></Button>
             <Button label="Save" @click="save"></Button>
         </template>
     </Dialog>
@@ -38,7 +38,7 @@ watch(
         vResolution.value = globalState.resolution.toString();
         vFps.value = globalState.fps.toString();
         vBridgeUrl.value = globalState.bridgeUrl;
-    }
+    },
 );
 
 function cancel() {

@@ -30,7 +30,7 @@
                 :min="0"
                 :max="100"
                 style="width: 7em"
-                @update:model-value="v => setVolume(v as number)"
+                @update:model-value="(v) => setVolume(v as number)"
             ></Slider>
         </div>
         <div id="wrapper">
@@ -101,6 +101,8 @@ function setSnap(value: string) {
     display: flex;
     flex-direction: column;
     height: 100%;
+    border-radius: var(--p-card-border-radius);
+    overflow: hidden;
 }
 
 #wrapper {
