@@ -7,4 +7,5 @@ export * from "./snap";
 export * from "./unitConversion";
 export * from "./useEditClone";
 export * from "./useErrorHandler";
+export * from "./useTimelineBackground";
 export * from "./withTimeout";
