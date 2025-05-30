@@ -9,12 +9,12 @@ import { PatternLibraryItem } from "@/pattern";
 import { LibraryItem, LibraryItemType } from "./libraryItem";
 
 export interface ILibraryState {
-    items: {
+    items: Array<{
         id: string;
         type: LibraryItemType;
         name: string;
         state: unknown;
-    }[];
+    }>;
 }
 
 function createItemByType(type: LibraryItemType): LibraryItem | undefined {

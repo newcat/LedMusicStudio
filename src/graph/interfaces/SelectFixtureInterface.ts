@@ -25,7 +25,7 @@ export class SelectFixtureInterface extends SelectInterface {
     }
 
     private updateFixtures() {
-        const optionItems: { text: string; value: string }[] = [];
+        const optionItems: Array<{ text: string; value: string }> = [];
         for (const fixture of this.stage.fixtures.values()) {
             if (this.compatibleFixtureTypes.includes(fixture.type)) {
                 optionItems.push({ text: fixture.name, value: fixture.id });

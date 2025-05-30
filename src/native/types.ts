@@ -10,7 +10,7 @@ export class ReadFileResult {
 }
 
 export interface FileOptions {
-    accept?: { name: string; extensions: string[] }[];
+    accept?: Array<{ name: string; extensions: string[] }>;
 }
 
 export interface SaveFileOptions extends FileOptions {

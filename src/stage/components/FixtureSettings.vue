@@ -73,7 +73,7 @@ const controllerId = computed<string>({
 });
 
 const availableControllers = computed(() => {
-    const controllers: { name: string; id: string }[] = [{ id: "NONE", name: "None" }];
+    const controllers: Array<{ name: string; id: string }> = [{ id: "NONE", name: "None" }];
     if (props.fixture.value) {
         controllers.push(
             ...stage.controllers.getArray().filter((controller) => controller.compatibleFixtures.includes(props.fixture.type))
@@ -95,7 +95,7 @@ const visualizationType = computed<VisualizationType | "NONE">({
 });
 
 const visualizationTypes = computed(() => {
-    const types: { label: string; value: "NONE" | VisualizationType }[] = [
+    const types: Array<{ label: string; value: "NONE" | VisualizationType }> = [
         { label: "None", value: "NONE" },
         ...Object.values(VisualizationType).map((type) => ({ label: type, value: type })),
     ];
