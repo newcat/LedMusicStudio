@@ -1,5 +1,6 @@
 use super::colors::Color;
-use palette::{Blend, Hsv, LinSrgb, Mix};
+use palette::FromColor;
+use palette::{blend::Blend, Hsv, LinSrgb, Mix};
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 use wasm_bindgen::prelude::*;
@@ -116,7 +117,7 @@ impl ParticleNode {
             particles: Vec::new(),
             particles_to_spawn: 0.0,
             output_buffer: Vec::new(),
-            rng: SmallRng::from_entropy(),
+            rng: SmallRng::from_os_rng(),
         }
     }
 
@@ -131,7 +132,7 @@ impl ParticleNode {
             let life_progress = p.current_lifetime as f32 / p.total_lifetime as f32;
             let start_color = color_to_linsrgb(&p.start_color);
             let end_color = color_to_linsrgb(&p.end_color);
-            let mixed_color = rgb_to_color(start_color.mix(&end_color, life_progress));
+            let mixed_color = rgb_to_color(start_color.mix(end_color, life_progress));
             p.color = mixed_color;
             p.position += p.start_velocity + (p.end_velocity - p.start_velocity) * life_progress;
         }
@@ -151,8 +152,10 @@ impl ParticleNode {
                     current_lifetime: 0,
                     position: calculation_data.emitter_position,
                     glow: calculation_data.glow,
-                    start_velocity: start_velocity + (2.0 * self.rng.gen::<f32>() - 1.0) * randomness,
-                    end_velocity: end_velocity + (2.0 * self.rng.gen::<f32>() - 1.0) * randomness,
+                    start_velocity: start_velocity
+                        + (2.0 * self.rng.random::<f32>() - 1.0) * randomness,
+                    end_velocity: end_velocity
+                        + (2.0 * self.rng.random::<f32>() - 1.0) * randomness,
                     color: calculation_data.start_color,
                     start_color: calculation_data.start_color,
                     end_color: calculation_data.end_color,
@@ -191,14 +194,16 @@ impl ParticleNode {
                 calculation_data.resolution as i32 - 1,
             ) as usize;
             let particle_color = color_to_linsrgb(&p.color);
-            let hsv = Hsv::from(particle_color);
+            let hsv = Hsv::from_color(particle_color);
             for i in start..end {
                 let pos = i as f32 / calculation_data.resolution as f32;
                 let intensity = clamp(linear_intensity(p.position, pos, p.glow), 0.0, 1.0);
                 let mut darkened = hsv.clone();
                 darkened.value *= intensity;
                 let buffer_color = color_to_linsrgb(&self.output_buffer[i]);
-                let result_color = rgb_to_color(LinSrgb::from(buffer_color.dodge(LinSrgb::from(darkened))));
+                let result_color = rgb_to_color(LinSrgb::from(
+                    buffer_color.dodge(LinSrgb::from_color(darkened)),
+                ));
                 self.output_buffer[i] = result_color;
             }
         }
