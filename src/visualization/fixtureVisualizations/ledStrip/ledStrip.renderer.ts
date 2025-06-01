@@ -21,7 +21,7 @@ export class LedStripRenderer extends BaseRenderer<LedStripVisualizationConfig, 
         const numLeds = config.numLeds;
 
         for (let i = 0; i < numLeds; i++) {
-            const led = new THREE.PointLight(Math.round(Math.random() * 0xffffff), config.intensity);
+            const led = new THREE.PointLight(Math.round(Math.random() * 0xffffff), config.intensity, 2);
             const position = start.clone().lerp(end, i / numLeds);
             led.position.set(position.x, position.y, position.z);
             this.add(led);

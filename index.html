@@ -4,11 +4,112 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>LedMusicStudio</title>
+        <style>
+            body,
+            html {
+                margin: 0;
+                padding: 0;
+                height: 100%;
+                width: 100%;
+                overflow: hidden;
+            }
+
+            #loadingScreen {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                background-color: rgb(17, 24, 39);
+                z-index: 9999;
+                color: white;
+                font-family: Arial, sans-serif;
+                transition: opacity 0.5s ease;
+            }
+
+            .blurry-bg {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: radial-gradient(circle at center, rgba(59, 130, 246, 0.3), rgba(17, 24, 39, 0.8));
+                filter: blur(40px);
+                z-index: -1;
+            }
+
+            .loading-title {
+                font-size: 2.5rem;
+                font-weight: bold;
+                margin-bottom: 2rem;
+                letter-spacing: 2px;
+                text-shadow: 0 0 10px rgba(59, 130, 246, 0.7);
+            }
+
+            .spinner {
+                width: 60px;
+                height: 6px;
+                background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 1), transparent);
+                border-radius: 3px;
+                animation: progress 1.5s infinite;
+                transform-origin: center;
+            }
+
+            @keyframes progress {
+                0% {
+                    transform: scaleX(0);
+                    opacity: 0.1;
+                    transform-origin: left;
+                }
+                50% {
+                    transform: scaleX(1);
+                    opacity: 1;
+                }
+                50.1% {
+                    transform-origin: right;
+                }
+                100% {
+                    transform: scaleX(0);
+                    opacity: 0.1;
+                    transform-origin: right;
+                }
+            }
+
+            .app-hidden {
+                display: none;
+            }
+
+            /* Hide loading screen when app is loaded */
+            body.loaded #loadingScreen {
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            body.loaded #app {
+                display: block;
+            }
+        </style>
     </head>
     <body>
-        <div id="loadingPlaceholder">LedMusicStudio is loading...</div>
-
-        <div id="app"></div>
+        <div id="app" class="app-hidden"></div>
         <script type="module" src="/src/main.ts"></script>
+
+        <div id="loadingScreen">
+            <div class="blurry-bg"></div>
+            <div class="loading-title">LedMusicStudio</div>
+            <div class="spinner"></div>
+        </div>
+        <script>
+            window.addEventListener("app-loaded", function () {
+                document.body.classList.add("loaded");
+                setTimeout(() => {
+                    document.getElementById("loadingScreen").style.display = "none";
+                }, 500);
+            });
+        </script>
     </body>
 </html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Document</title>
+
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://unpkg.com/three@0.176.0/build/three.module.js",
+                    "three/addons/": "https://unpkg.com/three@0.176.0/examples/jsm/",
+                    "three-custom-shader-material/vanilla": "https://unpkg.com/three-custom-shader-material@6.3.7/vanilla/three-custom-shader-material.es.js"
+                }
+            }
+        </script>
+
+        <style>
+            html,
+            body {
+                margin: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <script type="module" src="./test.js"></script>
+        <!--<script type="module">
+            import * as THREE from "three";
+            import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            const geometry = new THREE.BoxGeometry(1, 1, 1);
+            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+            const cube = new THREE.Mesh(geometry, material);
+            scene.add(cube);
+
+            camera.position.x = 3;
+            camera.position.z = 5;
+
+            function animate() {
+                renderer.render(scene, camera);
+            }
+            renderer.setAnimationLoop(animate);
+        </script>-->
+    </body>
+</html>

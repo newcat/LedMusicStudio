@@ -42,7 +42,6 @@ async function main() {
         },
     });
 
-    document.getElementById("loadingPlaceholder")?.remove();
     createApp(App)
         .use(PrimeVue, {
             theme: {
@@ -54,6 +53,8 @@ async function main() {
         .use(pinia)
         .use(router)
         .mount("#app");
+
+    window.dispatchEvent(new Event("app-loaded"));
 }
 
 void main();
