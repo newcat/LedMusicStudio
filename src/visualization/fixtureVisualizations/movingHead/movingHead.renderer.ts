@@ -34,6 +34,7 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
     private beamMaterial!: THREE.ShaderMaterial;
 
     private config!: MovingHeadVisualizationConfig;
+    private previousValues?: number[];
 
     public constructor(inputs: RendererInputs) {
         super(inputs);
@@ -49,7 +50,7 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
             SPOTLIGHT_PHYSICALLY_CORRECT_DISTANCE,
             degToRad(15),
             SPOTLIGHT_PHYSICALLY_CORRECT_PENUMBRA,
-            SPOTLIGHT_PHYSICALLY_CORRECT_DECAY,
+            SPOTLIGHT_PHYSICALLY_CORRECT_DECAY
         );
         this.spotlight.applyMatrix4(new THREE.Matrix4().makeTranslation(0, -0.73, 0));
 
@@ -76,6 +77,8 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
         this.config = c;
         this.position.set(c.position[0], c.position[1], c.position[2]);
         this.rotation.set(degToRad(c.rotation[0]), degToRad(c.rotation[1]), degToRad(c.rotation[2]));
+        // if the default values have changed, they will only be applied in onFixtureValueUpdate
+        this.onFixtureValueUpdate(this.previousValues ?? []);
     }
 
     public onFixtureValueUpdate(v: number[]): void {
@@ -96,6 +99,8 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
 
         this.spotlight.angle = degToRad(beamAngle);
         this.beamMaterial.uniforms.angle.value = new THREE.Vector3(beamAngle, 0, 0);
+
+        this.previousValues = v;
     }
 
     /** @virtual */
@@ -112,7 +117,7 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
         }
         beamGeometry.setAttribute(
             "index",
-            new THREE.BufferAttribute(new Float32Array(verticesIndexBuffer), 1).setUsage(THREE.StaticDrawUsage),
+            new THREE.BufferAttribute(new Float32Array(verticesIndexBuffer), 1).setUsage(THREE.StaticDrawUsage)
         );
 
         const cameraDir = new THREE.Vector3();
