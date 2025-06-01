@@ -15,9 +15,9 @@ varying vec3 vWorldNormal;
 
 float intensity(vec3 ledStripPoint, vec3 ledStripDirection) {
     float distanceToStrip = length(vWorldPosition - ledStripPoint);
-    float attenuation = 1.0 / (1.0 + 0.1 * distanceToStrip + 0.01 * distanceToStrip * distanceToStrip);
+    float attenuation = 2.0 / (1.0 + 1.0 * distanceToStrip + 5.0 * distanceToStrip * distanceToStrip);
     vec3 lightDir = normalize(vWorldPosition - ledStripPoint);
-    float surfaceAngle = max(0.0, dot(-lightDir, vWorldNormal));
+    float surfaceAngle = pow(max(0.0, dot(lightDir, ledStripDirection)), 2.0);
     float intensity = attenuation * surfaceAngle;
     return intensity;
 }
@@ -31,12 +31,8 @@ void main() {
         LedStrip strip = uLedStrips[i];
         vec3 dir = normalize(strip.end - strip.start);
         vec3 pos = vWorldPosition - strip.start;
-        float distAlongStrip = dot(pos, dir);
         float stripLength = length(strip.end - strip.start);
-        
-        if (distAlongStrip < 0.0 || distAlongStrip > stripLength) {
-            continue;
-        }
+        float distAlongStrip = clamp(dot(pos, dir), 0.0, stripLength);
         
         // Normalized position along strip (0.0 to 1.0)
         float normalizedPos = distAlongStrip / stripLength;
@@ -45,8 +41,7 @@ void main() {
         float distanceToStrip = length(vWorldPosition - closestPoint);
     
         for (int j = -4; j <= 4; j++) {
-            float samplePos = normalizedPos + float(j) * SAMPLE_DISTANCE;
-            if (samplePos < 0.0 || samplePos > 1.0) continue; // Skip out of bounds
+            float samplePos = clamp(normalizedPos + float(j) * SAMPLE_DISTANCE, 0.0, 1.0);
             
             int sampleIndex = int(samplePos * 127.0);
             vec3 sampleColor = texelFetch(uLedStripColors, ivec2(sampleIndex, i), 0).rgb;

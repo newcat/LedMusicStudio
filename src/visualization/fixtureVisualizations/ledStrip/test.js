@@ -22,10 +22,16 @@ const LED_STRIPS = new Array(8).fill().map(() => ({
     color: new Array(128).fill(new THREE.Color(0x00ff00)),
 }));
 LED_STRIPS[0] = {
-    start: new THREE.Vector3(-5, 1.5, 3),
-    end: new THREE.Vector3(5, -0.5, -3),
+    start: new THREE.Vector3(-1, 0.5, 0),
+    end: new THREE.Vector3(1, 0.5, 0),
     direction: new THREE.Vector3(0, -1, 0).normalize(),
     color: new Array(128).fill().map((_, i) => new THREE.Color(i / 128, 1 - i / 128, 0.5)),
+};
+LED_STRIPS[1] = {
+    start: new THREE.Vector3(0, 0.5, -1),
+    end: new THREE.Vector3(0, 0.5, 1),
+    direction: new THREE.Vector3(0, -1, 0).normalize(),
+    color: new Array(128).fill().map((_, i) => new THREE.Color(0, i / 128, 1 - i / 128)),
 };
 
 const colorTexture = new THREE.DataTexture(
@@ -38,7 +44,7 @@ colorTexture.needsUpdate = true;
 const csm = new CustomShaderMaterial({
     baseMaterial: THREE.MeshPhysicalMaterial,
     uniforms: {
-        uNumLedStrips: { value: 1 },
+        uNumLedStrips: { value: 2 },
         uLedStrips: {
             value: LED_STRIPS.map((strip) => ({
                 start: strip.start,
@@ -75,9 +81,9 @@ varying vec3 vWorldNormal;
 
 float intensity(vec3 ledStripPoint, vec3 ledStripDirection) {
     float distanceToStrip = length(vWorldPosition - ledStripPoint);
-    float attenuation = 1.0 / (1.0 + 10.1 * distanceToStrip + 10.01 * distanceToStrip * distanceToStrip);
+    float attenuation = 1.0 / (1.0 + 1.0 * distanceToStrip + 5.0 * distanceToStrip * distanceToStrip);
     vec3 lightDir = normalize(vWorldPosition - ledStripPoint);
-    float surfaceAngle = max(0.0, dot(lightDir, ledStripDirection));
+    float surfaceAngle = pow(max(0.0, dot(lightDir, ledStripDirection)), 8.0);
     float intensity = attenuation * surfaceAngle;
     return intensity;
 }
@@ -101,8 +107,7 @@ void main() {
         float distanceToStrip = length(vWorldPosition - closestPoint);
     
         for (int j = -4; j <= 4; j++) {
-            float samplePos = normalizedPos + float(j) * SAMPLE_DISTANCE;
-            if (samplePos < 0.0 || samplePos > 1.0) continue; // Skip out of bounds
+            float samplePos = clamp(normalizedPos + float(j) * SAMPLE_DISTANCE, 0.0, 1.0);
             
             int sampleIndex = int(samplePos * 127.0);
             vec3 sampleColor = texelFetch(uLedStripColors, ivec2(sampleIndex, i), 0).rgb;
@@ -152,7 +157,7 @@ function animate() {
     renderer.render(scene, camera);
     csm.uniforms.uLedStrips.value[0].direction = csm.uniforms.uLedStrips.value[0].direction
         .clone()
-        .applyAxisAngle(new THREE.Vector3(0, 0, 1), 0.01);
+        .applyAxisAngle(new THREE.Vector3(1, 0, 0), 0.01);
 
     const directionStart = LED_STRIPS[0].start.clone().add(LED_STRIPS[0].end.clone().sub(LED_STRIPS[0].start).multiplyScalar(0.5));
     const directionEnd = directionStart.clone().add(LED_STRIPS[0].direction.clone().normalize());

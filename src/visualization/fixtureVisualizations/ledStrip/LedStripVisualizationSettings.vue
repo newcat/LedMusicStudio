@@ -2,9 +2,6 @@
     <LabelledFormField label="Intensity">
         <InputNumber v-model="config.intensity" :max-fraction-digits="5" />
     </LabelledFormField>
-    <LabelledFormField label="Number of LEDs">
-        <InputNumber v-model="config.numLeds" />
-    </LabelledFormField>
     <div class="flex gap-3">
         <LabelledFormField label="Start X">
             <InputNumber v-model="config.start[0]" :max-fraction-digits="3" />
@@ -25,6 +22,17 @@
         </LabelledFormField>
         <LabelledFormField label="End Z">
             <InputNumber v-model="config.end[2]" :max-fraction-digits="3" />
+        </LabelledFormField>
+    </div>
+    <div class="flex gap-3">
+        <LabelledFormField label="Direction X">
+            <InputNumber v-model="config.direction[0]" :max-fraction-digits="3" />
+        </LabelledFormField>
+        <LabelledFormField label="Direction Y">
+            <InputNumber v-model="config.direction[1]" :max-fraction-digits="3" />
+        </LabelledFormField>
+        <LabelledFormField label="Direction Z">
+            <InputNumber v-model="config.direction[2]" :max-fraction-digits="3" />
         </LabelledFormField>
     </div>
     <div>

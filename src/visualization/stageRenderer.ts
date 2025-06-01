@@ -10,6 +10,7 @@ import { LedStripRenderer } from "./fixtureVisualizations/ledStrip/ledStrip.rend
 import { SpotRenderer } from "./fixtureVisualizations/spot/spot.renderer";
 import { MovingHeadRenderer } from "./fixtureVisualizations/movingHead/movingHead.renderer";
 import { UnrealBloomPass } from "./bloom";
+import { ModifiedStandardMaterial, updateModifiedStandardMaterial } from "./modifiedStandardMaterial";
 
 interface FixtureRenderers {
     [VisualizationType.LED_STRIP]: LedStripRenderer;
@@ -53,16 +54,21 @@ export class RenderingInstance {
     private renderer: THREE.WebGLRenderer;
     private composer: EffectComposer;
     private bloomPass: UnrealBloomPass;
+    private readonly modifiedStandardMaterial = ModifiedStandardMaterial;
 
-    public constructor(
-        canvas: HTMLCanvasElement,
-        private readonly scene: THREE.Scene,
-        private readonly camera: THREE.PerspectiveCamera,
-    ) {
+    public constructor(canvas: HTMLCanvasElement, private readonly scene: THREE.Scene, private readonly camera: THREE.PerspectiveCamera) {
         this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-        // this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        // this.renderer.toneMappingExposure = 2;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 4;
+
+        this.modifiedStandardMaterial.needsUpdate = true;
+        scene.children.forEach((child) => {
+            if (!(child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial)) {
+                return;
+            }
+            child.material = this.modifiedStandardMaterial;
+        });
 
         const renderScene = new RenderPass(scene, camera);
         this.bloomPass = new UnrealBloomPass(new THREE.Vector2(4096, 4096), 0.3, 0.0, 0.5);
@@ -87,7 +93,7 @@ export class RenderingInstance {
     public createFixtureRenderer<T extends VisualizationType>(
         fixtureId: string,
         visualizationType: T,
-        initialConfig: FixtureRendererConfig<T>,
+        initialConfig: FixtureRendererConfig<T>
     ) {
         this.removeFixtureRenderer(fixtureId);
         const newRenderer = new (getFixtureRendererType<T>(visualizationType))({
@@ -133,6 +139,7 @@ export class RenderingInstance {
         }
 
         requestAnimationFrame(() => this.render());
+        updateModifiedStandardMaterial();
         this.composer.render();
     }
 }
@@ -141,10 +148,7 @@ export class StageRenderer {
     private readonly bc: BroadcastChannel;
     private renderingInstance: RenderingInstance | null = null;
 
-    public constructor(
-        private readonly sceneLoadedRef: Ref<boolean>,
-        private readonly canvas: HTMLCanvasElement,
-    ) {
+    public constructor(private readonly sceneLoadedRef: Ref<boolean>, private readonly canvas: HTMLCanvasElement) {
         sceneLoadedRef.value = false;
 
         this.bc = new BroadcastChannel("visualization");
