@@ -15,14 +15,12 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useToast } from "primevue/usetoast";
-import { createDefaultMapFromCDN, createSystem, createVirtualTypeScriptEnvironment, createVirtualCompilerHost } from "@typescript/vfs";
-import type ts from "typescript";
 import { Codemirror } from "vue-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { autocompletion } from "@codemirror/autocomplete";
 
-import apiDefinition from "./lib.lmsApi.d.ts?raw";
 import { ScriptLibraryItem } from "./script.libraryItem";
+import { useScriptEnvironment } from "./scriptEnvironment";
 import { oneDark } from "./theme";
 
 const props = defineProps<{
@@ -30,29 +28,23 @@ const props = defineProps<{
 }>();
 
 const toast = useToast();
+const scriptEnvironment = useScriptEnvironment();
 
 const loading = ref(true);
 
 let extensions: any[] = [];
-let system: ts.System;
 
 onMounted(async () => {
-    const tsInstance = await import("typescript");
+    await scriptEnvironment.initialize();
     const { tsSync, tsFacet, tsHover, tsLinter, tsAutocomplete } = await import("@valtown/codemirror-ts");
-    const fsMap = await createDefaultMapFromCDN({ target: tsInstance.ScriptTarget.ES2022, lib: ["dom"] }, "5.6.3", false, tsInstance);
-    fsMap.set("/lmsApi.d.ts", apiDefinition);
-    system = createSystem(fsMap);
-    const compilerOpts = {
-        lib: ["dom", "es2022", "lmsApi"],
-    };
-    const env = createVirtualTypeScriptEnvironment(system, [], tsInstance, compilerOpts);
 
     extensions = [
         javascript({
             typescript: true,
             jsx: true,
         }),
-        tsFacet.of({ env, path: "/index.ts" }),
+        // the environment is shared across the whole project; `path` is what scopes it to this script
+        tsFacet.of({ env: scriptEnvironment.env!, path: scriptEnvironment.getScriptPath(props.script.id) }),
         tsSync(),
         tsLinter(),
         autocompletion({
@@ -66,57 +58,15 @@ onMounted(async () => {
 });
 
 async function compile() {
-    const tsInstance = await import("typescript");
-
-    const host = createVirtualCompilerHost(
-        system,
-        {
-            lib: ["dom", "es2022", "lmsApi"],
-            module: tsInstance.ModuleKind.UMD,
-        },
-        tsInstance
-    );
-    const program = tsInstance.createProgram({
-        host: host.compilerHost,
-        rootNames: ["/index.ts"],
-        options: {
-            module: tsInstance.ModuleKind.UMD,
-        },
-    });
-
     try {
         props.script.loading = true;
-
-        let indexCode = "";
-        program.emit(undefined, (fileName, data) => {
-            if (fileName === "/index.js") {
-                indexCode = data;
-            }
-        });
-        if (!indexCode) {
-            throw new Error("No code generated");
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        function require() {
-            throw new Error("require is not supported");
-        }
-        const exports: any = {};
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const module = {
-            exports,
-        };
-        eval(indexCode);
-        if (!exports.default) {
-            throw new Error("Expected default export");
-        } else if (typeof exports.default !== "function") {
-            throw new Error("Expected default export to be a class");
-        }
-
-        const instance = new exports.default();
+        const instance = await scriptEnvironment.compile(props.script);
         props.script.setCompiledScript(instance);
+        props.script.error = "";
+        toast.add({ severity: "success", summary: "Script compiled", life: 2000 });
     } catch (e) {
         console.error(e);
+        props.script.error = String(e);
         toast.add({
             severity: "error",
             summary: "Error compiling script",

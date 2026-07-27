@@ -6,6 +6,7 @@ import { AudioLibraryItem } from "@/audio";
 import { AutomationLibraryItem } from "@/automation";
 import { GraphLibraryItem } from "@/graph";
 import { PatternLibraryItem } from "@/pattern";
+import { ScriptLibraryItem } from "@/scripting/script.libraryItem";
 import { LibraryItem, LibraryItemType } from "./libraryItem";
 
 export interface ILibraryState {
@@ -27,6 +28,8 @@ function createItemByType(type: LibraryItemType): LibraryItem | undefined {
             return new GraphLibraryItem();
         case LibraryItemType.PATTERN:
             return new PatternLibraryItem();
+        case LibraryItemType.SCRIPT:
+            return new ScriptLibraryItem();
         default:
             console.warn(`Unknown library type: ${type}`);
     }
