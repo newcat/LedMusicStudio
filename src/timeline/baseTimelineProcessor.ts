@@ -6,7 +6,7 @@ import { AutomationLibraryItem } from "@/automation";
 import { useGlobalState } from "@/globalState";
 import { GraphLibraryItem, ICalculationData } from "@/graph";
 import { INote, PatternLibraryItem } from "@/pattern";
-import { BaseFixture, useStage } from "@/stage";
+import { FrameComposer, LayerSet, useStage, writeOpaqueLayer } from "@/stage";
 import type { Item } from "@/timeline";
 import {
     isAudioLibraryItem,
@@ -29,6 +29,7 @@ export class BaseTimelineProcessor {
     protected readonly stage = useStage();
     private readonly fft = new FFT(FFT_SIZE);
     private readonly fftWindow = this.getFftWindow();
+    private readonly composer = new FrameComposer(this.stage.fixtures);
 
     private activeItems: Item[] = [];
 
@@ -72,8 +73,9 @@ export class BaseTimelineProcessor {
             trackValues,
         };
 
-        const uncontrolledFixtures = new Set(this.stage.fixtures.values());
-        const graphs = currentActiveItems.filter((i) => isGraphLibraryItem(i.libraryItem));
+        this.composer.beginFrame();
+
+        const graphs = this.sortBottomToTop(currentActiveItems.filter((i) => isGraphLibraryItem(i.libraryItem)));
         for (const g of graphs) {
             try {
                 const relativeTrackItemProgress = (unit - g.start) / (g.end - g.start);
@@ -81,17 +83,20 @@ export class BaseTimelineProcessor {
                 if (g.libraryItem.error) {
                     g.libraryItem.error = "";
                 }
-                this.applyGraphResults(results, uncontrolledFixtures);
+                const layers: LayerSet = new Map();
+                this.collectGraphLayers(results, layers);
+                this.composer.composite(layers, { opacity: g.opacity, blendMode: g.blendMode });
             } catch (err) {
                 console.error(err);
                 g.libraryItem.error = String(err);
             }
         }
 
-        for (const fixture of uncontrolledFixtures) {
-            fixture.resetValue();
-        }
+        this.composer.commit();
 
+        // TODO(scripting step 5): scripts still write fixtures imperatively, after the frame has been committed, so they
+        // effectively sit on top of every layer and cannot be blended. They join the composer once they declare their
+        // fixtures via the `uses` manifest — see docs/scripting.md.
         const scripts = currentActiveItems.filter((i) => isScriptLibraryItem(i.libraryItem));
         for (const s of scripts) {
             const script = s.libraryItem as ScriptLibraryItem;
@@ -177,15 +182,26 @@ export class BaseTimelineProcessor {
         return results;
     }
 
-    private applyGraphResults(results: CalculationResult, uncontrolledFixtures: Set<BaseFixture>): void {
+    /**
+     * Order items so that the topmost track composites last. Track index 0 is drawn at the top of the timeline, which — as in a
+     * video editor — makes it the topmost layer.
+     */
+    private sortBottomToTop(items: Item[]): Item[] {
+        const trackOrder = new Map(this.globalState.timeline.tracks.map((t, i) => [t.id, i]));
+        return [...items].sort((a, b) => {
+            const byTrack = (trackOrder.get(b.trackId) ?? 0) - (trackOrder.get(a.trackId) ?? 0);
+            return byTrack !== 0 ? byTrack : a.start - b.start;
+        });
+    }
+
+    private collectGraphLayers(results: CalculationResult, layers: LayerSet): void {
         for (const nodeResults of results.values()) {
             if (nodeResults.has("_calculationResults")) {
-                this.applyGraphResults(nodeResults.get("_calculationResults") as CalculationResult, uncontrolledFixtures);
+                this.collectGraphLayers(nodeResults.get("_calculationResults") as CalculationResult, layers);
             } else if (nodeResults.has("fixtureId")) {
                 const fixture = this.stage.fixtures.get(nodeResults.get("fixtureId") as string);
                 if (fixture) {
-                    uncontrolledFixtures.delete(fixture);
-                    fixture.setValue(nodeResults.get("data"));
+                    writeOpaqueLayer(layers, fixture, nodeResults.get("data"));
                 }
             }
         }

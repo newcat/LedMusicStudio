@@ -70,6 +70,4 @@ export abstract class BaseFixture<V = unknown, C = unknown> {
         this.setValue(state.value);
         this.setConfig(state.config);
     }
-
-    public abstract resetValue(): void;
 }

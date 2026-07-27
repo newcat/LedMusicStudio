@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { PreventableBaklavaEvent, BaklavaEvent } from "@baklavajs/events";
 import { LibraryItem, useLibrary } from "@/library";
+import type { BlendMode } from "@/stage/layers/blend";
 
 export interface IItemState {
     id: string;
@@ -9,6 +10,8 @@ export interface IItemState {
     trackId: string;
     resizable: boolean;
     libraryItemId: string;
+    opacity?: number;
+    blendMode?: BlendMode;
 }
 
 export class Item<L extends LibraryItem = LibraryItem> {
@@ -18,6 +21,8 @@ export class Item<L extends LibraryItem = LibraryItem> {
         const i = new Item(libraryItem, state.trackId, state.start, state.end);
         i.id = state.id;
         i.resizable = state.resizable;
+        i.opacity = state.opacity ?? 1;
+        i.blendMode = state.blendMode ?? "normal";
         return i;
     }
 
@@ -27,6 +32,10 @@ export class Item<L extends LibraryItem = LibraryItem> {
     public resizable = true;
     public temporary = false;
     public libraryItem: L;
+
+    /** How this item's layer is composited onto the layers below it. See `@/stage/layers`. */
+    public opacity = 1;
+    public blendMode: BlendMode = "normal";
 
     public events = {
         beforeMoved: new PreventableBaklavaEvent<{ start: number; end: number }, this>(this),
@@ -68,6 +77,8 @@ export class Item<L extends LibraryItem = LibraryItem> {
             trackId: this.trackId,
             resizable: this.resizable,
             libraryItemId: this.libraryItem.id,
+            opacity: this.opacity,
+            blendMode: this.blendMode,
         };
     }
 }

@@ -28,8 +28,4 @@ export class LedStripFixture extends BaseFixture<Color[], LedStripFixtureConfigu
         }
         super.setValue(v);
     }
-
-    public override resetValue(): void {
-        this.setValue([[0, 0, 0]]);
-    }
 }

@@ -1,12 +1,18 @@
 import { markRaw } from "vue";
 import { BaseFixture, FixtureType } from "../base.fixture";
-import { Fixture as OpenFixtureDefinition } from "./open-fixture";
+import { Channel as OpenFixtureChannel, Fixture as OpenFixtureDefinition } from "./open-fixture";
 import DmxFixtureSettings from "./DmxFixtureSettings.vue";
 
 interface DmxFixtureConfiguration {
     definition: OpenFixtureDefinition | null;
     startChannel: number;
     mode: OpenFixtureDefinition["modes"][0] | null;
+}
+
+/** One DMX channel slot of the selected mode, with the definition it resolves to (if the fixture library provides one). */
+export interface ResolvedDmxChannel {
+    name: string;
+    definition: OpenFixtureChannel | null;
 }
 
 export class DmxFixture extends BaseFixture<number[], DmxFixtureConfiguration> {
@@ -22,35 +28,45 @@ export class DmxFixture extends BaseFixture<number[], DmxFixtureConfiguration> {
         return [];
     }
 
-    public get channelNames(): string[] {
-        if (!this.config.definition || !this.config.mode) {
+    public get resolvedChannels(): ResolvedDmxChannel[] {
+        const { definition, mode } = this.config;
+        if (!definition || !mode) {
             return [];
         }
 
-        const channelNames: string[] = [];
-        for (const channel of this.config.mode.channels) {
+        const channels: ResolvedDmxChannel[] = [];
+        for (const channel of mode.channels) {
             if (typeof channel === "string") {
-                channelNames.push(channel);
+                channels.push({ name: channel, definition: definition.availableChannels?.[channel] ?? null });
             } else if (channel) {
                 let repeats: string[] = [];
                 if (channel.repeatFor === "eachPixelGroup") {
-                    repeats = Object.keys(this.config.definition.matrix!.pixelGroups!);
+                    repeats = Object.keys(definition.matrix!.pixelGroups!);
                 } else if (Array.isArray(channel.repeatFor)) {
                     repeats = channel.repeatFor;
                 } else {
                     // multiply together all pixel counts (e.g. for [8,1,1] = 8*1*1 = 8)
-                    const count = this.config.definition.matrix!.pixelCount!.reduce((p, c) => p * c, 1);
+                    const count = definition.matrix!.pixelCount!.reduce((p, c) => p * c, 1);
                     for (let i = 1; i <= count; i++) {
                         repeats.push(i.toString());
                     }
                 }
 
                 for (const repeat of repeats) {
-                    channelNames.push(...channel.templateChannels.map((c) => c!.replaceAll("$pixelKey", repeat)));
+                    for (const templateKey of channel.templateChannels) {
+                        channels.push({
+                            name: templateKey!.replaceAll("$pixelKey", repeat),
+                            definition: definition.templateChannels?.[templateKey!] ?? null,
+                        });
+                    }
                 }
             }
         }
-        return channelNames;
+        return channels;
+    }
+
+    public get channelNames(): string[] {
+        return this.resolvedChannels.map((c) => c.name);
     }
 
     public get usedChannels(): number[] {
@@ -69,9 +85,5 @@ export class DmxFixture extends BaseFixture<number[], DmxFixtureConfiguration> {
     public override setValue(v: number[]): void {
         const normalizedValues = v.map((val) => (isNaN(val) ? 0 : Math.max(0, Math.min(255, Math.floor(val)))));
         super.setValue(normalizedValues);
-    }
-
-    public override resetValue(): void {
-        this.setValue(new Array<number>(this.channelNames.length).fill(0));
     }
 }
