@@ -16,7 +16,7 @@ import {
     isScriptLibraryItem,
     unitToSeconds,
 } from "@/utils";
-import { ScriptLibraryItem } from "@/scripting";
+import { ScriptLibraryItem, scriptRuntime } from "@/scripting";
 
 const FFT_SIZE = 8192;
 interface AudioData {
@@ -50,6 +50,7 @@ export class BaseTimelineProcessor {
 
         /** maps trackId -> value */
         const trackValues = this.getTrackValues(currentActiveItems, unit);
+        scriptRuntime.beginTick(trackValues);
 
         let timeDomainData: Float32Array = new Float32Array(FFT_SIZE);
         let frequencyData: Float32Array = new Float32Array(FFT_SIZE);
@@ -110,6 +111,9 @@ export class BaseTimelineProcessor {
                 script.error = String(err);
             }
         }
+
+        // scripts buffer their fixture writes; one flush per tick keeps per-pixel painting linear rather than quadratic
+        scriptRuntime.flush();
     }
 
     protected async activate(item: Item) {

@@ -1,36 +1,24 @@
-import { DmxFixture, useStage } from "@/stage";
+import { scriptRuntime } from "./runtime";
 
-export class LMSDmxFixtureImpl implements LMSDmxFixture {
-    public static fromFixture(fixture: DmxFixture): LMSDmxFixtureImpl {
-        return new LMSDmxFixtureImpl(fixture);
-    }
-
-    public readonly type = "dmx";
-
-    private constructor(private readonly fixture: DmxFixture) {}
-
-    public setValue(channel: number, value: number): void {
-        const valueCopy = [...this.fixture.value];
-        valueCopy[channel] = value;
-        this.fixture.setValue(valueCopy);
-    }
-}
-
+/**
+ * The legacy `lmsApi` global.
+ *
+ * Everything here is superseded by the generated `stage` and `tracks` globals, which are checked against the fixtures that
+ * actually exist. It delegates to the same handles so the two paths cannot behave differently.
+ */
 export class LMSFixturesApiImpl implements LMSFixturesApi {
-    findFixtureByName(name: string): LMSDmxFixture | null {
-        const stage = useStage();
-        const fixture = Array.from(stage.fixtures.values()).find((f) => f.name === name);
-        if (fixture instanceof DmxFixture) {
-            return LMSDmxFixtureImpl.fromFixture(fixture);
-        }
-        return null;
+    public findFixtureByName(name: string): LMSDmxFixture | null {
+        const handle = scriptRuntime.stage[name];
+        return handle?.type === "dmx" ? handle : null;
     }
 }
 
 export class LMSStageApiImpl implements LMSStageApi {
-    readonly fixtures = new LMSFixturesApiImpl();
+    public readonly fixtures = new LMSFixturesApiImpl();
 }
 
 export class LMSApiImpl implements LMSApi {
     public readonly stage = new LMSStageApiImpl();
 }
+
+export const lmsApi = new LMSApiImpl();

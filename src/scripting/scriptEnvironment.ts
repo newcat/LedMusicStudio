@@ -1,10 +1,15 @@
-import { ref, shallowRef } from "vue";
+import { computed, ref, shallowRef, watch } from "vue";
 import { defineStore } from "pinia";
 import type ts from "typescript";
 import type { VirtualTypeScriptEnvironment } from "@typescript/vfs";
 
 import { useLibrary } from "@/library";
+import { useStage } from "@/stage";
+import { useTimeline } from "@/timeline";
 import { isScriptLibraryItem } from "@/utils";
+import { lmsApi } from "./api/lms.api";
+import { scriptRuntime } from "./api/runtime";
+import { generateStageDeclarations } from "./generateStageDeclarations";
 import apiDeclarations from "./lib.lmsApi.d.ts?raw";
 import { ScriptLibraryItem } from "./script.libraryItem";
 
@@ -15,6 +20,9 @@ import { ScriptLibraryItem } from "./script.libraryItem";
  * `lib.lmsapi.d.ts`, so the previous setup — which registered the content as `/lmsApi.d.ts` — never actually loaded it.
  */
 const API_DECLARATIONS_PATH = "/lms.api.d.ts";
+
+/** Declarations for the fixtures and tracks of the current project, regenerated whenever it changes. */
+const STAGE_DECLARATIONS_PATH = "/lms.stage.d.ts";
 
 /**
  * TypeScript's own lib files, bundled rather than fetched from the playground CDN.
@@ -41,10 +49,17 @@ export function getScriptPath(scriptId: string): string {
  */
 export const useScriptEnvironment = defineStore("scriptEnvironment", () => {
     const library = useLibrary();
+    const stage = useStage();
+    const timeline = useTimeline();
     const token = Symbol("scriptEnvironment");
 
     const ready = ref(false);
     const env = shallowRef<VirtualTypeScriptEnvironment | undefined>(undefined);
+
+    // a computed rather than manual invalidation: it re-runs on exactly the fixture, track and item state the generator reads
+    const stageDeclarations = computed(() =>
+        generateStageDeclarations(Array.from(stage.fixtures.values()), timeline.tracks, timeline.items)
+    );
 
     let tsInstance: typeof ts | undefined;
     let initialization: Promise<void> | undefined;
@@ -71,9 +86,13 @@ export const useScriptEnvironment = defineStore("scriptEnvironment", () => {
 
         const fsMap = await loadLibFiles(vfs, compilerOptions);
         fsMap.set(API_DECLARATIONS_PATH, apiDeclarations);
+        fsMap.set(STAGE_DECLARATIONS_PATH, stageDeclarations.value);
 
         const system = vfs.createSystem(fsMap);
-        env.value = vfs.createVirtualTypeScriptEnvironment(system, [API_DECLARATIONS_PATH], tsModule, compilerOptions);
+        const rootFiles = [API_DECLARATIONS_PATH, STAGE_DECLARATIONS_PATH];
+        env.value = vfs.createVirtualTypeScriptEnvironment(system, rootFiles, tsModule, compilerOptions);
+
+        watch(stageDeclarations, (declarations) => env.value?.updateFile(STAGE_DECLARATIONS_PATH, declarations));
 
         syncAllScripts();
 
@@ -188,8 +207,19 @@ export const useScriptEnvironment = defineStore("scriptEnvironment", () => {
             throw new Error("Importing modules is not supported yet");
         };
 
-        // `new Function` rather than `eval` so the script cannot reach into this scope
-        new Function("exports", "module", "require", code)(module.exports, module, require);
+        // `stage`, `tracks` and `lmsApi` are injected as parameters rather than read off `window`. The ambient declarations look
+        // the same to a script either way, but nothing else on the page can shadow them — `window.stage` is already taken by a
+        // debug helper in App.vue — and scripts get no ambient access to the app beyond what is passed here.
+        // `new Function` rather than `eval` so the script cannot reach into this scope either.
+        new Function(
+            "exports",
+            "module",
+            "require",
+            "stage",
+            "tracks",
+            "lmsApi",
+            code
+        )(module.exports, module, require, scriptRuntime.stage, scriptRuntime.tracks, lmsApi);
 
         const defaultExport = module.exports.default;
         if (!defaultExport) {
@@ -200,5 +230,5 @@ export const useScriptEnvironment = defineStore("scriptEnvironment", () => {
         return new (defaultExport as new () => unknown)();
     }
 
-    return { ready, env, initialize, getScriptPath, syncScript, removeScript, getScriptErrors, compile };
+    return { ready, env, stageDeclarations, initialize, getScriptPath, syncScript, removeScript, getScriptErrors, compile };
 });

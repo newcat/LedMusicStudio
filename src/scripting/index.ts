@@ -1,7 +1,6 @@
-import { LMSApiImpl } from "./api/lms.api";
-
+export * from "./api/lms.api";
+export * from "./api/runtime";
+export * from "./generateStageDeclarations";
 export * from "./script.libraryItem";
 export * from "./scriptEnvironment";
 export { default as ScriptEditor } from "./ScriptEditor.vue";
-
-(self as any).lmsApi = new LMSApiImpl();

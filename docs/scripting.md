@@ -254,6 +254,12 @@ Four capabilities unlock together:
 will drift. Emit it at build time with `tsc --declaration` over the API source and import via `?raw`. Then the runtime API and
 the script-facing types cannot disagree.
 
+> **Resolved without codegen.** `lib.lmsApi.d.ts` lives under `src/`, which `tsconfig.json` already includes via
+> `src/**/*.d.ts` — so its `declare interface`s are ambient in the app's own compilation too. Having every script-facing
+> runtime class declare `implements` against them makes `vue-tsc` fail the build the moment the two disagree, which is the
+> guarantee the codegen was for. This is not theoretical: it caught `LMSDmxFixtureImpl` the moment the DMX interface gained
+> its named-channel methods, and the fix was to delete that duplicate implementation and delegate to the new handle.
+
 **Also verify:** `ScriptEditor.vue` registers `/lmsApi.d.ts` but passes `lib: ["dom", "es2022", "lmsApi"]`. TypeScript resolves
 lib entries to `lib.<lowercased>.d.ts`, so this may be silently not loading. Passing the definitions as additional root files is
 cleaner than the `lib` mechanism either way.
@@ -283,6 +289,25 @@ This is the core of "environment-aware":
 - `SpotLeft.channel("dimmer")` — channel names from the OFL definition, typo-checked, no magic indices (**gap 1**)
 - `LedStrip<60>` puts the pixel count *in the type*
 - `tracks.KickEnergy.value` is `number`, not `number | INote[]` — the union in `trackValues` disappears
+
+#### As implemented
+
+Three things landed differently from the sketch above:
+
+- **Keys are exact names, not sanitised identifiers.** `stage["Spot Left"]` rather than `stage.SpotLeft`. Slugging would make
+  two distinct fixtures collide (`Spot Left` and `Spot-Left`) and puts a mental translation step between the name in the UI and
+  the name in the script. Names that happen to be identifier-safe still read as `stage.Ceiling`.
+- **Colliding names are omitted, not disambiguated.** Two fixtures called `Spot` make `stage.Spot` genuinely ambiguous, so the
+  generated file emits neither and leaves a comment saying why. The reference then fails, which is the correct signal.
+- **A track has no type of its own.** What a track yields depends on the clips placed on it, so the generator infers it: only
+  automation clips gives `LMSAutomationTrack`, only patterns gives `LMSPatternTrack`, mixed or empty falls back to `LMSTrack`.
+  Dropping a pattern onto an automation track regenerates the declarations and breaks `.value` usage — which is the intended
+  behaviour, not a wrinkle.
+
+The `stage`, `tracks` and `lmsApi` names are **injected as parameters** of the `new Function` wrapper rather than set on
+`window`. Ambient declarations look identical to a script either way, but globals are shared with the whole page —
+`window.stage` is already a debug helper assigned in `App.vue` — and injection also means a script has no ambient reach into
+the app beyond what is handed to it.
 
 ### 5.5 Load-time validation via the `uses` manifest
 
@@ -347,7 +372,7 @@ library panel.
 |---|---|---|
 | 1 | **Layer compositing** — layer types, numeric compositor, DMX channel-type behaviour; migrate graphs onto it, replace `uncontrolledFixtures` | D2, gap 2 |
 | 2 | **Project-level shared TS environment** — replace the per-editor env | gap 8 |
-| 3 | **Generated `lms.stage.d.ts`**; build-time-generated `lib.lmsApi.d.ts`; fix the `lib` resolution | gap 1 |
+| 3 | **Generated `lms.stage.d.ts`**; keep `lib.lmsApi.d.ts` honest via `implements`; fix the `lib` resolution | gaps 1, 7 |
 | 4 | **`defineSequence` + generator scheduler** with replay-on-seek and seeded randomness | D4, gap 4 |
 | 5 | **`uses` manifest** — load-time validation, layer registration, conflict detection | gap 2 |
 | 6 | **`SCRIPT_LIBRARY` as `/lib/*.ts`** + combinator/pattern library | gap 5 |
