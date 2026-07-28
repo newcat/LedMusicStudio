@@ -1,12 +1,29 @@
 <template>
-    <CodeEditor v-model="props.script.script" :path="scriptEnvironment.getScriptPath(props.script.id)" />
-    <button @click="compile">Compile</button>
+    <div class="script-editor">
+        <div class="script-editor__toolbar">
+            <Button label="Compile" size="small" :loading="props.script.loading" @click="compile" />
+            <Button
+                v-tooltip.bottom="'Scripting guide'"
+                icon="pi pi-question-circle"
+                size="small"
+                text
+                rounded
+                aria-label="Scripting guide"
+                @click="helpVisible = true"
+            />
+        </div>
+        <CodeEditor v-model="props.script.script" :path="scriptEnvironment.getScriptPath(props.script.id)" />
+        <ScriptingHelp v-model:visible="helpVisible" />
+    </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from "vue";
+import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
 
 import CodeEditor from "./CodeEditor.vue";
+import ScriptingHelp from "./help/ScriptingHelp.vue";
 import { ScriptLibraryItem } from "./script.libraryItem";
 import { useScriptEnvironment } from "./scriptEnvironment";
 
@@ -16,6 +33,8 @@ const props = defineProps<{
 
 const toast = useToast();
 const scriptEnvironment = useScriptEnvironment();
+
+const helpVisible = ref(false);
 
 async function compile() {
     try {
@@ -45,3 +64,21 @@ async function compile() {
     }
 }
 </script>
+
+<style scoped>
+.script-editor {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+}
+
+.script-editor__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid var(--p-content-border-color);
+}
+</style>
