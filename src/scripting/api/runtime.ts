@@ -2,6 +2,7 @@ import { INote } from "@/pattern";
 import { BaseFixture, DmxFixture, LayerSet, LedStripFixture, useStage } from "@/stage";
 import { useTimeline } from "@/timeline";
 import { DmxFixtureHandle, FixtureHandle, LedStripHandle, TrackHandle } from "./handles";
+import { LoopBudget } from "../loopGuard";
 import { LayerTarget } from "./layerTarget";
 import type { WriteGate } from "../sequence";
 
@@ -15,6 +16,8 @@ import type { WriteGate } from "../sequence";
 export class ScriptRuntime {
     public readonly stage: Record<string, FixtureHandle | undefined>;
     public readonly tracks: Record<string, TrackHandle | undefined>;
+
+    public readonly loopBudget = new LoopBudget();
 
     private readonly target = new LayerTarget();
     private readonly fixtureHandles = new Map<string, FixtureHandle>();
@@ -46,6 +49,7 @@ export class ScriptRuntime {
     /** Open a layer set for one script item. Everything it writes goes here until `endSource`. */
     public beginSource(): void {
         this.target.begin();
+        this.loopBudget.reset();
     }
 
     /** Close the current script item and hand its layers to the compositor. */

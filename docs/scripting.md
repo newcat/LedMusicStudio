@@ -231,6 +231,18 @@ could never be replayed this way. This is the strongest argument for the layer m
 **Determinism:** all randomness is seeded per item — `ctx.random()`, `ctx.noise()` (we already depend on `open-simplex-noise`).
 Renders must reproduce exactly.
 
+#### As implemented
+
+Replay works by **silencing writes on the catch-up ticks** rather than skipping them. Only the tick actually being displayed
+draws; the ones before it just advance the generator. Without that, a chase seeked to tick 2 lights pixels 0, 1 *and* 2, because
+all three replayed ticks paint into the frame being built. Verified: every seek reproduces its forward frame exactly.
+
+`forever(body)` takes exactly as long as its body. An earlier version yielded once per iteration *on top of* the body, which
+made a one-yield body run on every other tick — the guard against a body that never yields now fires only in that case.
+
+Replayed ticks see the **current** tick's audio and track data, since past frames are gone. A sequence driven by time replays
+exactly; one that branches on audio may take a different path after a seek.
+
 ### 5.3 One shared TypeScript environment
 
 Replace the per-editor `createVirtualTypeScriptEnvironment` in `ScriptEditor.vue:39` with a project-level
@@ -341,6 +353,22 @@ decision pays off most heavily against a custom DSL.
 Strudel-style combinators (`seq`, `stack`, `every`, `fast`, `euclid`) belong here as a library, not as a parser. If the
 mini-notation ergonomic is wanted later, a tagged template (``pat`bd*4 [hh hh]` ``) can sit on top without a separate engine.
 
+#### As implemented
+
+Two module namespaces: `@lms/*` for flows that ship with the app (`chase`, `wipe`, `rainbow`, `fade`, `strobe`, `sparkle`,
+`euclid`, `euclidean`), and `@lib/*` for `SCRIPT_LIBRARY` items. `resolveModulePath` mirrors the `paths` compiler option, so
+what the editor resolves and what `require` resolves cannot drift.
+
+The built-in library is compiled as part of the app, which type-checks it against the same ambient API scripts see — the same
+anti-drift trick as §5.3, applied to the pattern library.
+
+A module's path is derived from its item name, so renaming one moves the file and imports of the old name fail loudly. A type
+error *inside* a module blocks compiling everything that imports it, rather than emitting broken code.
+
+**`scriptRuntime` is pinned on `globalThis`.** Fixture handles capture the runtime's layer target when created, so a hot reload
+of these modules leaves handles writing to one target while the processor reads another — every script silently produces
+nothing until the dev server restarts. This cost an hour of debugging; the global pin makes it unreproducible.
+
 ### 5.7 Safety — loop guard
 
 Per D3 there is no sandbox, so a `while (true)` without a `yield` would hard-freeze the app *and* the offline renderer. Since we
@@ -350,6 +378,15 @@ budget — while still catching genuine runaways.
 
 Additionally: wrap each tick in try/catch and auto-disable a script after N consecutive errors, surfacing the error in the
 library panel.
+
+#### As implemented
+
+The transformer is passed to `createVirtualTypeScriptEnvironment` as a `before` custom transformer, so it applies to the same
+emit the editor already produces. The budget is 1,000,000 iterations per tick — `while (true) {}` is caught in about 6ms, while
+`while (true) { …; yield; }` is unaffected because the yield ends the tick and the budget starts again.
+
+The auto-disable-after-N-errors part is **not implemented**; errors surface on the library item but a persistently failing
+script keeps being called every tick.
 
 ---
 
@@ -380,3 +417,21 @@ library panel.
 
 Steps 1 and 2 are pure refactors with no user-visible feature attached, which is unglamorous — but every later step gets
 substantially harder if they land afterwards, and step 1 in particular would have to be done twice.
+
+All seven steps are implemented. Where the result differs from the design above, the difference is recorded in an
+*As implemented* subsection of the relevant section.
+
+## 8. Not done
+
+- **No UI for item opacity and blend mode.** The model fields and the compositor support them and they save and load, but the
+  app has no per-item settings surface to expose them on. Both default to a plain opaque layer, so behaviour is unchanged
+  until something sets them.
+- **Auto-disable after repeated errors** (§5.7). A failing script reports its error but is still called every tick.
+- **Graphs do not declare their fixtures.** Conflict detection covers scripts, which declare `uses`; a graph's fixtures are
+  knowable from its output nodes but are not collected, so script/graph contention goes unreported.
+- **`ScriptNode` is untouched** (gap 6) — the untyped `new Function` scripting surface inside graphs is still there, so the app
+  has two scripting stories.
+- **Rename covers fixtures only.** Renaming a *track* regenerates the declarations and breaks references without offering the
+  rewrite; the machinery is generic, it is just not wired to the track UI.
+- **Load-time validation reports the `uses` key, not the fixture name.** When a declared fixture is gone the handle is
+  `undefined`, so the name it was written as is not recoverable at runtime — the editing-time diagnostic carries it instead.

@@ -11,7 +11,7 @@
         <div>
             <Chip>{{ fixture.type }}</Chip>
         </div>
-        <LabelledInputText v-model="fixture.name">Name</LabelledInputText>
+        <LabelledInputText v-model="name">Name</LabelledInputText>
         <component :is="fixture.settingsComponent" v-if="fixture.settingsComponent" :fixture="fixture" />
 
         <Divider />
@@ -42,8 +42,10 @@ import Chip from "primevue/chip";
 import Select from "primevue/select";
 import Divider from "primevue/divider";
 import Message from "primevue/message";
+import { useToast } from "primevue/usetoast";
 
 import { useErrorHandler } from "@/utils";
+import { useScriptEnvironment } from "@/scripting";
 import LabelledInputText from "@/components/LabelledInputText.vue";
 import LabelledFormField from "@/components/LabelledFormField.vue";
 import { VisualizationType } from "@/visualization/fixtureVisualization";
@@ -55,7 +57,37 @@ const props = defineProps<{
 }>();
 
 const errorHandler = useErrorHandler();
+const toast = useToast();
 const stage = useStage();
+const scriptEnvironment = useScriptEnvironment();
+
+/**
+ * Renaming a fixture breaks every script that referred to it by name, so offer to rewrite them.
+ *
+ * The rename has to be planned before the name changes — once it has, those references no longer resolve to anything for the
+ * language service to find.
+ */
+const name = computed<string>({
+    get: () => props.fixture.name,
+    set: (newName) => {
+        if (newName === props.fixture.name) {
+            return;
+        }
+
+        const plan = scriptEnvironment.renameDeclaredName(props.fixture.name, newName);
+        props.fixture.name = newName;
+
+        if (plan.blockedReason) {
+            toast.add({ severity: "warn", summary: "Scripts not updated", detail: plan.blockedReason, life: 8000 });
+        } else if (plan.count > 0) {
+            toast.add({
+                severity: "info",
+                summary: `Updated ${plan.count} reference${plan.count === 1 ? "" : "s"} in ${plan.edits.length} script${plan.edits.length === 1 ? "" : "s"}`,
+                life: 4000,
+            });
+        }
+    },
+});
 
 const controllerId = computed<string>({
     get: () => {

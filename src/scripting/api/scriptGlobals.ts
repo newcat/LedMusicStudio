@@ -1,3 +1,4 @@
+import { LOOP_GUARD_NAME } from "../loopGuard";
 import { all, defineSequence, easing, forever, lerp, race, repeat, tween, wait } from "../sequence";
 import { bars, beats, hsv, mix } from "./helpers";
 import { lmsApi } from "./lms.api";
@@ -31,5 +32,7 @@ export function createScriptGlobals(): Record<string, unknown> {
         easing,
         hsv,
         mix,
+        // injected by the loop guard transformer at the top of every loop body
+        [LOOP_GUARD_NAME]: () => scriptRuntime.loopBudget.step(),
     };
 }

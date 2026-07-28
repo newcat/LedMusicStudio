@@ -13,6 +13,8 @@ import { generateStageDeclarations } from "./generateStageDeclarations";
 import builtinPatterns from "./builtin/patterns.ts?raw";
 import apiDeclarations from "./lib.lmsApi.d.ts?raw";
 import { CompiledScript, ScriptLibraryItem } from "./script.libraryItem";
+import { createLoopGuardTransformer } from "./loopGuard";
+import { applyReplacements, planRename, RenamePlan } from "./rename";
 import { ScriptModuleLibraryItem } from "./scriptModule.libraryItem";
 import { isSequenceDefinition } from "./sequence";
 import { ScriptProblem, validateScripts } from "./validation";
@@ -87,6 +89,22 @@ export const useScriptEnvironment = defineStore("scriptEnvironment", () => {
     let tsInstance: typeof ts | undefined;
     let initialization: Promise<void> | undefined;
 
+    library.events.itemAdded.subscribe(token, (item) => {
+        if (isScriptLibraryItem(item)) {
+            syncScript(item);
+        }
+    });
+    library.events.itemRemoved.subscribe(token, (item) => {
+        if (isScriptLibraryItem(item)) {
+            removeScript(item.id);
+        }
+    });
+    library.events.loaded.subscribe(token, () => {
+        syncAllScripts();
+        syncModules();
+        void compileAll();
+    });
+
     /** Idempotent: concurrent callers share one initialization. */
     function initialize(): Promise<void> {
         initialization ??= doInitialize();
@@ -121,7 +139,9 @@ export const useScriptEnvironment = defineStore("scriptEnvironment", () => {
 
         const system = vfs.createSystem(fsMap);
         const rootFiles = [API_DECLARATIONS_PATH, STAGE_DECLARATIONS_PATH];
-        env.value = vfs.createVirtualTypeScriptEnvironment(system, rootFiles, tsModule, compilerOptions);
+        env.value = vfs.createVirtualTypeScriptEnvironment(system, rootFiles, tsModule, compilerOptions, {
+            before: [createLoopGuardTransformer(tsModule)],
+        });
 
         watch(stageDeclarations, (declarations) => env.value?.updateFile(STAGE_DECLARATIONS_PATH, declarations));
 
@@ -129,21 +149,6 @@ export const useScriptEnvironment = defineStore("scriptEnvironment", () => {
         syncModules();
         // module paths are derived from the item name, so a rename moves the file
         watch(moduleFiles, syncModules, { deep: true });
-
-        library.events.itemAdded.subscribe(token, (item) => {
-            if (isScriptLibraryItem(item)) {
-                syncScript(item);
-            }
-        });
-        library.events.itemRemoved.subscribe(token, (item) => {
-            if (isScriptLibraryItem(item)) {
-                removeScript(item.id);
-            }
-        });
-        library.events.loaded.subscribe(token, () => {
-            syncAllScripts();
-            syncModules();
-        });
 
         ready.value = true;
     }
@@ -277,6 +282,75 @@ export const useScriptEnvironment = defineStore("scriptEnvironment", () => {
     }
 
     /**
+     * Compile every script in the project.
+     *
+     * Runs after a project loads: only the source is saved, so without this a freshly opened project has scripts that look
+     * present but do nothing until each one is opened and compiled by hand.
+     */
+    async function compileAll(): Promise<void> {
+        const scripts = library.items.filter(isScriptLibraryItem);
+        if (scripts.length === 0) {
+            return;
+        }
+
+        await initialize();
+        for (const script of scripts) {
+            try {
+                await compile(script);
+                script.error = "";
+            } catch (err) {
+                console.error(err);
+                script.error = String(err instanceof Error ? err.message : err);
+            }
+        }
+        validate();
+    }
+
+    /**
+     * Rewrite every script reference to a fixture or track that is about to be renamed.
+     *
+     * Must be called before the name actually changes: the plan is worked out against the declarations as they stand, and once
+     * the name changes those references no longer resolve to anything.
+     */
+    function renameDeclaredName(oldName: string, newName: string): RenamePlan {
+        if (!env.value || !tsInstance || oldName === newName) {
+            return { edits: [], count: 0 };
+        }
+
+        const plan = planRename(
+            tsInstance,
+            env.value.languageService,
+            STAGE_DECLARATIONS_PATH,
+            stageDeclarations.value,
+            oldName,
+            newName,
+            (fileName) => fileName.startsWith("/scripts/") || fileName.startsWith("/lib/")
+        );
+        if (plan.blockedReason || plan.edits.length === 0) {
+            return plan;
+        }
+
+        for (const edit of plan.edits) {
+            if (edit.fileName.startsWith("/scripts/")) {
+                const id = edit.fileName.slice("/scripts/".length, -".ts".length);
+                const script = library.items.filter(isScriptLibraryItem).find((s) => s.id === id);
+                if (script) {
+                    script.script = applyReplacements(script.script, edit.replacements);
+                    syncScript(script);
+                }
+            } else {
+                const name = edit.fileName.slice("/lib/".length, -".ts".length);
+                const module = library.items.filter(isScriptModuleLibraryItem).find((m) => m.name === name);
+                if (module) {
+                    module.script = applyReplacements(module.script, edit.replacements);
+                }
+            }
+        }
+
+        return plan;
+    }
+
+    /**
      * Check every compiled script against the project as it is now.
      *
      * Errors are written to the library item so they show up next to the script; overlap notes are returned for the caller to
@@ -372,6 +446,8 @@ export const useScriptEnvironment = defineStore("scriptEnvironment", () => {
         getScriptErrors,
         getFileErrors,
         compile,
+        compileAll,
+        renameDeclaredName,
         validate,
     };
 });
