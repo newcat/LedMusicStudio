@@ -1,6 +1,7 @@
 import { Color } from "@/graph/colors";
 import { scaleColorArray } from "@/utils";
 import { DmxFixture, LedStripFixture } from "@/stage";
+import type { LayerTarget } from "./layerTarget";
 
 const BLACK: LMSColor = [0, 0, 0];
 
@@ -8,24 +9,20 @@ function copyColor(color: Color | LMSColor | undefined): LMSColor {
     return color ? [color[0], color[1], color[2]] : [...BLACK];
 }
 
-interface Flushable {
-    flush(): void;
-    dispose(): void;
-}
-
 /**
  * Script-facing handle for an LED strip.
  *
- * Writes go into a working buffer that is flushed to the fixture once per tick rather than straight through to
- * `fixture.setValue`, which reallocates and rescales the whole array on every call — painting a strip pixel by pixel through
- * that would be quadratic.
+ * Writes go into the layer of whichever source is currently running, not straight to the fixture. Anything the script does not
+ * touch stays transparent, so a script painting three pixels composites over whatever is beneath it instead of blacking out the
+ * other 57.
  */
-export class LedStripHandle implements LMSLedStrip, Flushable {
+export class LedStripHandle implements LMSLedStrip {
     public readonly type = "ledStrip";
 
-    private buffer: LMSColor[] | undefined;
-
-    public constructor(private readonly fixture: LedStripFixture) {}
+    public constructor(
+        private readonly fixture: LedStripFixture,
+        private readonly target: LayerTarget
+    ) {}
 
     public get id(): string {
         return this.fixture.id;
@@ -39,75 +36,75 @@ export class LedStripHandle implements LMSLedStrip, Flushable {
         return this.fixture.config.numLeds;
     }
 
+    /** Reads back this source's own write if there is one, otherwise the last committed frame. */
     public get(index: number): LMSColor {
-        if (this.buffer) {
-            return copyColor(this.buffer[index]);
+        const layer = this.target.peekLedStripLayer(this.fixture);
+        if (layer && index >= 0 && index < layer.alpha.length && layer.alpha[index] > 0) {
+            return [layer.rgb[index * 3], layer.rgb[index * 3 + 1], layer.rgb[index * 3 + 2]];
         }
         return copyColor(this.fixture.value[index]);
     }
 
     public set(index: number, color: LMSColor): void {
-        const buffer = this.ensureBuffer();
-        if (index >= 0 && index < buffer.length) {
-            buffer[index] = copyColor(color);
+        const layer = this.target.getLedStripLayer(this.fixture);
+        if (!layer || index < 0 || index >= layer.alpha.length) {
+            return;
         }
+        layer.rgb[index * 3] = color[0];
+        layer.rgb[index * 3 + 1] = color[1];
+        layer.rgb[index * 3 + 2] = color[2];
+        layer.alpha[index] = 1;
     }
 
     public fill(color: LMSColor): void {
-        const buffer = this.ensureBuffer();
-        for (let i = 0; i < buffer.length; i++) {
-            buffer[i] = copyColor(color);
+        const layer = this.target.getLedStripLayer(this.fixture);
+        if (!layer) {
+            return;
+        }
+        for (let i = 0; i < layer.alpha.length; i++) {
+            layer.rgb[i * 3] = color[0];
+            layer.rgb[i * 3 + 1] = color[1];
+            layer.rgb[i * 3 + 2] = color[2];
+            layer.alpha[i] = 1;
         }
     }
 
     public setAll(colors: readonly LMSColor[]): void {
         const length = this.length;
         const scaled = colors.length === length ? colors : scaleColorArray(colors.length > 0 ? (colors as Color[]) : [BLACK], length);
-        const buffer = this.ensureBuffer();
         for (let i = 0; i < length; i++) {
-            buffer[i] = copyColor(scaled[i]);
+            this.set(i, scaled[i] as LMSColor);
         }
     }
 
-    public flush(): void {
-        if (this.buffer) {
-            this.fixture.setValue(this.buffer as Color[]);
-            this.buffer = undefined;
+    /** Make this source cover the whole strip at `alpha`, so a fade can dip into the layers below. */
+    public setOpacity(alpha: number): void {
+        const layer = this.target.getLedStripLayer(this.fixture);
+        if (!layer) {
+            return;
         }
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    public dispose(): void {}
-
-    /** Seeded from the fixture's current value so a script that writes one pixel leaves the rest of the frame intact. */
-    private ensureBuffer(): LMSColor[] {
-        if (!this.buffer) {
-            const length = this.length;
-            const current = this.fixture.value;
-            this.buffer = new Array<LMSColor>(length);
-            for (let i = 0; i < length; i++) {
-                this.buffer[i] = copyColor(current[i]);
-            }
+        for (let i = 0; i < layer.alpha.length; i++) {
+            layer.alpha[i] = alpha;
         }
-        return this.buffer;
     }
 }
 
 /** Script-facing handle for a DMX fixture, addressing channels by the names from its fixture definition. */
-export class DmxFixtureHandle implements LMSDmxFixture, Flushable {
+export class DmxFixtureHandle implements LMSDmxFixture {
     public readonly type = "dmx";
 
     private readonly token = Symbol("DmxFixtureHandle");
-    private buffer: number[] | undefined;
     private channelNames: string[] | undefined;
     private channelIndices: Map<string, number> | undefined;
 
-    public constructor(private readonly fixture: DmxFixture) {
-        // channel names are derived from the fixture definition and mode, so they only change with the configuration
+    public constructor(
+        private readonly fixture: DmxFixture,
+        private readonly target: LayerTarget
+    ) {
+        // channel names come from the fixture definition and mode, so they only change with the configuration
         this.fixture.events.configChanged.subscribe(this.token, () => {
             this.channelNames = undefined;
             this.channelIndices = undefined;
-            this.buffer = undefined;
         });
     }
 
@@ -128,14 +125,15 @@ export class DmxFixtureHandle implements LMSDmxFixture, Flushable {
         if (index < 0) {
             return 0;
         }
-        return (this.buffer ?? this.fixture.value)[index] ?? 0;
+        const layer = this.target.peekDmxLayer(this.fixture);
+        if (layer && layer.mask[index]) {
+            return layer.channels[index];
+        }
+        return this.fixture.value[index] ?? 0;
     }
 
     public set(channel: string, value: number): void {
-        const index = this.indexOf(channel);
-        if (index >= 0) {
-            this.ensureBuffer()[index] = value;
-        }
+        this.setIndex(this.indexOf(channel), value);
     }
 
     public setChannels(values: Partial<Record<string, number>>): void {
@@ -147,38 +145,25 @@ export class DmxFixtureHandle implements LMSDmxFixture, Flushable {
     }
 
     public setValue(channel: number, value: number): void {
-        const buffer = this.ensureBuffer();
-        if (channel >= 0 && channel < buffer.length) {
-            buffer[channel] = value;
-        }
-    }
-
-    public flush(): void {
-        if (this.buffer) {
-            this.fixture.setValue(this.buffer);
-            this.buffer = undefined;
-        }
+        this.setIndex(channel, value);
     }
 
     public dispose(): void {
         this.fixture.events.configChanged.unsubscribe(this.token);
     }
 
+    private setIndex(index: number, value: number): void {
+        const layer = this.target.getDmxLayer(this.fixture, this.channels.length);
+        if (!layer || index < 0 || index >= layer.mask.length) {
+            return;
+        }
+        layer.channels[index] = value;
+        layer.mask[index] = 1;
+    }
+
     private indexOf(channel: string): number {
         this.channelIndices ??= new Map(this.channels.map((name, i) => [name, i]));
         return this.channelIndices.get(channel) ?? -1;
-    }
-
-    private ensureBuffer(): number[] {
-        if (!this.buffer) {
-            const length = this.channels.length;
-            const current = this.fixture.value;
-            this.buffer = new Array<number>(length);
-            for (let i = 0; i < length; i++) {
-                this.buffer[i] = current[i] ?? 0;
-            }
-        }
-        return this.buffer;
     }
 }
 

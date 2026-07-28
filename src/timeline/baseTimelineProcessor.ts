@@ -76,57 +76,57 @@ export class BaseTimelineProcessor {
 
         this.composer.beginFrame();
 
-        const graphs = this.sortBottomToTop(currentActiveItems.filter((i) => isGraphLibraryItem(i.libraryItem)));
-        for (const g of graphs) {
+        // graphs and scripts are one ordered stack, not two passes: both produce a layer, and which one wins a fixture is
+        // decided by track order rather than by which kind of source it happens to be
+        const sources = this.sortBottomToTop(
+            currentActiveItems.filter((i) => isGraphLibraryItem(i.libraryItem) || isScriptLibraryItem(i.libraryItem))
+        );
+        for (const item of sources) {
+            const options = { opacity: item.opacity, blendMode: item.blendMode };
+            const relativeTrackItemProgress = (unit - item.start) / (item.end - item.start);
             try {
-                const relativeTrackItemProgress = (unit - g.start) / (g.end - g.start);
-                const results = await this.processGraph(g, unit, { ...calculationData, relativeTrackItemProgress });
-                if (g.libraryItem.error) {
-                    g.libraryItem.error = "";
+                if (isGraphLibraryItem(item.libraryItem)) {
+                    const results = await this.processGraph(item, unit, { ...calculationData, relativeTrackItemProgress });
+                    if (item.libraryItem.error) {
+                        item.libraryItem.error = "";
+                    }
+                    const layers: LayerSet = new Map();
+                    this.collectGraphLayers(results, layers);
+                    this.composer.composite(layers, options);
+                } else {
+                    const script = item.libraryItem as ScriptLibraryItem;
+                    scriptRuntime.beginSource();
+                    try {
+                        await script.run(
+                            item.id,
+                            unit - item.start,
+                            { ...calculationData, relativeTrackItemProgress },
+                            { itemLength: item.end - item.start, bpm: this.globalState.bpm }
+                        );
+                    } finally {
+                        this.composer.composite(scriptRuntime.endSource(), options);
+                    }
                 }
-                const layers: LayerSet = new Map();
-                this.collectGraphLayers(results, layers);
-                this.composer.composite(layers, { opacity: g.opacity, blendMode: g.blendMode });
             } catch (err) {
                 console.error(err);
-                g.libraryItem.error = String(err);
+                item.libraryItem.error = String(err);
             }
         }
 
         this.composer.commit();
-
-        // TODO(scripting step 5): scripts still write fixtures imperatively, after the frame has been committed, so they
-        // effectively sit on top of every layer and cannot be blended. They join the composer once they declare their
-        // fixtures via the `uses` manifest — see docs/scripting.md.
-        const scripts = currentActiveItems.filter((i) => isScriptLibraryItem(i.libraryItem));
-        for (const s of scripts) {
-            const script = s.libraryItem as ScriptLibraryItem;
-            try {
-                await script.run({
-                    ...calculationData,
-                    relativeTrackItemProgress: (unit - s.start) / (s.end - s.start),
-                });
-            } catch (err) {
-                console.error(err);
-                script.error = String(err);
-            }
-        }
-
-        // scripts buffer their fixture writes; one flush per tick keeps per-pixel painting linear rather than quadratic
-        scriptRuntime.flush();
     }
 
     protected async activate(item: Item) {
         const libraryItem = item.libraryItem;
         if (isScriptLibraryItem(libraryItem)) {
-            await libraryItem.activate();
+            await libraryItem.activate(item.id);
         }
     }
 
     protected async deactivate(item: Item) {
         const libraryItem = item.libraryItem;
         if (isScriptLibraryItem(libraryItem)) {
-            await libraryItem.activate();
+            await libraryItem.deactivate(item.id);
         }
     }
 

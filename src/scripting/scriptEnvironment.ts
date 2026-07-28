@@ -7,11 +7,13 @@ import { useLibrary } from "@/library";
 import { useStage } from "@/stage";
 import { useTimeline } from "@/timeline";
 import { isScriptLibraryItem } from "@/utils";
-import { lmsApi } from "./api/lms.api";
 import { scriptRuntime } from "./api/runtime";
+import { createScriptGlobals } from "./api/scriptGlobals";
 import { generateStageDeclarations } from "./generateStageDeclarations";
 import apiDeclarations from "./lib.lmsApi.d.ts?raw";
-import { ScriptLibraryItem } from "./script.libraryItem";
+import { CompiledScript, ScriptLibraryItem } from "./script.libraryItem";
+import { isSequenceDefinition } from "./sequence";
+import { ScriptProblem, validateScripts } from "./validation";
 
 /**
  * Ambient declarations describing the scripting API.
@@ -182,7 +184,7 @@ export const useScriptEnvironment = defineStore("scriptEnvironment", () => {
      * Unlike the previous implementation this refuses to run a script that does not type-check — running code the type system
      * has already rejected defeats the point of the whole feature.
      */
-    async function compile(item: ScriptLibraryItem): Promise<unknown> {
+    async function compile(item: ScriptLibraryItem): Promise<CompiledScript> {
         await initialize();
         syncScript(item);
 
@@ -198,37 +200,56 @@ export const useScriptEnvironment = defineStore("scriptEnvironment", () => {
             throw new Error("No code generated");
         }
 
-        return instantiate(emitted.text);
+        const compiled = instantiate(emitted.text);
+        const declared =
+            compiled.kind === "sequence" ? scriptRuntime.resolveDeclaredFixtures(compiled.definition.uses) : undefined;
+        item.setCompiledScript(compiled, declared);
+        return compiled;
     }
 
-    function instantiate(code: string): unknown {
+    /**
+     * Check every compiled script against the project as it is now.
+     *
+     * Errors are written to the library item so they show up next to the script; overlap notes are returned for the caller to
+     * do something with.
+     */
+    function validate(): ScriptProblem[] {
+        const scripts = library.items.filter(isScriptLibraryItem);
+        const problems = validateScripts(scripts, stage.fixtures, timeline.items);
+
+        for (const script of scripts) {
+            const errors = problems.filter((p) => p.scriptId === script.id && p.severity === "error");
+            if (errors.length > 0) {
+                script.error = errors.map((e) => e.message).join("\n");
+            } else if (script.missingDeclarations.length === 0) {
+                script.error = "";
+            }
+        }
+
+        return problems;
+    }
+
+    function instantiate(code: string): CompiledScript {
         const module = { exports: {} as Record<string, unknown> };
         const require = () => {
             throw new Error("Importing modules is not supported yet");
         };
 
-        // `stage`, `tracks` and `lmsApi` are injected as parameters rather than read off `window`. The ambient declarations look
-        // the same to a script either way, but nothing else on the page can shadow them — `window.stage` is already taken by a
-        // debug helper in App.vue — and scripts get no ambient access to the app beyond what is passed here.
-        // `new Function` rather than `eval` so the script cannot reach into this scope either.
-        new Function(
-            "exports",
-            "module",
-            "require",
-            "stage",
-            "tracks",
-            "lmsApi",
-            code
-        )(module.exports, module, require, scriptRuntime.stage, scriptRuntime.tracks, lmsApi);
+        const globals = createScriptGlobals();
+        // `new Function` rather than `eval` so the script cannot reach into this scope
+        const parameterNames = ["exports", "module", "require", ...Object.keys(globals)];
+        new Function(...parameterNames, code)(module.exports, module, require, ...Object.values(globals));
 
         const defaultExport = module.exports.default;
         if (!defaultExport) {
             throw new Error("Expected a default export");
-        } else if (typeof defaultExport !== "function") {
-            throw new Error("Expected the default export to be a class");
+        } else if (isSequenceDefinition(defaultExport)) {
+            return { kind: "sequence", definition: defaultExport };
+        } else if (typeof defaultExport === "function") {
+            return { kind: "script", instance: new (defaultExport as new () => LMSScript)() };
         }
-        return new (defaultExport as new () => unknown)();
+        throw new Error("Expected the default export to be a defineSequence(...) result or a class");
     }
 
-    return { ready, env, stageDeclarations, initialize, getScriptPath, syncScript, removeScript, getScriptErrors, compile };
+    return { ready, env, stageDeclarations, initialize, getScriptPath, syncScript, removeScript, getScriptErrors, compile, validate };
 });

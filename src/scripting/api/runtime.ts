@@ -1,16 +1,9 @@
 import { INote } from "@/pattern";
-import { BaseFixture, DmxFixture, LedStripFixture, useStage } from "@/stage";
+import { BaseFixture, DmxFixture, LayerSet, LedStripFixture, useStage } from "@/stage";
 import { useTimeline } from "@/timeline";
 import { DmxFixtureHandle, FixtureHandle, LedStripHandle, TrackHandle } from "./handles";
-
-function createHandle(fixture: BaseFixture): FixtureHandle | undefined {
-    if (fixture instanceof LedStripFixture) {
-        return new LedStripHandle(fixture);
-    } else if (fixture instanceof DmxFixture) {
-        return new DmxFixtureHandle(fixture);
-    }
-    return undefined;
-}
+import { LayerTarget } from "./layerTarget";
+import type { WriteGate } from "../sequence";
 
 /**
  * Backs the `stage` and `tracks` globals that scripts see.
@@ -23,6 +16,7 @@ export class ScriptRuntime {
     public readonly stage: Record<string, FixtureHandle | undefined>;
     public readonly tracks: Record<string, TrackHandle | undefined>;
 
+    private readonly target = new LayerTarget();
     private readonly fixtureHandles = new Map<string, FixtureHandle>();
     private readonly trackHandles = new Map<string, TrackHandle>();
     private trackValues: ReadonlyMap<string, number | INote[]> = new Map();
@@ -43,17 +37,39 @@ export class ScriptRuntime {
         });
     }
 
-    /** Called once per tick, before any script runs. */
+    /** Called once per tick, before any source runs. */
     public beginTick(trackValues: ReadonlyMap<string, number | INote[]>): void {
         this.trackValues = trackValues;
         this.prune();
     }
 
-    /** Called once per tick, after every script has run, to write buffered fixture changes out in one go. */
-    public flush(): void {
-        for (const handle of this.fixtureHandles.values()) {
-            handle.flush();
+    /** Open a layer set for one script item. Everything it writes goes here until `endSource`. */
+    public beginSource(): void {
+        this.target.begin();
+    }
+
+    /** Close the current script item and hand its layers to the compositor. */
+    public endSource(): LayerSet {
+        return this.target.take();
+    }
+
+    /** Used by sequences to silence writes from replayed ticks. */
+    public get writeGate(): WriteGate {
+        return this.target;
+    }
+
+    /** Resolve the fixtures a compiled sequence declared in `uses`, so the app knows what it drives without running it. */
+    public resolveDeclaredFixtures(uses: Record<string, unknown> | undefined): { declared: Map<string, string>; missing: string[] } {
+        const declared = new Map<string, string>();
+        const missing: string[] = [];
+        for (const [key, value] of Object.entries(uses ?? {})) {
+            if (value instanceof LedStripHandle || value instanceof DmxFixtureHandle) {
+                declared.set(key, value.id);
+            } else if (value === undefined || value === null) {
+                missing.push(key);
+            }
         }
+        return { declared, missing };
     }
 
     /** Drop handles for fixtures that no longer exist. */
@@ -61,7 +77,9 @@ export class ScriptRuntime {
         const stage = useStage();
         for (const [id, handle] of this.fixtureHandles) {
             if (!stage.fixtures.has(id)) {
-                handle.dispose();
+                if (handle instanceof DmxFixtureHandle) {
+                    handle.dispose();
+                }
                 this.fixtureHandles.delete(id);
             }
         }
@@ -85,7 +103,13 @@ export class ScriptRuntime {
         if (existing) {
             return existing;
         }
-        const handle = createHandle(fixture);
+
+        let handle: FixtureHandle | undefined;
+        if (fixture instanceof LedStripFixture) {
+            handle = new LedStripHandle(fixture, this.target);
+        } else if (fixture instanceof DmxFixture) {
+            handle = new DmxFixtureHandle(fixture, this.target);
+        }
         if (handle) {
             this.fixtureHandles.set(fixture.id, handle);
         }

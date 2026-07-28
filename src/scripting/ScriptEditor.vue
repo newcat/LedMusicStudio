@@ -60,10 +60,17 @@ onMounted(async () => {
 async function compile() {
     try {
         props.script.loading = true;
-        const instance = await scriptEnvironment.compile(props.script);
-        props.script.setCompiledScript(instance);
+        await scriptEnvironment.compile(props.script);
         props.script.error = "";
-        toast.add({ severity: "success", summary: "Script compiled", life: 2000 });
+
+        // the manifest is only known once the script has been compiled, so this is the first chance to check it
+        const notes = scriptEnvironment.validate().filter((p) => p.scriptId === props.script.id && p.severity === "note");
+        toast.add({
+            severity: "success",
+            summary: "Script compiled",
+            detail: notes.map((n) => n.message).join("\n") || undefined,
+            life: notes.length > 0 ? 6000 : 2000,
+        });
     } catch (e) {
         console.error(e);
         props.script.error = String(e);
