@@ -102,13 +102,13 @@ export const HELP_SECTIONS: HelpSection[] = [
                 headers: ["Property", "Meaning"],
                 rows: [
                     ["`s.tick`", "ticks since the clip started"],
-                    ["`s.beats`", "beats since the clip started"],
+                    ["`s.elapsedBeats`", "beats since the clip started"],
                     ["`s.progress`", "how far through the clip you are, 0 to 1"],
                 ],
             },
             {
                 kind: "note",
-                text: "`s.beats` is a position; `beats(n)` is a conversion. `yield* wait(beats(4))` waits four beats, while `s.beats` tells you how many have passed.",
+                text: "`s.elapsedBeats` is a position; `beats(n)` is a conversion. `yield* wait(beats(4))` waits four beats, while `s.elapsedBeats` tells you how many have passed.",
             },
         ],
     },
@@ -248,7 +248,7 @@ if (level !== undefined) {
                 kind: "code",
                 text: `// a hue ramp along the strip that drifts over time
 for (let i = 0; i < s.strip.length; i++) {
-  s.strip.set(i, hsv(i / s.strip.length + s.beats * 0.1, 1, 1));
+  s.strip.set(i, hsv(i / s.strip.length + s.elapsedBeats * 0.1, 1, 1));
 }
 yield;`,
             },

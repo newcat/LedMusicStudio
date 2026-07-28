@@ -114,7 +114,7 @@ export class SequenceInstance {
 
         Object.defineProperties(context, {
             tick: { get: () => this.lastTick, enumerable: true },
-            beats: { get: () => this.lastTick / TICKS_PER_BEAT, enumerable: true },
+            elapsedBeats: { get: () => this.lastTick / TICKS_PER_BEAT, enumerable: true },
             progress: {
                 get: () => clamp(this.lastTick / Math.max(1, this.tickInfo?.itemLength ?? 1), 0, 1),
                 enumerable: true,

@@ -149,6 +149,8 @@ watch(visible, async (isVisible) => {
     overflow-y: auto;
     padding-right: 0.5rem;
     line-height: 1.6;
+    /* the app disables selection globally, which would stop you copying a code sample out of the guide */
+    user-select: text;
 }
 
 .help__section {

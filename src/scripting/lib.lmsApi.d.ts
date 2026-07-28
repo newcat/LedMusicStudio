@@ -122,8 +122,8 @@ declare type LMSEasing = (t: number) => number;
 declare interface LMSSequenceApi {
     /** Ticks since the start of this timeline item. */
     readonly tick: number;
-    /** Beats since the start of this timeline item. */
-    readonly beats: number;
+    /** Beats since the start of this timeline item. Not to be confused with `beats(n)`, which converts beats into ticks. */
+    readonly elapsedBeats: number;
     /** How far through the timeline item we are, 0..1. */
     readonly progress: number;
     readonly data: LMSCalculationData;
