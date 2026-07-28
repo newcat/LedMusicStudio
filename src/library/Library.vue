@@ -42,6 +42,7 @@ import { AutomationLibraryItem } from "@/automation/automation.libraryItem";
 import { GraphLibraryItem } from "@/graph/graph.libraryItem";
 import { PatternLibraryItem } from "@/pattern/pattern.libraryItem";
 import { ScriptLibraryItem } from "@/scripting/script.libraryItem";
+import { ScriptModuleLibraryItem } from "@/scripting/scriptModule.libraryItem";
 import { LibraryItemType, LibraryItem, LibraryItemTypeIcons, LibraryItemTypeLabels, LibraryItemTypeList } from "./libraryItem";
 
 import LibraryItemView from "./LibraryItem.vue";
@@ -91,6 +92,9 @@ async function addItem(key: LibraryItemType) {
             break;
         case LibraryItemType.SCRIPT:
             item = ScriptLibraryItem;
+            break;
+        case LibraryItemType.SCRIPT_LIBRARY:
+            item = ScriptModuleLibraryItem;
             break;
         default:
             return;

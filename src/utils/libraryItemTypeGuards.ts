@@ -3,7 +3,7 @@ import { AudioLibraryItem } from "@/audio";
 import { AutomationLibraryItem } from "@/automation";
 import { GraphLibraryItem } from "@/graph";
 import { PatternLibraryItem } from "@/pattern";
-import { ScriptLibraryItem } from "@/scripting";
+import { ScriptLibraryItem, ScriptModuleLibraryItem } from "@/scripting";
 
 export function isAudioLibraryItem(item: LibraryItem): item is AudioLibraryItem {
     return item.type === LibraryItemType.AUDIO;
@@ -23,4 +23,8 @@ export function isPatternLibraryItem(item: LibraryItem): item is PatternLibraryI
 
 export function isScriptLibraryItem(item: LibraryItem): item is ScriptLibraryItem {
     return item.type === LibraryItemType.SCRIPT;
+}
+
+export function isScriptModuleLibraryItem(item: LibraryItem): item is ScriptModuleLibraryItem {
+    return item.type === LibraryItemType.SCRIPT_LIBRARY;
 }

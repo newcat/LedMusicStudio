@@ -12,6 +12,7 @@
                 :automation-clip="selectedItem"
             ></AutomationEditor>
             <ScriptEditor v-if="isScript(selectedItem)" :key="'s' + selectedItem.id" :script="selectedItem" />
+            <ScriptModuleEditor v-if="isScriptModule(selectedItem)" :key="'m' + selectedItem.id" :module="selectedItem" />
         </template>
     </Card>
 </template>
@@ -24,12 +25,13 @@ import { LibraryItem, LibraryItemType, useLibrary } from "@/library";
 import { PatternLibraryItem } from "@/pattern";
 import { AutomationLibraryItem } from "@/automation";
 import { GraphLibraryItem } from "@/graph";
-import { ScriptLibraryItem } from "@/scripting";
+import { ScriptLibraryItem, ScriptModuleLibraryItem } from "@/scripting";
 
 const NoteEditor = defineAsyncComponent(() => import("@/pattern/NoteEditor.vue"));
 const AutomationEditor = defineAsyncComponent(() => import("@/automation/AutomationEditor.vue"));
 const GraphEditor = defineAsyncComponent(() => import("@/graph/GraphEditor.vue"));
 const ScriptEditor = defineAsyncComponent(() => import("@/scripting/ScriptEditor.vue"));
+const ScriptModuleEditor = defineAsyncComponent(() => import("@/scripting/ScriptModuleEditor.vue"));
 
 const library = useLibrary();
 
@@ -59,6 +61,10 @@ function isPattern(item?: LibraryItem): item is PatternLibraryItem {
 
 function isScript(item?: LibraryItem): item is ScriptLibraryItem {
     return !!item && item.type === LibraryItemType.SCRIPT;
+}
+
+function isScriptModule(item?: LibraryItem): item is ScriptModuleLibraryItem {
+    return !!item && item.type === LibraryItemType.SCRIPT_LIBRARY;
 }
 </script>
 

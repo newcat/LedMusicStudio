@@ -6,12 +6,14 @@ import type { VirtualTypeScriptEnvironment } from "@typescript/vfs";
 import { useLibrary } from "@/library";
 import { useStage } from "@/stage";
 import { useTimeline } from "@/timeline";
-import { isScriptLibraryItem } from "@/utils";
+import { isScriptLibraryItem, isScriptModuleLibraryItem } from "@/utils";
 import { scriptRuntime } from "./api/runtime";
 import { createScriptGlobals } from "./api/scriptGlobals";
 import { generateStageDeclarations } from "./generateStageDeclarations";
+import builtinPatterns from "./builtin/patterns.ts?raw";
 import apiDeclarations from "./lib.lmsApi.d.ts?raw";
 import { CompiledScript, ScriptLibraryItem } from "./script.libraryItem";
+import { ScriptModuleLibraryItem } from "./scriptModule.libraryItem";
 import { isSequenceDefinition } from "./sequence";
 import { ScriptProblem, validateScripts } from "./validation";
 
@@ -40,6 +42,25 @@ const TS_LIB_FILES = import.meta.glob("/node_modules/typescript/lib/lib.*.d.ts",
 
 export function getScriptPath(scriptId: string): string {
     return `/scripts/${scriptId}.ts`;
+}
+
+/** Modules that ship with the app, importable as `@lms/<name>`. */
+const BUILTIN_MODULES: Record<string, string> = {
+    "/builtin/patterns.ts": builtinPatterns,
+};
+
+/**
+ * Map an import specifier onto a file in the virtual file system.
+ *
+ * Mirrors the `paths` compiler option below, so what the editor resolves and what `require` resolves cannot drift.
+ */
+export function resolveModulePath(specifier: string): string | undefined {
+    if (specifier.startsWith("@lms/")) {
+        return `/builtin/${specifier.slice("@lms/".length)}.ts`;
+    } else if (specifier.startsWith("@lib/")) {
+        return `/lib/${specifier.slice("@lib/".length)}.ts`;
+    }
+    return undefined;
 }
 
 /**
@@ -84,11 +105,19 @@ export const useScriptEnvironment = defineStore("scriptEnvironment", () => {
             moduleResolution: tsModule.ModuleResolutionKind.Node10,
             strict: true,
             noEmitOnError: false,
+            baseUrl: "/",
+            paths: {
+                "@lms/*": ["builtin/*"],
+                "@lib/*": ["lib/*"],
+            },
         };
 
         const fsMap = await loadLibFiles(vfs, compilerOptions);
         fsMap.set(API_DECLARATIONS_PATH, apiDeclarations);
         fsMap.set(STAGE_DECLARATIONS_PATH, stageDeclarations.value);
+        for (const [path, content] of Object.entries(BUILTIN_MODULES)) {
+            fsMap.set(path, content);
+        }
 
         const system = vfs.createSystem(fsMap);
         const rootFiles = [API_DECLARATIONS_PATH, STAGE_DECLARATIONS_PATH];
@@ -97,6 +126,9 @@ export const useScriptEnvironment = defineStore("scriptEnvironment", () => {
         watch(stageDeclarations, (declarations) => env.value?.updateFile(STAGE_DECLARATIONS_PATH, declarations));
 
         syncAllScripts();
+        syncModules();
+        // module paths are derived from the item name, so a rename moves the file
+        watch(moduleFiles, syncModules, { deep: true });
 
         library.events.itemAdded.subscribe(token, (item) => {
             if (isScriptLibraryItem(item)) {
@@ -108,7 +140,10 @@ export const useScriptEnvironment = defineStore("scriptEnvironment", () => {
                 removeScript(item.id);
             }
         });
-        library.events.loaded.subscribe(token, () => syncAllScripts());
+        library.events.loaded.subscribe(token, () => {
+            syncAllScripts();
+            syncModules();
+        });
 
         ready.value = true;
     }
@@ -159,12 +194,53 @@ export const useScriptEnvironment = defineStore("scriptEnvironment", () => {
         }
     }
 
+    function getModulePath(item: ScriptModuleLibraryItem): string {
+        return `/lib/${item.name}.ts`;
+    }
+
+    const moduleFiles = computed(() =>
+        library.items.filter(isScriptModuleLibraryItem).map((item) => ({ id: item.id, path: getModulePath(item), content: item.script }))
+    );
+
+    /** Tracks where each module item currently lives, so a rename moves its file rather than leaving a stale copy behind. */
+    const modulePaths = new Map<string, string>();
+
+    function syncModules(): void {
+        if (!env.value) {
+            return;
+        }
+
+        const wanted = moduleFiles.value;
+        const wantedIds = new Set(wanted.map((m) => m.id));
+
+        for (const [id, path] of modulePaths) {
+            const current = wanted.find((m) => m.id === id);
+            if ((!wantedIds.has(id) || current!.path !== path) && env.value.getSourceFile(path)) {
+                env.value.deleteFile(path);
+                modulePaths.delete(id);
+            }
+        }
+
+        for (const module of wanted) {
+            const content = module.content || " ";
+            if (env.value.getSourceFile(module.path)) {
+                env.value.updateFile(module.path, content);
+            } else {
+                env.value.createFile(module.path, content);
+            }
+            modulePaths.set(module.id, module.path);
+        }
+    }
+
     /** Type and syntax errors for one script, formatted for display. */
     function getScriptErrors(scriptId: string): string[] {
+        return getFileErrors(getScriptPath(scriptId));
+    }
+
+    function getFileErrors(path: string): string[] {
         if (!env.value || !tsInstance) {
             return [];
         }
-        const path = getScriptPath(scriptId);
         const service = env.value.languageService;
         return [...service.getSyntacticDiagnostics(path), ...service.getSemanticDiagnostics(path)]
             .filter((d) => d.category === tsInstance!.DiagnosticCategory.Error)
@@ -193,14 +269,7 @@ export const useScriptEnvironment = defineStore("scriptEnvironment", () => {
             throw new Error(errors.join("\n"));
         }
 
-        const path = getScriptPath(item.id);
-        const output = env.value!.languageService.getEmitOutput(path);
-        const emitted = output.outputFiles.find((f) => f.name.endsWith(".js"));
-        if (!emitted?.text) {
-            throw new Error("No code generated");
-        }
-
-        const compiled = instantiate(emitted.text);
+        const compiled = instantiate(getScriptPath(item.id));
         const declared =
             compiled.kind === "sequence" ? scriptRuntime.resolveDeclaredFixtures(compiled.definition.uses) : undefined;
         item.setCompiledScript(compiled, declared);
@@ -229,18 +298,11 @@ export const useScriptEnvironment = defineStore("scriptEnvironment", () => {
         return problems;
     }
 
-    function instantiate(code: string): CompiledScript {
-        const module = { exports: {} as Record<string, unknown> };
-        const require = () => {
-            throw new Error("Importing modules is not supported yet");
-        };
+    function instantiate(path: string): CompiledScript {
+        // a fresh cache per compile, so edits to an imported module are picked up rather than served from a stale copy
+        const exports = loadModule(path, new Map());
 
-        const globals = createScriptGlobals();
-        // `new Function` rather than `eval` so the script cannot reach into this scope
-        const parameterNames = ["exports", "module", "require", ...Object.keys(globals)];
-        new Function(...parameterNames, code)(module.exports, module, require, ...Object.values(globals));
-
-        const defaultExport = module.exports.default;
+        const defaultExport = exports.default;
         if (!defaultExport) {
             throw new Error("Expected a default export");
         } else if (isSequenceDefinition(defaultExport)) {
@@ -251,5 +313,65 @@ export const useScriptEnvironment = defineStore("scriptEnvironment", () => {
         throw new Error("Expected the default export to be a defineSequence(...) result or a class");
     }
 
-    return { ready, env, stageDeclarations, initialize, getScriptPath, syncScript, removeScript, getScriptErrors, compile, validate };
+    /**
+     * Compile and run one file from the virtual file system, resolving its imports to other files in the same environment.
+     *
+     * Every module gets the same injected API a script does, so a shared pattern library can use `wait`, `beats` and the rest
+     * without importing anything.
+     */
+    function loadModule(path: string, loaded: Map<string, Record<string, unknown>>): Record<string, unknown> {
+        const cached = loaded.get(path);
+        if (cached) {
+            return cached;
+        }
+
+        const errors = getFileErrors(path);
+        if (errors.length > 0) {
+            throw new Error(`In ${path}:\n${errors.join("\n")}`);
+        }
+
+        const output = env.value!.languageService.getEmitOutput(path);
+        const emitted = output.outputFiles.find((f) => f.name.endsWith(".js"));
+        if (!emitted?.text) {
+            throw new Error(`No code generated for ${path}`);
+        }
+
+        const module = { exports: {} as Record<string, unknown> };
+        // registered before executing so a cycle sees a partially populated object rather than recursing forever
+        loaded.set(path, module.exports);
+
+        const require = (specifier: string): Record<string, unknown> => {
+            const resolved = resolveModulePath(specifier);
+            if (!resolved) {
+                throw new Error(`Cannot resolve "${specifier}". Use "@lib/<name>" for a script library, or "@lms/patterns".`);
+            }
+            if (!env.value!.getSourceFile(resolved)) {
+                throw new Error(`Module "${specifier}" does not exist.`);
+            }
+            return loadModule(resolved, loaded);
+        };
+
+        const globals = createScriptGlobals();
+        // `new Function` rather than `eval` so the module cannot reach into this scope
+        const parameterNames = ["exports", "module", "require", ...Object.keys(globals)];
+        new Function(...parameterNames, emitted.text)(module.exports, module, require, ...Object.values(globals));
+
+        loaded.set(path, module.exports);
+        return module.exports;
+    }
+
+    return {
+        ready,
+        env,
+        stageDeclarations,
+        initialize,
+        getScriptPath,
+        getModulePath,
+        syncScript,
+        removeScript,
+        getScriptErrors,
+        getFileErrors,
+        compile,
+        validate,
+    };
 });

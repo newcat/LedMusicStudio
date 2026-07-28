@@ -114,7 +114,7 @@ declare interface LMSScript {
  * A bare `yield` means "this tick is done"; `yield*` runs another flow to completion before carrying on. That is the whole
  * protocol — everything else is built from it.
  */
-declare type LMSFlow = Generator<unknown, unknown, unknown>;
+declare type LMSFlow = Generator<unknown, void, unknown>;
 
 declare type LMSEasing = (t: number) => number;
 

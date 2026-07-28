@@ -136,4 +136,19 @@ export class ScriptRuntime {
     }
 }
 
-export const scriptRuntime = new ScriptRuntime();
+/**
+ * Deliberately keyed on `globalThis` rather than being a plain module-level constant.
+ *
+ * Fixture handles capture the runtime's layer target when they are created. If this module is ever evaluated twice — which is
+ * exactly what a hot reload does when one of these files is edited with the dev server running — handles end up writing to one
+ * target while the processor opens and reads another, and every script silently stops producing output until the server is
+ * restarted. Pinning the instance globally makes that failure impossible to reproduce.
+ */
+const RUNTIME_KEY = Symbol.for("lms.scriptRuntime");
+
+interface RuntimeHolder {
+    [RUNTIME_KEY]?: ScriptRuntime;
+}
+
+const holder = globalThis as RuntimeHolder;
+export const scriptRuntime: ScriptRuntime = (holder[RUNTIME_KEY] ??= new ScriptRuntime());

@@ -7,6 +7,7 @@ import { AutomationLibraryItem } from "@/automation";
 import { GraphLibraryItem } from "@/graph";
 import { PatternLibraryItem } from "@/pattern";
 import { ScriptLibraryItem } from "@/scripting/script.libraryItem";
+import { ScriptModuleLibraryItem } from "@/scripting/scriptModule.libraryItem";
 import { LibraryItem, LibraryItemType } from "./libraryItem";
 
 export interface ILibraryState {
@@ -30,6 +31,8 @@ function createItemByType(type: LibraryItemType): LibraryItem | undefined {
             return new PatternLibraryItem();
         case LibraryItemType.SCRIPT:
             return new ScriptLibraryItem();
+        case LibraryItemType.SCRIPT_LIBRARY:
+            return new ScriptModuleLibraryItem();
         default:
             console.warn(`Unknown library type: ${type}`);
     }
