@@ -156,8 +156,10 @@ declare interface LMSSequence {
 
 declare function defineSequence<TUses extends Record<string, unknown>>(definition: LMSSequenceDefinition<TUses>): LMSSequence;
 
-/** Do nothing for `ticks` ticks. */
+/** Do nothing for `ticks` ticks. Writes do not persist, so this leaves the fixtures you drive dark. */
 declare function wait(ticks: number): LMSFlow;
+/** Call `apply` on each of `ticks` ticks, keeping whatever it writes on screen for that long. */
+declare function hold(ticks: number, apply: () => void): LMSFlow;
 /** Run every flow in parallel until all of them finish. */
 declare function all(...flows: LMSFlow[]): LMSFlow;
 /** Run every flow in parallel until the first one finishes. */

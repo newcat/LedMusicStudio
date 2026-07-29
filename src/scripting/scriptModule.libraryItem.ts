@@ -8,9 +8,8 @@ const DEFAULT_MODULE_CONTENT = `// Reusable flows, importable from your scripts 
 // The scripting API (wait, beats, hsv, ...) is available here too — no imports needed.
 
 export function* blink(fixture: LMSLedStrip, color: LMSColor, period = beats(0.5)): LMSFlow {
-  fixture.fill(color);
-  yield* wait(period);
-  yield* wait(period);
+  yield* hold(period, () => fixture.fill(color));   // lit — a write only lasts the tick it happens on
+  yield* wait(period);                              // dark
 }
 `;
 

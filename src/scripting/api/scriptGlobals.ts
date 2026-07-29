@@ -1,5 +1,5 @@
 import { LOOP_GUARD_NAME } from "../loopGuard";
-import { all, defineSequence, easing, forever, lerp, race, repeat, tween, wait } from "../sequence";
+import { all, defineSequence, easing, forever, hold, lerp, race, repeat, tween, wait } from "../sequence";
 import { bars, beats, hsv, mix } from "./helpers";
 import { lmsApi } from "./lms.api";
 import { scriptRuntime } from "./runtime";
@@ -21,6 +21,7 @@ export function createScriptGlobals(): Record<string, unknown> {
         lmsApi,
         defineSequence,
         wait,
+        hold,
         all,
         race,
         repeat,

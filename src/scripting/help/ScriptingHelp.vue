@@ -68,13 +68,21 @@ const activeSection = ref(HELP_SECTIONS[0].id);
  *
  * Everything is escaped first, so the output is safe to hand to `v-html` even though the source text is full of angle brackets
  * from type names and code snippets.
+ *
+ * Emphasis is applied per segment rather than to the whole string so that an asterisk inside a code span stays literal:
+ * `function*` and `yield*` are names, and running the emphasis pass over them pairs the two stars up and eats both.
  */
 function formatInline(text: string): string {
-    const escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    return escaped
-        .replace(/`([^`]+)`/g, "<code>$1</code>")
-        .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-        .replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    const escape = (part: string) =>
+        part.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    const emphasise = (part: string) =>
+        part.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/\*([^*]+)\*/g, "<em>$1</em>");
+
+    // splitting on backticks puts code spans at the odd indices
+    return text
+        .split("`")
+        .map((part, index) => (index % 2 === 1 ? `<code>${escape(part)}</code>` : emphasise(escape(part))))
+        .join("");
 }
 
 function scrollTo(id: string) {

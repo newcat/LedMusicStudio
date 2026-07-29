@@ -14,13 +14,15 @@ export function* chase(strip: LMSLedStrip, color: LMSColor, options: { step?: nu
     const width = Math.max(1, options.width ?? 1);
     for (let i = 0; i < strip.length; i++) {
         const head = options.reverse ? strip.length - 1 - i : i;
-        for (let w = 0; w < width; w++) {
-            const index = options.reverse ? head + w : head - w;
-            if (index >= 0 && index < strip.length) {
-                strip.set(index, color);
+        // held for the whole step, otherwise the head would be lit for one tick and dark for the rest of it
+        yield* hold(step, () => {
+            for (let w = 0; w < width; w++) {
+                const index = options.reverse ? head + w : head - w;
+                if (index >= 0 && index < strip.length) {
+                    strip.set(index, color);
+                }
             }
-        }
-        yield* wait(step);
+        });
     }
 }
 
@@ -51,8 +53,7 @@ export function* fade(strip: LMSLedStrip, from: LMSColor, to: LMSColor, duration
 /** Flash on and off. `duty` is the fraction of each period spent lit. */
 export function* strobe(strip: LMSLedStrip, color: LMSColor, period = beats(0.25), duty = 0.5): LMSFlow {
     const onTicks = Math.max(1, Math.round(period * duty));
-    strip.fill(color);
-    yield* wait(onTicks);
+    yield* hold(onTicks, () => strip.fill(color));
     yield* wait(Math.max(0, period - onTicks));
 }
 

@@ -51,17 +51,18 @@ export const HELP_SECTIONS: HelpSection[] = [
                 text: `export default defineSequence({
   uses: { strip: stage.Ceiling },
   *run(s) {
-    s.strip.fill([255, 0, 0]);   // red
-    yield* wait(beats(1));       // hold for one beat
-
-    s.strip.fill([0, 0, 255]);   // blue
-    yield* wait(beats(1));
+    yield* hold(beats(1), () => s.strip.fill([255, 0, 0]));   // red for one beat
+    yield* hold(beats(1), () => s.strip.fill([0, 0, 255]));   // then blue for one beat
   },
 });`,
             },
             {
                 kind: "p",
                 text: "Everything in `uses` becomes available on `s` with the name you gave it, fully typed. Here `s.strip` is the Ceiling fixture.",
+            },
+            {
+                kind: "note",
+                text: "Note the `hold`. Every tick is drawn from scratch, so setting a colour affects only the tick you set it on — see Time and ticks.",
             },
             {
                 kind: "p",
@@ -85,6 +86,19 @@ export const HELP_SECTIONS: HelpSection[] = [
   s.strip.fill([0, 255, 0]);
   yield;                    // one tick with it green
 }`,
+            },
+            {
+                kind: "p",
+                text: "**Nothing persists between ticks.** Each tick is built from an empty frame, so what you write applies to that tick alone — one tick red, one tick green, and after that the strip is dark again. To keep something on screen you write it on every tick it should be visible, which is what `hold` does:",
+            },
+            {
+                kind: "code",
+                text: `yield* hold(beats(4), () => s.strip.fill([255, 0, 0]));   // red, for four beats
+yield* wait(beats(4));                                   // dark, for four beats`,
+            },
+            {
+                kind: "note",
+                text: "`wait` is not a hold — it lets ticks pass without writing anything, which leaves your fixtures dark. That is the usual explanation for a script that flashes once and then goes out.",
             },
             { kind: "p", text: "You rarely count ticks by hand. Use the helpers instead:" },
             {
@@ -197,11 +211,12 @@ if (level !== undefined) {
                 kind: "table",
                 headers: ["Flow", "What it does"],
                 rows: [
-                    ["`wait(ticks)`", "do nothing for a while"],
+                    ["`wait(ticks)`", "let ticks pass without writing anything — your fixtures stay dark"],
+                    ["`hold(ticks, () => ...)`", "write the same thing on every tick for a while, so it stays on screen"],
                     ["`all(a, b, ...)`", "run several flows at once, finishing when the longest does"],
                     ["`race(a, b, ...)`", "run several at once, finishing when the *first* does"],
-                    ["`repeat(n, i => flow)`", "run a flow n times, one after another"],
-                    ["`forever(i => flow)`", "run a flow over and over until the clip ends"],
+                    ["`repeat(n, body)`", "run `body` n times, one after another — a function returning a flow, given the round number"],
+                    ["`forever(body)`", "run `body` over and over until the clip ends"],
                     ["`tween(ticks, p => ..., ease?)`", "call a function once per tick with progress rising to 1"],
                     ["`s.spawn(flow)`", "let a flow keep running in the background while you carry on"],
                 ],
@@ -209,12 +224,15 @@ if (level !== undefined) {
             {
                 kind: "code",
                 text: `*run(s) {
-  // fade the spot up while the strip turns red, then hold
+  // fade the spot up while the strip turns red, then hold both for a bar
   yield* all(
     tween(beats(0.5), (p) => s.spot.set("Dimmer", p * 255)),
     tween(beats(0.5), (p) => s.strip.fill([p * 255, 0, 0])),
   );
-  yield* wait(bars(1));
+  yield* hold(bars(1), () => {
+    s.spot.set("Dimmer", 255);
+    s.strip.fill([255, 0, 0]);
+  });
 
   // eight chases, one after another
   yield* repeat(8, (i) => chase(s.strip, hsv(i / 8, 1, 1), { step: beats(0.25) }));
@@ -227,6 +245,54 @@ if (level !== undefined) {
             {
                 kind: "note",
                 text: "Every loop needs a `yield` somewhere inside it. A loop without one never gives the tick back — scripts are stopped after a million iterations in a single tick with an error saying so.",
+            },
+        ],
+    },
+    {
+        id: "own-flows",
+        title: "Writing your own flows",
+        blocks: [
+            {
+                kind: "p",
+                text: "Nothing in that table is special. **A flow is just a generator function** — `function*` plus `yield` — and one you write is interchangeable with one that ships with the app. There is nothing to register and nothing to declare.",
+            },
+            {
+                kind: "code",
+                text: `function* pulse(spot: LMSDmxFixture, duration: number): LMSFlow {
+  yield* tween(duration, (p) => spot.set("Dimmer", (1 - p) * 255));
+}
+
+// use it wherever a flow goes, alongside the built-in ones
+yield* pulse(s.spot, beats(1));
+yield* all(
+  pulse(s.spot, beats(1)),
+  tween(beats(1), (p) => s.strip.fill([p * 255, 0, 0])),
+);`,
+            },
+            {
+                kind: "p",
+                text: "Give it a name if you will use it twice — at the top of your script, or in a Script Library item to share it between scripts. Where a combinator asks for a flow you can also write one on the spot:",
+            },
+            {
+                kind: "code",
+                text: `// several steps, repeated for the whole clip
+yield* forever(function* () {
+  yield* hold(beats(1), () => s.spot.set("Red", 255));
+  yield* wait(beats(1));
+});
+
+// the same for a fixed number of rounds; \`i\` is the round number
+yield* repeat(4, function* (i) {
+  yield* hold(beats(1), () => s.strip.fill(hsv(i / 4, 1, 1)));
+});`,
+            },
+            {
+                kind: "p",
+                text: "It has to be `function*`, not an arrow function. `yield*` is only legal inside a generator, and an arrow cannot be one — `(i) => { yield* ... }` will not compile.",
+            },
+            {
+                kind: "note",
+                text: "`repeat` and `forever` take a *function* that makes a flow, rather than a flow, because they build a fresh one for each round — a generator cannot be restarted once it has run. Passing a flow straight in is a type error, so the simple mistake is caught for you. Worth knowing all the same if you write your own combinators: one that captures already-created flows and hands back a function will compile, run its first round, and then leave the clip dark without complaining.",
             },
         ],
     },
@@ -293,10 +359,16 @@ yield;`,
             {
                 kind: "code",
                 text: `// on a lower track: a red wash across the whole strip
-yield* forever(() => (function* () { s.strip.fill([100, 0, 0]); yield; })());
+yield* forever(function* () {
+  s.strip.fill([100, 0, 0]);
+  yield;
+});
 
 // on a higher track: one blue pixel, with the wash still visible around it
-yield* forever(() => (function* () { s.strip.set(1, [0, 0, 255]); yield; })());`,
+yield* forever(function* () {
+  s.strip.set(1, [0, 0, 255]);
+  yield;
+});`,
             },
             {
                 kind: "p",
@@ -347,7 +419,7 @@ export default defineSequence({
             },
             {
                 kind: "p",
-                text: "The scripting API is available inside library modules too, so they can use `wait`, `beats`, `hsv` and the rest without importing anything.",
+                text: "The scripting API is available inside library modules too, so they can use `wait`, `beats`, `hsv` and the rest without importing anything. A module is only a place to keep flows — everything in Writing your own flows applies unchanged.",
             },
             {
                 kind: "note",
@@ -450,7 +522,16 @@ yield* euclidean(8, 3, beats(0.25), () => chase(s.strip, [255, 255, 255], { step
             },
             {
                 kind: "p",
-                text: "The same thing is expressible as a sequence, and usually reads better: `yield* forever(...)` with your per-tick work inside it, which also gets you `uses`, seeded randomness and seeking.",
+                text: "The same thing is expressible as a sequence, which also gets you `uses`, seeded randomness and seeking:",
+            },
+            {
+                kind: "code",
+                text: `*run(s) {
+  yield* forever(function* () {
+    s.strip.fill([255, 0, 0]);
+    yield;
+  });
+}`,
             },
         ],
     },

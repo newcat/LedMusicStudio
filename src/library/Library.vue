@@ -115,6 +115,7 @@ async function addItem(key: LibraryItemType) {
 .menu-container {
     width: 100%;
     flex-grow: 1;
+    overflow-y: auto;
 }
 
 .items-container {

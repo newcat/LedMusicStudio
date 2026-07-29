@@ -21,6 +21,23 @@ export function* wait(ticks: number): Flow {
     }
 }
 
+/**
+ * Call `apply` on each of `ticks` ticks, so whatever it writes stays on screen for that long.
+ *
+ * A frame is built from scratch every tick, so a fixture write only affects the tick it happened on — `set(...)` followed by
+ * `wait(n)` is one lit tick and `n` dark ones, not a hold. Anything meant to stay visible has to be written repeatedly, and this
+ * is the combinator for the case where it does not change while it does.
+ *
+ * `hold(0, ...)` writes nothing and takes no time, matching `wait(0)`. That differs from `tween`, where a zero-length tween still
+ * applies its end state, because a tween is about arriving somewhere and a hold is about occupying time.
+ */
+export function* hold(ticks: number, apply: () => void): Flow {
+    for (let i = 0; i < Math.max(0, Math.floor(ticks)); i++) {
+        apply();
+        yield;
+    }
+}
+
 /** Run every flow in parallel, one step each per tick, until all of them finish. */
 export function* all(...flows: AnyFlow[]): Flow {
     const pending = flows.map((flow) => ({ flow, done: false }));
