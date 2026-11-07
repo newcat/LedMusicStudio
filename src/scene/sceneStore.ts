@@ -1,0 +1,865 @@
+import { computed, markRaw, ref, shallowRef, toRaw } from "vue";
+import { defineStore } from "pinia";
+
+import { useStage } from "@/stage/stage";
+import { VisualizationType } from "@/visualization/fixtureVisualization";
+import { getVisualizationByType } from "@/visualization/fixtureVisualizations/factory";
+import { collectReferencedAssetIds, serializeAssets } from "./model/assets";
+import {
+    createDefaultScene,
+    createFixtureVisualizationObject,
+    createGroupObject,
+    createImportedModelObject,
+    createShapeObject,
+    nextObjectName,
+    SHAPE_LABELS,
+} from "./model/defaults";
+import { applyObjectStates, cloneObject, cloneStates, MERGE_WINDOW_MS, SceneHistory } from "./model/history";
+import {
+    alignToActive,
+    distributeEvenly,
+    getDescendantIds,
+    getSelectionRoots,
+    isEffectivelyVisible,
+    MIN_SCALE,
+    reparentKeepingWorld,
+    wouldCreateCycle,
+    type Axis,
+    type LocalTransform,
+} from "./model/transformMath";
+import type { SceneSink } from "./sceneSink";
+import type {
+    CameraPose,
+    FixtureVisualizationObject,
+    PersistedSceneState,
+    SceneAsset,
+    SceneEditorSettings,
+    SceneObject,
+    SceneState,
+    ShapeType,
+    Vec3,
+} from "./model/types";
+import { emitSceneToast } from "./toastBus";
+import { isFixtureVisualization } from "./model/types";
+
+export type TransformMode = "translate" | "rotate" | "scale";
+export type SelectMode = "replace" | "toggle" | "add";
+export type ObjectStates = Record<string, SceneObject | null>;
+
+interface Clipboard {
+    /** states of the copied subtrees, parent links inside the copy are kept */
+    objects: SceneObject[];
+    rootIds: string[];
+}
+
+function unique<T>(values: Iterable<T>): T[] {
+    return [...new Set(values)];
+}
+
+function clampPatch(patch: Partial<SceneObject>): Partial<SceneObject> {
+    const result: Record<string, unknown> = { ...patch };
+    if (patch.scale) {
+        result.scale = patch.scale.map((s) => Math.max(MIN_SCALE, Number.isFinite(s) ? s : 1));
+    }
+    if ("dimensions" in patch && patch.dimensions && typeof patch.dimensions === "object") {
+        result.dimensions = Object.fromEntries(
+            Object.entries(patch.dimensions as Record<string, number>).map(([k, v]) => [k, Math.max(0.01, Number.isFinite(v) ? v : 1)])
+        );
+    }
+    if (typeof patch.name === "string") {
+        if (patch.name.trim().length === 0) {
+            delete result.name;
+        } else {
+            result.name = patch.name.trim();
+        }
+    }
+    return result as Partial<SceneObject>;
+}
+
+export const useScene = defineStore("scene", () => {
+    const scene = ref<SceneState>(createDefaultScene());
+    const selection = ref<string[]>([]);
+    const transformMode = ref<TransformMode>("translate");
+    const clipboard = shallowRef<Clipboard | null>(null);
+    const history = markRaw(new SceneHistory());
+    const historyVersion = ref(0);
+    const sinks = markRaw(new Set<SceneSink>());
+
+    const canUndo = computed(() => (historyVersion.value, history.canUndo));
+    const canRedo = computed(() => (historyVersion.value, history.canRedo));
+    const activeId = computed(() => selection.value[selection.value.length - 1] ?? null);
+
+    // -----------------------------------------------------------------------------------------------------------
+    // helpers
+
+    function rawScene(): SceneState {
+        return toRaw(scene.value);
+    }
+
+    function rawObject(id: string): SceneObject | undefined {
+        return rawScene().objects[id];
+    }
+
+    function bumpHistory() {
+        historyVersion.value++;
+    }
+
+    function captureStates(ids: Iterable<string>): ObjectStates {
+        const result: ObjectStates = {};
+        for (const id of ids) {
+            const obj = rawObject(id);
+            result[id] = obj ? cloneObject(obj) : null;
+        }
+        return result;
+    }
+
+    function notifyStates(ids: Iterable<string>) {
+        const changed: SceneObject[] = [];
+        const removed: string[] = [];
+        for (const id of ids) {
+            const obj = rawObject(id);
+            if (obj) {
+                changed.push(obj);
+            } else {
+                removed.push(id);
+            }
+        }
+        if (removed.length > 0) {
+            for (const sink of sinks) sink.objectsRemoved(removed);
+        }
+        if (changed.length > 0) {
+            const rootOrder = [...rawScene().rootOrder];
+            for (const sink of sinks) sink.objectsChanged(changed, rootOrder);
+        }
+    }
+
+    function pruneSelection() {
+        const filtered = selection.value.filter((id) => scene.value.objects[id]);
+        if (filtered.length !== selection.value.length) {
+            selection.value = filtered;
+        }
+    }
+
+    function siblingsOf(parentId: string | null): string[] {
+        return parentId ? scene.value.objects[parentId].children : scene.value.rootOrder;
+    }
+
+    /**
+     * Runs a mutation as one history entry. `affected` lists every object that exists before the mutation and may be
+     * changed by it (including parents whose `children` change); `mutate` returns the ids of newly created objects.
+     */
+    function runCommand(label: string, affected: Iterable<string>, mutate: () => unknown, recordHistory = true, mergeKey?: string) {
+        const affectedIds = unique(affected).filter((id) => rawObject(id));
+        const before = captureStates(affectedIds);
+        const rootOrderBefore = [...rawScene().rootOrder];
+        const result = mutate();
+        const created = Array.isArray(result) ? (result as string[]) : [];
+        for (const id of created) {
+            if (!(id in before)) {
+                before[id] = null;
+            }
+        }
+        const allIds = unique([...affectedIds, ...created]);
+        if (recordHistory) {
+            const now = Date.now();
+            const top = history.top;
+            if (mergeKey && top && top.mergeKey === mergeKey && top.time !== undefined && now - top.time < MERGE_WINDOW_MS) {
+                for (const [id, state] of Object.entries(before)) {
+                    if (!(id in top.before)) {
+                        top.before[id] = state;
+                    }
+                }
+                top.after = { ...top.after, ...captureStates(allIds) };
+                top.rootOrderAfter = [...rawScene().rootOrder];
+                top.time = now;
+            } else {
+                history.push({
+                    label,
+                    before,
+                    after: captureStates(allIds),
+                    rootOrderBefore,
+                    rootOrderAfter: [...rawScene().rootOrder],
+                    mergeKey,
+                    time: now,
+                });
+            }
+            bumpHistory();
+        }
+        notifyStates(allIds);
+        pruneSelection();
+    }
+
+    function parentsOf(ids: Iterable<string>): string[] {
+        const result: string[] = [];
+        for (const id of ids) {
+            const parent = rawObject(id)?.parentId;
+            if (parent) result.push(parent);
+        }
+        return result;
+    }
+
+    // -----------------------------------------------------------------------------------------------------------
+    // commands
+
+    /**
+     * Adds objects. Objects whose `parentId` is not part of the batch become children of `parentId` (root if null).
+     * `children` of the given objects are rebuilt from the batch.
+     */
+    function addObjects(objects: SceneObject[], parentId?: string | null, label = "Add") {
+        if (objects.length === 0) {
+            return [];
+        }
+        const batchIds = new Set(objects.map((o) => o.id));
+        const rootsOfBatch = objects.filter((o) => !o.parentId || !batchIds.has(o.parentId));
+        const targetParentOf = (obj: SceneObject): string | null => {
+            const wanted = parentId !== undefined ? parentId : obj.parentId;
+            return wanted && scene.value.objects[wanted] ? wanted : null;
+        };
+        const affectedParents = rootsOfBatch.map(targetParentOf).filter((p): p is string => p !== null);
+        runCommand(label, affectedParents, () => {
+            for (const obj of objects) {
+                const copy = cloneObject(obj);
+                copy.children = [];
+                if (rootsOfBatch.includes(obj)) {
+                    copy.parentId = targetParentOf(obj);
+                }
+                scene.value.objects[copy.id] = copy;
+            }
+            for (const obj of objects) {
+                const copy = scene.value.objects[obj.id];
+                siblingsOf(copy.parentId).push(copy.id);
+            }
+            return objects.map((o) => o.id);
+        });
+        return objects.map((o) => o.id);
+    }
+
+    function applyPatches(patches: Record<string, Partial<SceneObject>>, recordHistory: boolean, label: string, mergeKey?: string) {
+        const ids = Object.keys(patches).filter((id) => scene.value.objects[id]);
+        if (ids.length === 0) {
+            return;
+        }
+        runCommand(
+            label,
+            ids,
+            () => {
+                for (const id of ids) {
+                    const patch = clampPatch(patches[id]);
+                    // never change identity or hierarchy through a patch
+                    for (const key of ["id", "kind", "parentId", "children"]) {
+                        Reflect.deleteProperty(patch, key);
+                    }
+                    Object.assign(scene.value.objects[id], structuredClone(toRaw(patch)));
+                }
+            },
+            recordHistory,
+            mergeKey
+        );
+    }
+
+    /** `mergeKey`: rapid consecutive edits with the same key become one history entry (typing in a field). */
+    function updateObjects(patches: Record<string, Partial<SceneObject>>, label = "Edit", mergeKey?: string) {
+        applyPatches(patches, true, label, mergeKey);
+    }
+
+    function removeObjects(ids: string[], recordHistory = true, label = "Delete") {
+        const existing = ids.filter((id) => scene.value.objects[id]);
+        const all = unique(existing.flatMap((id) => [id, ...getDescendantIds(rawScene(), id)]));
+        if (all.length === 0) {
+            return;
+        }
+        const removedSet = new Set(all);
+        const roots = all.filter((id) => !removedSet.has(rawObject(id)!.parentId ?? ""));
+        runCommand(
+            label,
+            [...all, ...parentsOf(roots)],
+            () => {
+                for (const id of roots) {
+                    const siblings = siblingsOf(scene.value.objects[id].parentId);
+                    const index = siblings.indexOf(id);
+                    if (index !== -1) siblings.splice(index, 1);
+                }
+                for (const id of all) {
+                    Reflect.deleteProperty(scene.value.objects, id);
+                }
+            },
+            recordHistory
+        );
+    }
+
+    /** Used when a fixture is deleted: its visualization object disappears without an undo step (invariant 5). */
+    function removeObjectsWithoutHistory(ids: string[]) {
+        removeObjects(ids, false);
+    }
+
+    function reparent(ids: string[], newParentId: string | null, index?: number) {
+        const roots = getSelectionRoots(rawScene(), ids).filter((id) => scene.value.objects[id] && !wouldCreateCycle(rawScene(), id, newParentId));
+        if (roots.length === 0 || (newParentId && !scene.value.objects[newParentId])) {
+            return;
+        }
+        // transforms are computed on the unchanged scene
+        const transforms = new Map<string, LocalTransform>(roots.map((id) => [id, reparentKeepingWorld(rawScene(), id, newParentId)]));
+        runCommand("Reparent", [...roots, ...parentsOf(roots), ...(newParentId ? [newParentId] : [])], () => {
+            const siblings = siblingsOf(newParentId);
+            let insertAt = index ?? siblings.length;
+            for (const id of roots) {
+                const obj = scene.value.objects[id];
+                const oldSiblings = siblingsOf(obj.parentId);
+                const oldIndex = oldSiblings.indexOf(id);
+                if (oldIndex !== -1) {
+                    oldSiblings.splice(oldIndex, 1);
+                    if (oldSiblings === siblings && oldIndex < insertAt) {
+                        insertAt--;
+                    }
+                }
+            }
+            for (const id of roots) {
+                const obj = scene.value.objects[id];
+                const t = transforms.get(id)!;
+                obj.parentId = newParentId;
+                obj.position = t.position;
+                obj.rotation = t.rotation;
+                obj.scale = t.scale;
+                siblings.splice(Math.min(insertAt, siblings.length), 0, id);
+                insertAt++;
+            }
+        });
+    }
+
+    function setVisible(ids: string[], visible: boolean) {
+        updateObjects(Object.fromEntries(ids.map((id) => [id, { visible }])), visible ? "Show" : "Hide");
+    }
+
+    function setLocked(ids: string[], locked: boolean) {
+        updateObjects(Object.fromEntries(ids.map((id) => [id, { locked }])), locked ? "Lock" : "Unlock");
+    }
+
+    function rename(id: string, name: string) {
+        if (name.trim().length === 0 || scene.value.objects[id]?.name === name.trim()) {
+            return;
+        }
+        updateObjects({ [id]: { name } }, "Rename");
+    }
+
+    // fixture visualizations ---------------------------------------------------------------------------------
+
+    function findObjectByFixture(fixtureId: string): FixtureVisualizationObject | undefined {
+        // reads the reactive state so that computed properties in components update
+        return Object.values(scene.value.objects).find((o): o is FixtureVisualizationObject => isFixtureVisualization(o) && o.fixtureId === fixtureId);
+    }
+
+    function warnAlreadyLinked(fixtureId: string) {
+        const name = useStage().fixtures.get(fixtureId)?.name ?? "Fixture";
+        emitSceneToast({ severity: "error", summary: "Cannot assign fixture", detail: `${name} already has a visualization.`, life: 4000 });
+    }
+
+    /** Creates the visualization object of a fixture with the default config of `type`. Returns its id. */
+    function addFixtureVisualization(fixtureId: string, type: VisualizationType, placement?: { position: Vec3 }): string | null {
+        const fixture = useStage().fixtures.get(fixtureId);
+        if (!fixture) {
+            return null;
+        }
+        if (findObjectByFixture(fixtureId)) {
+            warnAlreadyLinked(fixtureId);
+            return null;
+        }
+        const visualization = getVisualizationByType(type);
+        if (!visualization.compatibleFixtures.includes(fixture.type)) {
+            emitSceneToast({ severity: "error", summary: "Incompatible visualization", detail: `${fixture.name} cannot use the ${type} visualization.`, life: 4000 });
+            return null;
+        }
+        const obj = createFixtureVisualizationObject(fixtureId, type, visualization.defaultConfig(fixture as never) as FixtureVisualizationObject["config"], fixture.name);
+        if (placement) {
+            obj.position = [...placement.position];
+        }
+        if (type === VisualizationType.LED_STRIP) {
+            // strips emit along local +Y: new ones point down so they light the floor below them
+            obj.rotation = [180, 0, 0];
+        }
+        addObjects([obj], null, "Add fixture visualization");
+        select([obj.id]);
+        return obj.id;
+    }
+
+    /** Replaces type and config (default config of the new type), keeps id, name, transform and parent. */
+    function setVisualizationType(objectId: string, type: VisualizationType) {
+        const obj = scene.value.objects[objectId];
+        if (!obj || !isFixtureVisualization(obj) || obj.visualizationType === type) {
+            return;
+        }
+        const fixture = obj.fixtureId ? useStage().fixtures.get(obj.fixtureId) : undefined;
+        const config = getVisualizationByType(type).defaultConfig(fixture as never);
+        updateObjects({ [objectId]: { visualizationType: type, config } as Partial<SceneObject> }, "Change visualization type");
+    }
+
+    /** Links an object to a fixture (or unlinks with null). Returns false if the fixture is already linked elsewhere. */
+    function linkFixture(objectId: string, fixtureId: string | null): boolean {
+        if (fixtureId) {
+            const other = findObjectByFixture(fixtureId);
+            if (other && other.id !== objectId) {
+                warnAlreadyLinked(fixtureId);
+                return false;
+            }
+        }
+        updateObjects({ [objectId]: { fixtureId } as Partial<SceneObject> }, "Link fixture");
+        return true;
+    }
+
+    // preview API for drags ----------------------------------------------------------------------------------
+
+    /** Updates state and sinks without a history entry. */
+    function previewTransforms(transforms: Record<string, Partial<LocalTransform>>) {
+        const ids = Object.keys(transforms).filter((id) => scene.value.objects[id]);
+        for (const id of ids) {
+            Object.assign(scene.value.objects[id], clampPatch(transforms[id] as Partial<SceneObject>));
+        }
+        notifyStates(ids);
+    }
+
+    /** Previews arbitrary object patches (e.g. LED strip endpoints) without a history entry. */
+    function previewPatches(patches: Record<string, Partial<SceneObject>>) {
+        applyPatches(patches, false, "Preview");
+    }
+
+    function captureBeforeStates(ids: string[]): ObjectStates {
+        return captureStates(ids);
+    }
+
+    function commitPreview(before: ObjectStates, label: string) {
+        const ids = Object.keys(before);
+        const after = captureStates(ids);
+        // skip no-op drags
+        if (ids.every((id) => JSON.stringify(before[id]) === JSON.stringify(after[id]))) {
+            return;
+        }
+        history.push({
+            label,
+            before: cloneStates(before),
+            after,
+            rootOrderBefore: [...rawScene().rootOrder],
+            rootOrderAfter: [...rawScene().rootOrder],
+        });
+        bumpHistory();
+    }
+
+    function cancelPreview(before: ObjectStates) {
+        applyObjectStates(scene.value, cloneStates(before), [...rawScene().rootOrder]);
+        notifyStates(Object.keys(before));
+    }
+
+    // undo / redo --------------------------------------------------------------------------------------------
+
+    function applyHistoryStates(states: ObjectStates, rootOrder: string[]) {
+        const stage = useStage();
+        const linked = new Set<string>();
+        for (const obj of Object.values(rawScene().objects)) {
+            if (isFixtureVisualization(obj) && obj.fixtureId && !(obj.id in states)) {
+                linked.add(obj.fixtureId);
+            }
+        }
+        const fixed: ObjectStates = {};
+        for (const [id, state] of Object.entries(states)) {
+            if (state && isFixtureVisualization(state) && state.fixtureId) {
+                // data-model invariants 3 and 5
+                if (!stage.fixtures.has(state.fixtureId) || linked.has(state.fixtureId)) {
+                    fixed[id] = { ...cloneObject(state), fixtureId: null } as SceneObject;
+                    continue;
+                }
+                linked.add(state.fixtureId);
+            }
+            fixed[id] = state;
+        }
+        applyObjectStates(scene.value, fixed, rootOrder);
+        notifyStates(Object.keys(fixed));
+        pruneSelection();
+    }
+
+    function undo() {
+        const entry = history.undo();
+        if (entry) {
+            applyHistoryStates(entry.before, entry.rootOrderBefore);
+            bumpHistory();
+        }
+        return entry?.label;
+    }
+
+    function redo() {
+        const entry = history.redo();
+        if (entry) {
+            applyHistoryStates(entry.after, entry.rootOrderAfter);
+            bumpHistory();
+        }
+        return entry?.label;
+    }
+
+    // shapes, groups, duplicate, clipboard --------------------------------------------------------------------
+
+    type Placement = { point: Vec3; normal: Vec3 } | null | undefined;
+
+    function placementPosition(placement: Placement, liftBy = 0): Vec3 {
+        if (!placement) {
+            return [0, liftBy, 0];
+        }
+        const { point, normal } = placement;
+        return [point[0] + normal[0] * liftBy, point[1] + normal[1] * liftBy, point[2] + normal[2] * liftBy];
+    }
+
+    /** FR-030: the new object becomes the only selected object. */
+    function addShape(shape: ShapeType, placement?: Placement): string {
+        const obj = createShapeObject(shape, { name: nextObjectName(scene.value, SHAPE_LABELS[shape]) });
+        // box, cylinder and plane have their origin on the bottom, a sphere is lifted by its radius
+        const lift = obj.shape === "sphere" ? obj.dimensions.radius : 0;
+        obj.position = placementPosition(placement, lift);
+        addObjects([obj], null, `Add ${SHAPE_LABELS[shape]}`);
+        select([obj.id]);
+        return obj.id;
+    }
+
+    function addGroup(placement?: Placement): string {
+        const obj = createGroupObject({ name: nextObjectName(scene.value, "Group") });
+        obj.position = placementPosition(placement);
+        addObjects([obj], null, "Add Group");
+        select([obj.id]);
+        return obj.id;
+    }
+
+    /** Deep copies of the subtrees below `rootIds` with new ids and the internal hierarchy preserved. */
+    function cloneSubtrees(states: Record<string, SceneObject>, rootIds: string[], nameSuffix: string, offsetX: number) {
+        const subtree: string[] = [];
+        for (const rootId of rootIds) {
+            subtree.push(rootId, ...getDescendantIds({ objects: states }, rootId));
+        }
+        const idMap = new Map<string, string>(unique(subtree).map((id) => [id, crypto.randomUUID() as string]));
+        const copies: SceneObject[] = [];
+        const newRootIds: string[] = [];
+        for (const [oldId, newId] of idMap) {
+            const source = states[oldId];
+            if (!source) continue;
+            const copy = cloneObject(source);
+            copy.id = newId;
+            copy.children = source.children.map((c) => idMap.get(c)).filter((c): c is string => !!c);
+            if (rootIds.includes(oldId)) {
+                copy.name = `${source.name}${nameSuffix}`;
+                copy.position = [source.position[0] + offsetX, source.position[1], source.position[2]];
+                newRootIds.push(newId);
+            } else {
+                copy.parentId = source.parentId ? idMap.get(source.parentId) ?? null : null;
+            }
+            // data-model invariant 3 / FR-034: copies are not linked to a fixture
+            if (isFixtureVisualization(copy)) {
+                copy.fixtureId = null;
+            }
+            copies.push(copy);
+        }
+        return { copies, newRootIds };
+    }
+
+    function statesOf(ids: string[]): Record<string, SceneObject> {
+        const result: Record<string, SceneObject> = {};
+        for (const id of ids) {
+            const obj = rawObject(id);
+            if (obj) result[id] = cloneObject(obj);
+        }
+        return result;
+    }
+
+    function selectionRoots(): string[] {
+        return getSelectionRoots(
+            rawScene(),
+            selection.value.filter((id) => scene.value.objects[id])
+        );
+    }
+
+    function subtreeIds(roots: string[]): string[] {
+        return unique(roots.flatMap((id) => [id, ...getDescendantIds(rawScene(), id)]));
+    }
+
+    function duplicateSelection() {
+        const roots = selectionRoots();
+        if (roots.length === 0) return;
+        const { copies, newRootIds } = cloneSubtrees(statesOf(subtreeIds(roots)), roots, " copy", 0.25);
+        addObjects(copies, undefined, "Duplicate");
+        select(newRootIds);
+    }
+
+    function copySelection() {
+        const roots = selectionRoots();
+        if (roots.length === 0) return;
+        clipboard.value = { objects: Object.values(statesOf(subtreeIds(roots))), rootIds: roots };
+    }
+
+    function pasteClipboard() {
+        const content = clipboard.value;
+        if (!content) return;
+        const states = Object.fromEntries(content.objects.map((o) => [o.id, o]));
+        const { copies, newRootIds } = cloneSubtrees(states, content.rootIds, " copy", 0.25);
+        addObjects(copies, undefined, "Paste");
+        select(newRootIds);
+    }
+
+    function deleteSelection() {
+        const ids = [...selection.value];
+        if (ids.length > 0) {
+            removeObjects(ids);
+        }
+    }
+
+    function setSelectionVisible(visible: boolean) {
+        if (selection.value.length > 0) setVisible([...selection.value], visible);
+    }
+
+    function toggleSelectionVisible() {
+        const ids = [...selection.value];
+        if (ids.length === 0) return;
+        const anyVisible = ids.some((id) => scene.value.objects[id]?.visible);
+        setVisible(ids, !anyVisible);
+    }
+
+    /** Moves the selection out of its parent (keeps the world transform). */
+    function unparentSelection() {
+        const roots = selectionRoots().filter((id) => scene.value.objects[id].parentId !== null);
+        if (roots.length > 0) reparent(roots, null);
+    }
+
+    // align / distribute (US8) ---------------------------------------------------------------------------------
+
+    function alignSelection(axis: Axis) {
+        const roots = selectionRoots();
+        if (roots.length < 2) return;
+        const active = roots.includes(activeId.value ?? "") ? (activeId.value as string) : roots[roots.length - 1];
+        const transforms = alignToActive(rawScene(), roots, active, axis);
+        updateObjects(
+            Object.fromEntries(Object.entries(transforms).map(([id, t]) => [id, t as Partial<SceneObject>])),
+            `Align ${axis.toUpperCase()}`
+        );
+    }
+
+    function distributeSelection(axis: Axis) {
+        const roots = selectionRoots();
+        if (roots.length < 3) return;
+        const transforms = distributeEvenly(rawScene(), roots, axis);
+        updateObjects(
+            Object.fromEntries(Object.entries(transforms).map(([id, t]) => [id, t as Partial<SceneObject>])),
+            `Distribute ${axis.toUpperCase()}`
+        );
+    }
+
+    // camera positions (no history, FR-040 covers objects only) ----------------------------------------------
+
+    function notifyCameras() {
+        const cameras = structuredClone(toRaw(scene.value.cameras));
+        for (const sink of sinks) sink.camerasChanged(cameras);
+    }
+
+    function saveCameraPosition(name: string, pose: CameraPose): string | null {
+        const trimmed = name.trim();
+        const same = pose.position[0] === pose.target[0] && pose.position[1] === pose.target[1] && pose.position[2] === pose.target[2];
+        if (trimmed.length === 0 || same) return null;
+        const id = crypto.randomUUID();
+        scene.value.cameras.push({
+            id,
+            name: trimmed,
+            position: [...pose.position],
+            target: [...pose.target],
+            fov: Math.min(120, Math.max(10, pose.fov)),
+            isShowDefault: false,
+        });
+        notifyCameras();
+        return id;
+    }
+
+    function renameCameraPosition(id: string, name: string) {
+        const camera = scene.value.cameras.find((c) => c.id === id);
+        if (camera && name.trim().length > 0) {
+            camera.name = name.trim();
+            notifyCameras();
+        }
+    }
+
+    function deleteCameraPosition(id: string) {
+        const index = scene.value.cameras.findIndex((c) => c.id === id);
+        if (index !== -1) {
+            scene.value.cameras.splice(index, 1);
+            notifyCameras();
+        }
+    }
+
+    /** At most one camera position is the show default. */
+    function setShowDefault(id: string | null) {
+        for (const camera of scene.value.cameras) {
+            camera.isShowDefault = camera.id === id;
+        }
+        notifyCameras();
+    }
+
+    // imported models (US7) ------------------------------------------------------------------------------------
+
+    /** Adds the asset and the object in one history entry. Sinks get the asset before the object. */
+    function addImportedModel(asset: SceneAsset, name: string, scale: number, placement?: Placement): string {
+        scene.value.assets[asset.id] = asset;
+        for (const sink of sinks) sink.asset(asset.id, asset.mimeType, asset.data);
+        const obj = createImportedModelObject(asset.id, name);
+        obj.position = placementPosition(placement);
+        obj.scale = [scale, scale, scale];
+        addObjects([obj], null, "Import model");
+        select([obj.id]);
+        return obj.id;
+    }
+
+    // selection ----------------------------------------------------------------------------------------------
+
+    function select(ids: string[], mode: SelectMode = "replace") {
+        const valid = ids.filter((id) => scene.value.objects[id]);
+        if (mode === "replace") {
+            selection.value = unique(valid);
+        } else if (mode === "add") {
+            selection.value = unique([...selection.value.filter((id) => !valid.includes(id)), ...valid]);
+        } else {
+            const next = [...selection.value];
+            for (const id of valid) {
+                const index = next.indexOf(id);
+                if (index === -1) next.push(id);
+                else next.splice(index, 1);
+            }
+            selection.value = next;
+        }
+    }
+
+    function clearSelection() {
+        if (selection.value.length > 0) {
+            selection.value = [];
+        }
+    }
+
+    /** All objects that can be picked in 3D: effectively visible and unlocked. */
+    function selectAll() {
+        const s = rawScene();
+        selection.value = Object.values(s.objects)
+            .filter((o) => !o.locked && isEffectivelyVisible(s, o.id))
+            .map((o) => o.id);
+    }
+
+    // sinks --------------------------------------------------------------------------------------------------
+
+    function registerSink(sink: SceneSink, pushFixtureState = true): () => void {
+        sinks.add(sink);
+        sink.reset(rawScene());
+        if (pushFixtureState) {
+            useStage().visualization.sendStateTo(sink);
+        }
+        return () => {
+            sinks.delete(sink);
+        };
+    }
+
+    function forEachSink(fn: (sink: SceneSink) => void) {
+        for (const sink of sinks) fn(sink);
+    }
+
+    // non-history state --------------------------------------------------------------------------------------
+
+    function setEditorCamera(pose: CameraPose) {
+        scene.value.editorCamera = { position: [...pose.position], target: [...pose.target], fov: pose.fov };
+    }
+
+    function updateSettings(partial: Partial<SceneEditorSettings>) {
+        Object.assign(scene.value.settings, partial);
+    }
+
+    // load / save --------------------------------------------------------------------------------------------
+
+    function load(state: SceneState) {
+        scene.value = state;
+        history.clear();
+        bumpHistory();
+        selection.value = [];
+        clipboard.value = null;
+        for (const sink of sinks) sink.reset(rawScene());
+    }
+
+    function reset() {
+        load(createDefaultScene());
+    }
+
+    function save(): PersistedSceneState {
+        const s = rawScene();
+        const referenced = collectReferencedAssetIds([...Object.values(s.objects), ...history.allStates()]);
+        return {
+            formatVersion: 1,
+            objects: structuredClone(s.objects),
+            rootOrder: [...s.rootOrder],
+            cameras: structuredClone(s.cameras),
+            editorCamera: structuredClone(s.editorCamera),
+            settings: structuredClone(s.settings),
+            assets: serializeAssets(s.assets, referenced),
+        };
+    }
+
+
+    return {
+        scene,
+        selection,
+        activeId,
+        transformMode,
+        clipboard,
+        canUndo,
+        canRedo,
+        history,
+        // commands
+        addObjects,
+        updateObjects,
+        removeObjects,
+        removeObjectsWithoutHistory,
+        reparent,
+        setVisible,
+        setLocked,
+        rename,
+        previewTransforms,
+        previewPatches,
+        captureBeforeStates,
+        commitPreview,
+        cancelPreview,
+        undo,
+        redo,
+        // fixture visualizations
+        findObjectByFixture,
+        addFixtureVisualization,
+        setVisualizationType,
+        linkFixture,
+        // shapes, groups, clipboard
+        addShape,
+        addGroup,
+        duplicateSelection,
+        copySelection,
+        pasteClipboard,
+        deleteSelection,
+        setSelectionVisible,
+        toggleSelectionVisible,
+        unparentSelection,
+        alignSelection,
+        distributeSelection,
+        // cameras
+        saveCameraPosition,
+        renameCameraPosition,
+        deleteCameraPosition,
+        setShowDefault,
+        // models
+        addImportedModel,
+        // selection
+        select,
+        clearSelection,
+        selectAll,
+        // sinks
+        registerSink,
+        forEachSink,
+        // other state
+        setEditorCamera,
+        updateSettings,
+        load,
+        reset,
+        save,
+        // internal helpers shared with the commands added by later features
+        rawScene,
+        runCommand,
+    };
+});

@@ -1,32 +1,18 @@
 <template>
-    <div class="flex flex-col gap-4">
-        <div>
-            <Button outlined label="Load Scene" @click="loadScene" />
-        </div>
+    <div class="visualization">
+        <SceneEditor />
     </div>
 </template>
 
 <script setup lang="ts">
-import Button from "primevue/button";
-
-import { getNativeAdapter } from "@/native";
-import { useErrorHandler } from "@/utils";
-import { useStage } from "../stage";
-
-const errorHandler = useErrorHandler();
-const stage = useStage();
-const nativeAdapter = getNativeAdapter();
-
-async function loadScene() {
-    const result = await nativeAdapter.chooseAndReadFile({
-        accept: [{ name: "Stage Scene", extensions: ["json"] }],
-    });
-    if (!result) {
-        return;
-    }
-
-    await errorHandler("Could not load scene", () => {
-        stage.visualization.loadScene(JSON.parse(result.dataAsString));
-    });
-}
+import SceneEditor from "@/scene/editor/SceneEditor.vue";
 </script>
+
+<style scoped>
+.visualization {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+}
+</style>

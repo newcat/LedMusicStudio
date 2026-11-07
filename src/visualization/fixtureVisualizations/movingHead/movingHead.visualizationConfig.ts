@@ -7,8 +7,6 @@ export interface MovingHeadVisualizationConfigRange {
 }
 
 export interface MovingHeadVisualizationConfig {
-    position: [number, number, number];
-    rotation: [number, number, number];
     channelMapping: {
         pan: ChannelMapping;
         tilt: ChannelMapping;

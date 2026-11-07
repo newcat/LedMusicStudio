@@ -10,7 +10,15 @@ const MODEL_FILES: Record<ModelType, string> = {
 class ModelLibrary {
     private readonly models = new Map<ModelType, Group<Object3DEventMap>>();
 
-    public async initialize(): Promise<void> {
+    private initialization: Promise<void> | null = null;
+
+    /** Idempotent: repeated calls return the same promise. */
+    public initialize(): Promise<void> {
+        this.initialization ??= this.loadAll();
+        return this.initialization;
+    }
+
+    private async loadAll(): Promise<void> {
         for (const modelType of Object.keys(MODEL_FILES) as ModelType[]) {
             try {
                 this.models.set(modelType, await this.loadModel(MODEL_FILES[modelType]));

@@ -1,28 +1,4 @@
 <template>
-    <Fieldset legend="Placement" toggleable>
-        <div class="flex gap-3">
-            <LabelledFormField label="Position X">
-                <InputNumber v-model="config.position[0]" :max-fraction-digits="3" />
-            </LabelledFormField>
-            <LabelledFormField label="Position Y">
-                <InputNumber v-model="config.position[1]" :max-fraction-digits="3" />
-            </LabelledFormField>
-            <LabelledFormField label="Position Z">
-                <InputNumber v-model="config.position[2]" :max-fraction-digits="3" />
-            </LabelledFormField>
-        </div>
-        <div class="flex gap-3 mt-4">
-            <LabelledFormField label="Rotation X">
-                <InputNumber v-model="config.rotation[0]" :max-fraction-digits="3" />
-            </LabelledFormField>
-            <LabelledFormField label="Rotation Y">
-                <InputNumber v-model="config.rotation[1]" :max-fraction-digits="3" />
-            </LabelledFormField>
-            <LabelledFormField label="Rotation Z">
-                <InputNumber v-model="config.rotation[2]" :max-fraction-digits="3" />
-            </LabelledFormField>
-        </div>
-    </Fieldset>
     <Fieldset legend="Channel Mapping" toggleable>
         <Button severity="secondary" outlined @click="autoAssignChannels">Auto-Assign</Button>
         <div class="channel-mapping-grid">
@@ -34,19 +10,14 @@
             <ChannelMapping v-model="config.channelMapping.blue" label="Blue" :fixture="controller.fixture" />
         </div>
     </Fieldset>
-    <div>
-        <Button outlined label="Apply" :disabled="!dirty" @click="save" />
-    </div>
 </template>
 
 <script setup lang="ts">
-import InputNumber from "primevue/inputnumber";
 import Fieldset from "primevue/fieldset";
 import Button from "primevue/button";
 
 import { DmxFixture } from "@/stage";
-import LabelledFormField from "@/components/LabelledFormField.vue";
-import { useEditClone } from "@/utils";
+import { useLiveConfig } from "../useLiveConfig";
 import { FixtureVisualizationController } from "@/visualization/fixtureVisualizationController";
 import { MovingHeadVisualizationConfig } from "./movingHead.visualizationConfig";
 import ChannelMapping from "../ChannelMapping.vue";
@@ -60,12 +31,7 @@ const props = defineProps<{
     controller: FixtureVisualizationController<DmxFixture>;
 }>();
 
-const { clone: config, dirty } = useEditClone(rawConfig);
-
-const save = () => {
-    rawConfig.value = config.value;
-    dirty.value = false;
-};
+const config = useLiveConfig(rawConfig, (value) => (rawConfig.value = value));
 
 function autoAssignChannels() {
     const channels = props.controller.fixture.channelNames;

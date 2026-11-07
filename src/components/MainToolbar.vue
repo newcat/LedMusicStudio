@@ -104,7 +104,8 @@ const menuItems = computed<MenubarProps["model"]>(() => [
         label: "Open Visualizer",
         icon: "mdi mdi-eye",
         command: () => {
-            window.open("/visualization.html", "_blank");
+            // relative to the app base so it works under the GitHub Pages path and in Electron (base "./")
+            window.open(new URL("visualization.html", window.location.href).href, "_blank");
         },
     },
 ]);

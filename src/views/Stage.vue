@@ -3,15 +3,15 @@
         <template #content>
             <div class="flex flex-col h-full">
                 <div class="flex">
-                    <TabMenu v-model:active-index="selectedTab" :model="menuItems" />
+                    <TabMenu v-model:active-index="activeStageTab" :model="menuItems" />
                     <Button text label="Import Stage" icon="mdi mdi-upload" @click="importStage" />
                     <Button text label="Export Stage" icon="mdi mdi-content-save" @click="exportStage" />
                 </div>
 
                 <div class="content">
-                    <Fixtures v-if="selectedTab === 0" />
-                    <Controllers v-else-if="selectedTab === 1" />
-                    <Visualization v-else-if="selectedTab === 2" />
+                    <Fixtures v-if="activeStageTab === 0" />
+                    <Controllers v-else-if="activeStageTab === 1" />
+                    <Visualization v-else-if="activeStageTab === 2" />
                 </div>
             </div>
         </template>
@@ -19,7 +19,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
 import TabMenu, { TabMenuProps } from "primevue/tabmenu";
 import Card from "primevue/card";
 import Button from "primevue/button";
@@ -28,6 +27,7 @@ import { useToast } from "primevue/usetoast";
 import { getNativeAdapter } from "@/native";
 import { useStage } from "@/stage";
 import { useErrorHandler } from "@/utils";
+import { activeStageTab } from "./stageViewState";
 
 import Fixtures from "@/stage/components/Fixtures.vue";
 import Controllers from "@/stage/components/Controllers.vue";
@@ -37,8 +37,6 @@ const toast = useToast();
 const errorHandler = useErrorHandler();
 const stage = useStage();
 const nativeAdapter = getNativeAdapter();
-
-const selectedTab = ref(0);
 
 const menuItems: TabMenuProps["model"] = [
     { label: "Fixtures", icon: "mdi mdi-lamp" },
@@ -54,6 +52,8 @@ async function importStage() {
         return;
     }
     await errorHandler("Failed to import stage", () => {
+        // the imported stage replaces the current one instead of being mixed into it
+        stage.reset();
         stage.load(JSON.parse(result.dataAsString));
         toast.add({ severity: "success", summary: "Success", detail: "Stage successfully imported", life: 2000 });
     });

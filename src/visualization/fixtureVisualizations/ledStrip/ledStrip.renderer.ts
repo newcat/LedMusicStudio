@@ -2,33 +2,41 @@ import * as THREE from "three";
 
 import { scaleColorArray } from "@/utils/scaleColorArray";
 import { Color } from "@/graph/colors";
+import type { LedStripSource } from "../../ledLitMaterial";
 import { BaseRenderer, RendererInputs } from "../base.renderer";
 import type { LedStripVisualizationConfig } from "./types";
 
 const RESOLUTION = 128;
+const PROXY_THICKNESS = 0.03;
 
-export class LedStripRenderer extends BaseRenderer<LedStripVisualizationConfig, Color[]> {
-    private uniform: LedStripUniform = {
-        start: new THREE.Vector3(0, 0, 0),
-        end: new THREE.Vector3(0, 0, 0),
-        direction: new THREE.Vector3(1, 0, 0),
-    };
+export class LedStripRenderer extends BaseRenderer<LedStripVisualizationConfig, Color[]> implements LedStripSource {
+    private readonly start = new THREE.Vector3(-0.5, 0, 0);
+    private readonly end = new THREE.Vector3(0.5, 0, 0);
     private colors: Color[] = [];
+    private proxy: THREE.Group | null = null;
 
     public constructor(inputs: RendererInputs) {
         super(inputs);
-        ledStripInstanceManager.addInstance(this);
+        inputs.lighting.addStrip(this);
     }
 
-    public dispose() {
-        ledStripInstanceManager.removeInstance(this);
+    public override dispose() {
+        this.inputs.lighting.removeStrip(this);
+        if (this.proxy) {
+            this.proxy.traverse((o) => {
+                if (o instanceof THREE.Mesh) {
+                    o.geometry.dispose();
+                    (o.material as THREE.Material).dispose();
+                }
+            });
+        }
         super.dispose();
     }
 
     public override onConfigUpdate(config: LedStripVisualizationConfig): void {
-        this.uniform.start = new THREE.Vector3(...config.start);
-        this.uniform.end = new THREE.Vector3(...config.end);
-        this.uniform.direction = new THREE.Vector3(...config.direction).normalize();
+        this.start.set(...config.start);
+        this.end.set(...config.end);
+        this.updateProxy();
     }
 
     public override onFixtureValueUpdate(data: Color[]): void {
@@ -40,94 +48,47 @@ export class LedStripRenderer extends BaseRenderer<LedStripVisualizationConfig, 
         this.colors = scaleColorArray(data, RESOLUTION);
     }
 
-    public getUniform(): LedStripUniform {
-        return this.uniform;
+    public override createEditorProxy(): THREE.Object3D {
+        if (!this.proxy) {
+            this.proxy = new THREE.Group();
+            const material = new THREE.MeshBasicMaterial({ color: 0xcccccc });
+            const strip = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material);
+            strip.name = "strip";
+            const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.12, 8), new THREE.MeshBasicMaterial({ color: 0xffcc00 }));
+            arrow.name = "arrow";
+            this.proxy.add(strip, arrow);
+            this.updateProxy();
+        }
+        return this.proxy;
+    }
+
+    public getLocalStart(): THREE.Vector3 {
+        return this.start;
+    }
+
+    public getLocalEnd(): THREE.Vector3 {
+        return this.end;
     }
 
     public getColors(): Color[] {
         return this.colors;
     }
-}
 
-export interface LedStripUniform {
-    start: THREE.Vector3;
-    end: THREE.Vector3;
-    direction: THREE.Vector3;
-}
-
-export interface LedStripUniforms extends Record<string, THREE.IUniform> {
-    uNumLedStrips: { value: number };
-    uLedStrips: {
-        value: LedStripUniform[];
-    };
-    uLedStripColors: { value: THREE.Texture };
-}
-
-export class LedStripInstanceManager {
-    public static readonly MAX_INSTANCES = 8;
-
-    private readonly ledStripInstances: LedStripRenderer[] = [];
-    private readonly texture: THREE.DataTexture = new THREE.DataTexture(
-        new Uint8Array(LedStripInstanceManager.MAX_INSTANCES * 128 * 4), // 128 colors, 4 channels (RGBA)
-        128,
-        LedStripInstanceManager.MAX_INSTANCES
-    );
-
-    public addInstance(instance: LedStripRenderer) {
-        this.ledStripInstances.push(instance);
-    }
-
-    public removeInstance(instance: LedStripRenderer) {
-        const index = this.ledStripInstances.indexOf(instance);
-        if (index !== -1) {
-            this.ledStripInstances.splice(index, 1);
+    private updateProxy() {
+        if (!this.proxy) {
+            return;
         }
-    }
-
-    public getUniforms(): LedStripUniforms {
-        const data = this.texture.image.data as Uint8Array;
-        for (let i = 0; i < this.ledStripInstances.length; i++) {
-            const colors = this.ledStripInstances[i].getColors();
-            for (let ci = 0; ci < 128; ci++) {
-                const offset = (i * 128 + ci) * 4;
-                data[offset] = colors[ci][0]; // R
-                data[offset + 1] = colors[ci][1]; // G
-                data[offset + 2] = colors[ci][2]; // B
-                data[offset + 3] = 255; // A
-            }
+        const strip = this.proxy.getObjectByName("strip") as THREE.Mesh;
+        const arrow = this.proxy.getObjectByName("arrow") as THREE.Mesh;
+        const delta = this.end.clone().sub(this.start);
+        const length = Math.max(delta.length(), 0.01);
+        strip.position.copy(this.start).add(this.end).multiplyScalar(0.5);
+        strip.scale.set(PROXY_THICKNESS, PROXY_THICKNESS, length);
+        if (delta.lengthSq() > 1e-10) {
+            // box length runs along local Z -> align with the strip direction
+            strip.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), delta.normalize());
         }
-        for (let i = this.ledStripInstances.length; i < LedStripInstanceManager.MAX_INSTANCES; i++) {
-            const offset = i * 128 * 4;
-            for (let ci = 0; ci < 128; ci++) {
-                data[offset + ci * 4] = 0; // R
-                data[offset + ci * 4 + 1] = 0; // G
-                data[offset + ci * 4 + 2] = 0; // B
-                data[offset + ci * 4 + 3] = 255; // A
-            }
-        }
-        this.texture.needsUpdate = true;
-
-        const uLedStrips: LedStripUniform[] = new Array(LedStripInstanceManager.MAX_INSTANCES);
-        for (let i = 0; i < this.ledStripInstances.length; i++) {
-            uLedStrips[i] = this.ledStripInstances[i].getUniform();
-        }
-        for (let i = this.ledStripInstances.length; i < LedStripInstanceManager.MAX_INSTANCES; i++) {
-            uLedStrips[i] = {
-                start: new THREE.Vector3(0, 0, 0),
-                end: new THREE.Vector3(0, 0, 0),
-                direction: new THREE.Vector3(1, 0, 0),
-            };
-        }
-
-        const uniforms: LedStripUniforms = {
-            uNumLedStrips: { value: this.ledStripInstances.length },
-            uLedStrips: {
-                value: uLedStrips,
-            },
-            uLedStripColors: { value: this.texture },
-        };
-        return uniforms;
+        // arrow shows the emission direction (local +Y) at the strip center
+        arrow.position.copy(strip.position).add(new THREE.Vector3(0, 0.1, 0));
     }
 }
-
-export const ledStripInstanceManager = new LedStripInstanceManager();

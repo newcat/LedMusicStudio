@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { ComponentInstance, reactive, Ref, ref } from "vue";
+import { ComponentInstance, computed, reactive, ref } from "vue";
 import Button from "primevue/button";
 import Listbox from "primevue/listbox";
 import Panel from "primevue/panel";
@@ -58,12 +58,25 @@ import Menu, { MenuProps } from "primevue/menu";
 
 import { FixtureType, BaseFixture } from "../fixtures";
 import { useStage } from "../stage";
+import { useScene } from "@/scene/sceneStore";
+import { selectedFixtureId } from "@/views/stageViewState";
 import FixtureSettings from "./FixtureSettings.vue";
 import { createFixture } from "../fixtures/factory";
 
 const stage = useStage();
+const scene = useScene();
 
-const selectedFixture = ref<BaseFixture | null>(null) as Ref<BaseFixture | null>;
+// shared with the scene editor, so selecting a visualization there selects its fixture here (FR-026)
+const selectedFixture = computed<BaseFixture | null>({
+    get: () => (selectedFixtureId.value ? stage.fixtures.get(selectedFixtureId.value) ?? null : null),
+    set: (fixture) => {
+        selectedFixtureId.value = fixture?.id ?? null;
+        const object = fixture ? scene.findObjectByFixture(fixture.id) : undefined;
+        if (object) {
+            scene.select([object.id], "replace");
+        }
+    },
+});
 const menu = ref<ComponentInstance<typeof Menu> | null>(null);
 
 const addFixtureOptions: MenuProps["model"] = [
@@ -93,11 +106,7 @@ function cloneSelectedFixture() {
         controller.addFixture(newFixture);
     }
 
-    const visController = stage.visualization.controllers.get(selectedFixture.value.id);
-    if (visController) {
-        stage.visualization.setVisualization(newFixture.id, visController.type);
-        stage.visualization.controllers.get(newFixture.id)!.config = JSON.parse(JSON.stringify(visController.config));
-    }
+    // the visualization object is not cloned: a fixture has at most one, and the copy gets its own via the editor
 }
 
 function removeSelectedFixture() {
@@ -106,7 +115,7 @@ function removeSelectedFixture() {
     }
 
     stage.fixtures.delete(selectedFixture.value.id);
-    selectedFixture.value = null;
+    selectedFixtureId.value = null;
 }
 </script>
 

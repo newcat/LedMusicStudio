@@ -1,0 +1,173 @@
+/**
+ * Scene data model (feature 001-scene-editor). Mirrors specs/001-scene-editor/contracts/scene-state.ts.
+ *
+ * Conventions: meters, degrees, +Y up, floor at y = 0, Euler order XYZ, transforms relative to the parent.
+ * This module is shared by the main window and the show window and must stay free of Pinia/Vue imports.
+ */
+import { VisualizationType } from "@/visualization/fixtureVisualization";
+import type { LedStripVisualizationConfig } from "@/visualization/fixtureVisualizations/ledStrip/types";
+import type { SpotVisualizationConfig } from "@/visualization/fixtureVisualizations/spot/types";
+import type { MovingHeadVisualizationConfig } from "@/visualization/fixtureVisualizations/movingHead/movingHead.visualizationConfig";
+
+export type Vec3 = [number, number, number];
+
+export { VisualizationType };
+export type { LedStripVisualizationConfig, SpotVisualizationConfig, MovingHeadVisualizationConfig };
+
+// ---------------------------------------------------------------------------
+// Objects
+// ---------------------------------------------------------------------------
+
+export interface SceneObjectBase<K extends string> {
+    id: string;
+    name: string;
+    kind: K;
+    parentId: string | null;
+    /** Order of children in the outliner; consistent with the children's parentId. */
+    children: string[];
+    position: Vec3;
+    /** Degrees, Euler XYZ. */
+    rotation: Vec3;
+    /** Each component >= 0.01. */
+    scale: Vec3;
+    visible: boolean;
+    locked: boolean;
+}
+
+export type ShapeType = "box" | "cylinder" | "plane" | "sphere";
+
+export type ShapeDimensions =
+    | { shape: "box"; dimensions: { width: number; height: number; depth: number } }
+    | { shape: "cylinder"; dimensions: { radius: number; height: number } }
+    | { shape: "plane"; dimensions: { width: number; depth: number } }
+    | { shape: "sphere"; dimensions: { radius: number } };
+
+export type ShapeObject = SceneObjectBase<"shape"> &
+    ShapeDimensions & {
+        /** "#rrggbb" */
+        color: string;
+    };
+
+export type FixtureVisualizationObject = SceneObjectBase<"fixtureVisualization"> & {
+    /** null = not linked to a fixture (e.g. after duplicate/paste). */
+    fixtureId: string | null;
+} & (
+        | { visualizationType: VisualizationType.MOVING_HEAD; config: MovingHeadVisualizationConfig }
+        | { visualizationType: VisualizationType.SPOT; config: SpotVisualizationConfig }
+        | { visualizationType: VisualizationType.LED_STRIP; config: LedStripVisualizationConfig }
+    );
+
+export type ImportedModelObject = SceneObjectBase<"importedModel"> & {
+    assetId: string;
+    /** Scale before auto-scaling on import ("Restore original scale"). */
+    originalScale: Vec3;
+};
+
+export type GroupObject = SceneObjectBase<"group">;
+
+/**
+ * Objects of kinds unknown to this version are preserved verbatim
+ * (forward compatibility for feature 002 "libraryAsset" etc.).
+ */
+export type UnknownObject = SceneObjectBase<string> & Record<string, unknown>;
+
+export type SceneObject = ShapeObject | FixtureVisualizationObject | ImportedModelObject | GroupObject;
+export type SceneObjectKind = SceneObject["kind"];
+
+const KNOWN_KINDS: ReadonlySet<string> = new Set<SceneObjectKind>(["shape", "fixtureVisualization", "importedModel", "group"]);
+
+export function isKnownKind(kind: string): kind is SceneObjectKind {
+    return KNOWN_KINDS.has(kind);
+}
+export function isShape(obj: { kind: string }): obj is ShapeObject {
+    return obj.kind === "shape";
+}
+export function isFixtureVisualization(obj: { kind: string }): obj is FixtureVisualizationObject {
+    return obj.kind === "fixtureVisualization";
+}
+export function isImportedModel(obj: { kind: string }): obj is ImportedModelObject {
+    return obj.kind === "importedModel";
+}
+export function isGroup(obj: { kind: string }): obj is GroupObject {
+    return obj.kind === "group";
+}
+
+// ---------------------------------------------------------------------------
+// Cameras, settings, assets
+// ---------------------------------------------------------------------------
+
+export interface CameraPose {
+    position: Vec3;
+    target: Vec3;
+    /** Vertical field of view in degrees, 10..120. */
+    fov: number;
+}
+
+export interface CameraPosition extends CameraPose {
+    id: string;
+    name: string;
+    /** At most one camera position has this set. */
+    isShowDefault: boolean;
+}
+
+export interface SceneEditorSettings {
+    showGrid: boolean;
+    showAxes: boolean;
+    showLabels: boolean;
+    snapEnabled: boolean;
+    /** meters */
+    translationSnap: number;
+    /** degrees */
+    rotationSnap: number;
+    scaleSnap: number;
+    transformSpace: "world" | "local";
+}
+
+export interface SceneAssetPersisted {
+    id: string;
+    /** Original file name. */
+    name: string;
+    mimeType: "model/gltf-binary";
+    /** base64-encoded file content. */
+    data: string;
+}
+
+export interface SceneAsset {
+    id: string;
+    name: string;
+    mimeType: "model/gltf-binary";
+    data: Uint8Array;
+}
+
+// ---------------------------------------------------------------------------
+// Scene state
+// ---------------------------------------------------------------------------
+
+interface SceneStateBase {
+    formatVersion: 1;
+    objects: Record<string, SceneObject>;
+    /** Order of top-level objects in the outliner. */
+    rootOrder: string[];
+    cameras: CameraPosition[];
+    editorCamera: CameraPose;
+    settings: SceneEditorSettings;
+}
+
+/** In-memory scene. */
+export interface SceneState extends SceneStateBase {
+    assets: Record<string, SceneAsset>;
+}
+
+/** Scene as written into project files. */
+export interface PersistedSceneState extends SceneStateBase {
+    assets: Record<string, SceneAssetPersisted>;
+}
+
+/** Scene without asset bytes, as sent to show windows in a snapshot. */
+export type SceneSnapshot = SceneStateBase;
+
+/** Previous format, only read by the one-time converter. */
+export interface LegacyStageVisualization {
+    baseScene: unknown;
+    visualizationStates: Record<string, { type: VisualizationType; config: unknown }>;
+}

@@ -25,12 +25,13 @@
         <LabelledFormField label="Visualization">
             <Select v-model="visualizationType" :options="visualizationTypes" option-label="label" option-value="value" />
         </LabelledFormField>
-        <template v-if="visController">
+        <template v-if="visObject && visController">
             <component
                 :is="visController.visualization.settingsComponent"
                 v-if="visController.visualization.settingsComponent"
-                v-model:config="visController.config"
+                :config="visObject.config"
                 :controller="visController"
+                @update:config="updateConfig"
             />
         </template>
     </div>
@@ -47,6 +48,8 @@ import { useErrorHandler } from "@/utils";
 import LabelledInputText from "@/components/LabelledInputText.vue";
 import LabelledFormField from "@/components/LabelledFormField.vue";
 import { VisualizationType } from "@/visualization/fixtureVisualization";
+import { useScene } from "@/scene/sceneStore";
+import type { SceneObject } from "@/scene/model/types";
 import { BaseFixture } from "../fixtures";
 import { useStage } from "../stage";
 
@@ -82,17 +85,35 @@ const availableControllers = computed(() => {
     return controllers;
 });
 
-const visController = computed(() => stage.visualization.controllers.get(props.fixture.id));
+const scene = useScene();
+
+const visObject = computed(() => scene.findObjectByFixture(props.fixture.id));
+const visController = computed(() => (visObject.value ? stage.visualization.controllers.get(visObject.value.id) : undefined));
 const visualizationType = computed<VisualizationType | "NONE">({
     get() {
-        return visController.value?.visualization.type ?? "NONE";
+        return visObject.value?.visualizationType ?? "NONE";
     },
     set(newType) {
         void errorHandler("Could not update visualization", () => {
-            stage.visualization.setVisualization(props.fixture.id, newType === "NONE" ? null : newType);
+            const object = visObject.value;
+            if (newType === "NONE") {
+                if (object) {
+                    scene.removeObjects([object.id], true, "Remove fixture visualization");
+                }
+            } else if (object) {
+                scene.setVisualizationType(object.id, newType);
+            } else {
+                scene.addFixtureVisualization(props.fixture.id, newType);
+            }
         });
     },
 });
+
+function updateConfig(config: unknown) {
+    if (visObject.value) {
+        scene.updateObjects({ [visObject.value.id]: { config } as Partial<SceneObject> }, "Edit visualization", `config:${visObject.value.id}`);
+    }
+}
 
 const visualizationTypes = computed(() => {
     const types: Array<{ label: string; value: "NONE" | VisualizationType }> = [

@@ -9,8 +9,6 @@ export const SpotVisualization: FixtureVisualization<DmxFixture, SpotVisualizati
     type: VisualizationType.SPOT,
     compatibleFixtures: [FixtureType.DMX],
     defaultConfig: () => ({
-        position: [0, 0, 0],
-        target: [0, 0, 0],
         colorChannels: [-1, -1, -1, -1],
     }),
     settingsComponent: markRaw(SpotVisualizationSettings),

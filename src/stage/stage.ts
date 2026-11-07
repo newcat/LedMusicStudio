@@ -1,8 +1,15 @@
-import { Ref, ref } from "vue";
+import { Ref, ref, watch } from "vue";
 import { defineStore } from "pinia";
 
 import { ExtendedMap } from "@/utils/extendedMap";
-import { VisualizationServer, VisualizationServerState } from "@/visualization";
+import { VisualizationServer } from "@/visualization";
+import { createDefaultScene } from "@/scene/model/defaults";
+import { convertLegacyVisualization } from "@/scene/model/legacy";
+import { sanitizeScene } from "@/scene/model/sanitize";
+import { isFixtureVisualization, type LegacyStageVisualization, type PersistedSceneState, type SceneState } from "@/scene/model/types";
+import { BroadcastSceneSink } from "@/scene/sceneSink";
+import { useScene } from "@/scene/sceneStore";
+import { emitSceneToast } from "@/scene/toastBus";
 import { BaseFixture, FixtureState } from "./fixtures";
 import { BaseController, ControllerState } from "./controllers";
 import { createFixture } from "./fixtures/factory";
@@ -11,13 +18,36 @@ import { createController } from "./controllers/factory";
 export interface StageState {
     fixtures: FixtureState[];
     controllers: ControllerState[];
-    visualization: VisualizationServerState;
+    scene: PersistedSceneState;
+}
+
+/** Projects saved before the scene editor store the visualization instead of the scene. */
+export interface LegacyStageState {
+    fixtures: FixtureState[];
+    controllers: ControllerState[];
+    visualization?: LegacyStageVisualization;
 }
 
 export const useStage = defineStore("stage", () => {
     const fixtures = ref<ExtendedMap<string, BaseFixture>>(new ExtendedMap()) as Ref<ExtendedMap<string, BaseFixture>>;
     const controllers = ref<ExtendedMap<string, BaseController>>(new ExtendedMap()) as Ref<ExtendedMap<string, BaseController>>;
     const visualization = ref(new VisualizationServer(fixtures.value)) as Ref<VisualizationServer>;
+    const scene = useScene();
+
+    // show windows get every scene change (protocol v2)
+    scene.registerSink(
+        new BroadcastSceneSink({
+            getScene: () => scene.rawScene(),
+            getFixtures: () => visualization.value.getConfigsAndValues(),
+        }),
+        false
+    );
+
+    watch(
+        () => scene.scene.objects,
+        (objects) => visualization.value.syncWithScene(objects),
+        { deep: true, immediate: true }
+    );
 
     function afterFrame() {
         for (const controller of controllers.value.values()) {
@@ -29,11 +59,59 @@ export const useStage = defineStore("stage", () => {
         return {
             fixtures: fixtures.value.getArray().map((f) => f.save()),
             controllers: controllers.value.getArray().map((c) => c.save()),
-            visualization: visualization.value.save(),
+            scene: scene.save(),
         };
     }
 
-    function load(state: StageState) {
+    function loadScene(state: StageState | LegacyStageState): void {
+        let sceneState: SceneState;
+        let problems: string[] = [];
+
+        if ("scene" in state && state.scene) {
+            ({ scene: sceneState, problems } = sanitizeScene(state.scene));
+        } else if ("visualization" in state && state.visualization) {
+            sceneState = convertLegacyVisualization(state.visualization, new Set(fixtures.value.keys()));
+            for (const obj of Object.values(sceneState.objects)) {
+                if (isFixtureVisualization(obj) && obj.fixtureId) {
+                    obj.name = fixtures.value.get(obj.fixtureId)?.name ?? obj.name;
+                }
+            }
+            emitSceneToast({
+                severity: "info",
+                summary: "Old project format",
+                detail: "This project was created with an older version. The static stage scene could not be converted and must be rebuilt; fixture visualizations were kept where possible.",
+                life: 10000,
+            });
+        } else {
+            sceneState = createDefaultScene();
+        }
+
+        // data-model invariants 3 and 5: links must point to existing fixtures, one object per fixture
+        const linked = new Set<string>();
+        for (const obj of Object.values(sceneState.objects)) {
+            if (isFixtureVisualization(obj) && obj.fixtureId) {
+                if (!fixtures.value.has(obj.fixtureId) || linked.has(obj.fixtureId)) {
+                    obj.fixtureId = null;
+                } else {
+                    linked.add(obj.fixtureId);
+                }
+            }
+        }
+
+        scene.load(sceneState);
+
+        if (problems.length > 0) {
+            console.warn("Scene problems:", problems);
+            emitSceneToast({
+                severity: "warn",
+                summary: "Problems while loading the scene",
+                detail: `${problems.length} problem${problems.length === 1 ? "" : "s"} found; affected objects were repaired or replaced by placeholders.`,
+                life: 8000,
+            });
+        }
+    }
+
+    function load(state: StageState | LegacyStageState) {
         for (const fixtureState of state.fixtures) {
             const fixture = createFixture(fixtureState.type);
             fixture.load(fixtureState);
@@ -46,13 +124,13 @@ export const useStage = defineStore("stage", () => {
             controllers.value.set(controller.id, controller);
         }
 
-        visualization.value.load(state.visualization);
+        loadScene(state);
     }
 
     function reset() {
         fixtures.value.clear();
         controllers.value.clear();
-        visualization.value.reset();
+        scene.reset();
     }
 
     return { fixtures, controllers, visualization, afterFrame, save, load, reset };

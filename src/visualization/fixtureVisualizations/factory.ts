@@ -16,7 +16,7 @@ export function createFixtureVisualizationController(
     return new FixtureVisualizationController(visualization, fixture as any);
 }
 
-function getVisualizationByType(type: VisualizationType) {
+export function getVisualizationByType(type: VisualizationType) {
     switch (type) {
         case VisualizationType.LED_STRIP:
             return LedStripVisualization;

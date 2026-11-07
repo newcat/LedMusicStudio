@@ -11,7 +11,9 @@ export class SpotRenderer extends BaseRenderer<SpotVisualizationConfig, number[]
     private volumeMaterial: THREE.ShaderMaterial;
     private spotlight: THREE.SpotLight;
     private spotlightTarget: THREE.Object3D;
-    private config!: SpotVisualizationConfig;
+    private proxy: THREE.Mesh | null = null;
+    private config: SpotVisualizationConfig = { colorChannels: [-1, -1, -1, -1] };
+    private readonly worldPosition = new THREE.Vector3();
 
     constructor(inputs: RendererInputs) {
         super(inputs);
@@ -21,7 +23,7 @@ export class SpotRenderer extends BaseRenderer<SpotVisualizationConfig, number[]
                 attenuation: { value: 4.4 },
                 anglePower: { value: 2.6 },
                 spotPosition: { value: new THREE.Vector3(0, 0, 0) },
-                lightColor: { value: new THREE.Color("cyan") },
+                lightColor: { value: new THREE.Color("white") },
             },
             vertexShader: vertexShader,
             fragmentShader: fragmentShader,
@@ -31,51 +33,40 @@ export class SpotRenderer extends BaseRenderer<SpotVisualizationConfig, number[]
             depthWrite: false,
         });
 
-        const spotPosition = new THREE.Vector3(0, 0, 0);
-        const targetPosition = new THREE.Vector3(0, 0, 0);
-
+        // the cone starts at the local origin and widens along local -Y
         this.volumeGeometry = new THREE.CylinderGeometry(0.1, 1.5, 15, 32 * 2, 20, true);
         this.volumeGeometry.applyMatrix4(new THREE.Matrix4().makeTranslation(0, -this.volumeGeometry.parameters.height / 2, 0));
-        this.volumeGeometry.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
         this.volumeMesh = new THREE.Mesh(this.volumeGeometry, this.volumeMaterial);
-        this.volumeMesh.position.copy(spotPosition);
-        this.volumeMesh.lookAt(targetPosition);
-        this.volumeMaterial.uniforms.lightColor.value.set("white");
-        this.volumeMaterial.uniforms.spotPosition.value = this.volumeMesh.position;
+        // the beam must not be hit by picking rays (research R8)
+        this.volumeMesh.raycast = () => undefined;
+        this.volumeMesh.userData.excludeFromBounds = true;
         this.add(this.volumeMesh);
 
         this.spotlightTarget = new THREE.Object3D();
+        this.spotlightTarget.position.set(0, -1, 0);
         this.spotlight = new THREE.SpotLight(0xffffff, 1, 100, Math.PI / 22, 0.5, 1);
         this.spotlight.target = this.spotlightTarget;
-        this.spotlight.position.copy(spotPosition);
-        this.spotlight.target.position.copy(targetPosition);
         this.add(this.spotlight);
         this.add(this.spotlightTarget);
     }
 
-    public dispose() {
+    public override dispose() {
         this.remove(this.volumeMesh);
         this.remove(this.spotlight);
         this.remove(this.spotlightTarget);
         this.volumeGeometry.dispose();
         this.volumeMaterial.dispose();
         this.spotlight.dispose();
+        if (this.proxy) {
+            this.proxy.geometry.dispose();
+            (this.proxy.material as THREE.Material).dispose();
+        }
 
         super.dispose();
     }
 
     public override onConfigUpdate(c: SpotVisualizationConfig) {
         this.config = c;
-
-        const spotPosition = new THREE.Vector3(c.position[0], c.position[1], c.position[2]);
-        const targetPosition = new THREE.Vector3(c.target[0], c.target[1], c.target[2]);
-
-        this.volumeMesh.position.copy(spotPosition);
-        this.volumeMesh.lookAt(targetPosition);
-        this.volumeMaterial.uniforms.spotPosition.value = this.volumeMesh.position;
-
-        this.spotlight.position.copy(spotPosition);
-        this.spotlightTarget.position.copy(targetPosition);
     }
 
     public override onFixtureValueUpdate(data: number[]): void {
@@ -88,5 +79,26 @@ export class SpotRenderer extends BaseRenderer<SpotVisualizationConfig, number[]
         color.addScalar(white / 255);
         this.volumeMaterial.uniforms.lightColor.value = color;
         this.spotlight.color = color;
+    }
+
+    public override getSurfaceLight(): THREE.Light {
+        return this.spotlight;
+    }
+
+    public override updateWorld(): void {
+        this.volumeMesh.getWorldPosition(this.worldPosition);
+        (this.volumeMaterial.uniforms.spotPosition.value as THREE.Vector3).copy(this.worldPosition);
+    }
+
+    /** A small cone at the origin, tip pointing along the emission direction (-Y). */
+    public override createEditorProxy(): THREE.Object3D {
+        if (!this.proxy) {
+            const geometry = new THREE.ConeGeometry(0.1, 0.2, 16);
+            // base at the origin, tip pointing down
+            geometry.rotateX(Math.PI);
+            geometry.translate(0, -0.1, 0);
+            this.proxy = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xcccccc }));
+        }
+        return this.proxy;
     }
 }

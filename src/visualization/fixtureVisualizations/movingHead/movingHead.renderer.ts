@@ -30,6 +30,8 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
     private readonly beam;
     private readonly cap;
     private readonly target = new THREE.Object3D();
+    private readonly worldPos = new THREE.Vector3();
+    private readonly worldTarget = new THREE.Vector3();
     private readonly spotlight: THREE.SpotLight;
     private beamMaterial!: THREE.ShaderMaterial;
 
@@ -75,8 +77,6 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
 
     public onConfigUpdate(c: MovingHeadVisualizationConfig): void {
         this.config = c;
-        this.position.set(c.position[0], c.position[1], c.position[2]);
-        this.rotation.set(degToRad(c.rotation[0]), degToRad(c.rotation[1]), degToRad(c.rotation[2]));
         // if the default values have changed, they will only be applied in onFixtureValueUpdate
         this.onFixtureValueUpdate(this.previousValues ?? []);
     }
@@ -103,9 +103,28 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
         this.previousValues = v;
     }
 
-    /** @virtual */
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    public override dispose(): void {}
+    public override getSurfaceLight(): THREE.Light {
+        return this.spotlight;
+    }
+
+    public override updateWorld(): void {
+        const material = this.beamMaterial;
+        this.inputs.camera.getWorldPosition(material.uniforms.cameraPos.value as THREE.Vector3);
+        this.inputs.camera.getWorldDirection(material.uniforms.cameraDir.value as THREE.Vector3);
+        this.spotlight.getWorldPosition(this.worldPos);
+        this.target.getWorldPosition(this.worldTarget);
+        (material.uniforms.wpos.value as THREE.Vector3).copy(this.worldPos);
+        (material.uniforms.direction.value as THREE.Vector3).copy(this.worldTarget).sub(this.worldPos).normalize();
+    }
+
+    public override dispose(): void {
+        this.beam.geometry.dispose();
+        this.beamMaterial.dispose();
+        this.cap.geometry.dispose();
+        this.cap.material.dispose();
+        this.spotlight.dispose();
+        super.dispose();
+    }
 
     private getBeam() {
         const beamLength = BEAM_LENGTH;
@@ -188,6 +207,9 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
         });
 
         const beamMesh = new THREE.Mesh(beamGeometry, this.beamMaterial);
+        // the beam must not be hit by picking rays (research R8)
+        beamMesh.raycast = () => undefined;
+        beamMesh.userData.excludeFromBounds = true;
 
         // beamMesh.rotateX(Math.PI);
         beamMesh.translateY(beamGeometry.parameters.height / 2 + 0.73);

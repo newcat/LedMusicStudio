@@ -11,9 +11,8 @@ export const LedStripVisualization: FixtureVisualization<LedStripFixture, LedStr
     compatibleFixtures: [FixtureType.LED_STRIP],
     defaultConfig: () => ({
         intensity: 0.001,
-        start: [0, 0, 0],
-        end: [0, 0, 0],
-        direction: [1, 0, 0],
+        start: [-0.5, 0, 0],
+        end: [0.5, 0, 0],
     }),
     settingsComponent: markRaw(LedStripVisualizationSettings),
     onFixtureValueUpdate: (value) => {

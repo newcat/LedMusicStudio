@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { onBeforeUnmount, ref } from "vue";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 
@@ -38,6 +38,7 @@ import { TimelineProcessor } from "@/timeline";
 import { useStage } from "@/stage";
 import { getNativeAdapter } from "@/native";
 import { useErrorHandler } from "@/utils";
+import { onSceneToast } from "@/scene/toastBus";
 
 const globalState = useGlobalState();
 const toast = useToast();
@@ -53,6 +54,10 @@ const currentView = ref<"PROGRAMMING" | "STAGE" | "VISUALIZATION">("STAGE");
 (window as any).globalState = globalState;
 (window as any).processor = processor;
 (window as any).stage = useStage();
+
+// toasts raised by stores (scene editor) that cannot use useToast themselves
+const unsubscribeSceneToasts = onSceneToast((t) => toast.add({ severity: t.severity, summary: t.summary, detail: t.detail, life: t.life ?? 4000 }));
+onBeforeUnmount(unsubscribeSceneToasts);
 
 void newProject();
 

@@ -8,8 +8,6 @@ export const MovingHeadVisualization: FixtureVisualization<DmxFixture, MovingHea
     type: VisualizationType.MOVING_HEAD,
     compatibleFixtures: [FixtureType.DMX],
     defaultConfig: () => ({
-        position: [0, 0, 0],
-        rotation: [0, 0, 0],
         channelMapping: {
             pan: {
                 channel: -1,
