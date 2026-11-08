@@ -1,5 +1,5 @@
 import { Component } from "vue";
-import { BaseFixture, FixtureType } from "@/stage";
+import { BaseFixture, FixtureType } from "@/stage/fixtures";
 
 export enum VisualizationType {
     LED_STRIP = "Led Strip",

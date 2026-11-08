@@ -8,11 +8,13 @@ import { MovingHeadVisualization } from "./movingHead/movingHead.visualization";
 export function createFixtureVisualizationController(
     type: VisualizationType,
     fixture: BaseFixture
+    // The concrete types depend on the runtime `type`, which TypeScript can't correlate here.
 ): FixtureVisualizationController<any, any, any> {
     const visualization = getVisualizationByType(type);
     if (!visualization.compatibleFixtures.includes(fixture.type)) {
         throw new Error(`Fixture ${fixture.name} is not compatible with visualization type ${type}`);
     }
+    // `fixture` was checked against `compatibleFixtures` above; the cast bridges the union of visualization types.
     return new FixtureVisualizationController(visualization, fixture as any);
 }
 

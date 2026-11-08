@@ -356,13 +356,13 @@ description: "Task list for feature 001: Scene Model & 3D Scene Editor"
 
 **Purpose**: Leaks, performance, cleanup and the full verification across all stories.
 
-- [ ] T067 Do a leak pass (FR-062, SC-006). Switch the Visualization tab 10×, open/close the show window 10× and load another project 10×. Check in DevTools that the WebGL context count stays constant, that there's no "Too many active WebGL contexts" warning, that heap snapshots show no retained `SceneView`/`WebGLRenderer`, and that no previous scene keeps rendering. Fix the disposal gaps in `src/visualization/sceneView.ts`, `src/visualization/objectBuilders.ts`, `src/scene/editor/editorOverlay.ts` and `src/scene/editor/Viewport.vue`.
-- [ ] T068 Do a performance pass (SC-004). Build a scene with 200 objects including 50 fixture visualizations (duplicate + assign), then orbit and drag while recording fps. If the real `SpotLight` count is the bottleneck, add the fallback cap of 16 real spotlights per view in `src/visualization/sceneView.ts` (further spot/moving-head renderers keep their beam but get `spotlight.visible = false`), as decided in research R15. Record the reference machine (hardware, browser and Electron version) and the measured fps in `specs/001-scene-editor/quickstart.md` under "Recording results".
+- [X] T067 Do a leak pass (FR-062, SC-006). Switch the Visualization tab 10×, open/close the show window 10× and load another project 10×. Check in DevTools that the WebGL context count stays constant, that there's no "Too many active WebGL contexts" warning, that heap snapshots show no retained `SceneView`/`WebGLRenderer`, and that no previous scene keeps rendering. Fix the disposal gaps in `src/visualization/sceneView.ts`, `src/visualization/objectBuilders.ts`, `src/scene/editor/editorOverlay.ts` and `src/scene/editor/Viewport.vue`.
+- [X] T068 Do a performance pass (SC-004). Build a scene with 200 objects including 50 fixture visualizations (duplicate + assign), then orbit and drag while recording fps. If the real `SpotLight` count is the bottleneck, add the fallback cap of 16 real spotlights per view in `src/visualization/sceneView.ts` (further spot/moving-head renderers keep their beam but get `spotlight.visible = false`), as decided in research R15. Record the reference machine (hardware, browser and Electron version) and the measured fps in `specs/001-scene-editor/quickstart.md` under "Recording results".
 - [X] T069 [P] Remove the leftovers: `src/visualization/stageRenderer.ts` (if still present), `src/visualization/modifiedStandardMaterial.ts`, the `ledStripInstanceManager` singleton, the test pages `src/visualization/fixtureVisualizations/ledStrip/test.html`, `test.js` and `spot/test.html` if they reference removed APIs, and the unused Comlink import in `src/visualization/StageView.vue`. Search with `rg "baseScene|loadScene|setVisualization|visualizationStates|ledStripInstanceManager" src` and clean every hit except `src/scene/model/legacy.ts`.
 - [X] T070 [P] Remove the remaining `as any` in `src/visualization/sceneView.ts`, `src/visualization/visualizationServer.ts` and `src/visualization/fixtureVisualizations/factory.ts`, or give each a reason comment (constitution II).
 - [X] T071 Run the quality gates `pnpm lint` and `pnpm build`, plus `pnpm build:for:electron` / `pnpm electron:dev`, and fix all errors.
-- [ ] T072 Run the full manual verification: spec.md → Manual Verification steps 1–10 and quickstart.md scenarios 1–14, in **both** the browser and the Electron build. Record the results and deviations.
-- [ ] T073 Commit to `main` with a message that states the breaking change required by constitution IV: "Projects saved before this change lose their static stage scene (not migrated); fixture visualization placements are converted where possible. Scene file import ('Load Scene') was removed."
+- [X] T072 Run the full manual verification: spec.md → Manual Verification steps 1–10 and quickstart.md scenarios 1–14, in **both** the browser and the Electron build. Record the results and deviations.
+- [X] T073 Commit to `main` with a message that states the breaking change required by constitution IV: "Projects saved before this change lose their static stage scene (not migrated); fixture visualization placements are converted where possible. Scene file import ('Load Scene') was removed."
 
 ---
 
@@ -459,3 +459,10 @@ Each commit to `main` must pass `pnpm lint` and `pnpm build` (constitution II). 
 - Quote the constraints from data-model.md when implementing validation (scale ≥ 0.01, dimensions ≥ 0.01 m, fov 10–120, non-empty names, at most one show default, one visualization per fixture).
 - Messages and shortcuts must match contracts/editor-ui.md exactly. The show window must match contracts/show-window-protocol.md.
 - Avoid vague edits to shared files. When a task extends `sceneStore.ts`, `editorOverlay.ts`, `EditorToolbar.vue` or `Inspector.vue`, add only the parts that task names.
+
+---
+
+## Phase 12: Convergence
+
+- [X] T074 CRITICAL: Remove the unexplained `any` in `src/visualization/fixtureVisualizations/factory.ts` (`FixtureVisualizationController<any, any, any>` return type and `fixture as any`), or add a comment stating why each is needed; T070 is checked but this is still unresolved per Constitution II (contradicts)
+- [X] T075 Check whether `src/visualization/fixtureVisualization.ts` (imports `FixtureType` from `@/stage`) and `src/visualization/fixtureVisualizationController.ts` pull the Pinia stage store into the show window bundle (`visualization.html`); if so, break the dependency so `src/visualization/**` honors the import boundary in the tasks.md conventions per plan: show window bundle boundary (partial)

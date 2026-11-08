@@ -26,7 +26,7 @@
 import DmxChannelSelector from "./DmxChannelSelector.vue";
 import InputNumber from "primevue/inputnumber";
 import LabelledFormField from "@/components/LabelledFormField.vue";
-import { DmxFixture } from "@/stage";
+import { DmxFixture } from "@/stage/fixtures";
 import { ChannelMapping } from "./types";
 import { computed } from "vue";
 
