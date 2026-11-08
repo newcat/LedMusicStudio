@@ -138,18 +138,18 @@ Default sizes are W × H × D in meters. "P" = procedural, "G" = GLB file, "Par"
 | Id | Name | Src | Types | Size | Emitters |
 |---|---|---|---|---|---|
 | `fixture.par-can` | Par can | P | S, Gen | 0.25 × 0.35 × 0.25 | lens |
-| `fixture.wash-fresnel` | Wash (Fresnel) | P | S, Gen | 0.3 × 0.4 × 0.3 | lens |
-| `fixture.profile-spot` | Profile spot (ellipsoidal) | P | S, Gen | 0.25 × 0.4 × 0.7 | lens |
+| `fixture.wash-fresnel` | Wash (Fresnel) | P | S, Gen | 0.31 × 0.4 × 0.31 | lens |
+| `fixture.profile-spot` | Profile spot (ellipsoidal) | P | S, Gen | 0.25 × 0.7 × 0.4 | lens |
 | `fixture.moving-head-beam` | Moving head (beam) | P | MH | 0.3 × 0.5 × 0.25 | lens |
 | `fixture.moving-head-spot` | Moving head (spot/beam) | P | MH | 0.35 × 0.6 × 0.3 | lens |
 | `fixture.moving-head-wash` | Moving head (wash) | P | MH | 0.4 × 0.55 × 0.35 | lens (+ 7 LED cells) |
-| `fixture.scanner` | Scanner | P | MH | 0.25 × 0.25 × 0.7 | mirror aperture |
-| `fixture.strobe` | Strobe | P | Gen | 0.5 × 0.2 × 0.15 | tube |
-| `fixture.blinder` | Blinder (4 cells) | P | Gen | 0.5 × 0.5 × 0.2 | `cell-1`..`cell-4` |
+| `fixture.scanner` | Scanner | P | MH | 0.25 × 0.5 × 0.25 | mirror aperture |
+| `fixture.strobe` | Strobe | P | Gen | 0.54 × 0.2 × 0.2 | tube |
+| `fixture.blinder` | Blinder (4 cells) | P | Gen | 0.54 × 0.25 × 0.5 | `cell-1`..`cell-4` |
 | `fixture.led-bar` | LED bar / batten | P | Gen, S | 1.0 × 0.1 × 0.1 | `cell-1`..`cell-8` |
 | `fixture.pixel-bar` | Pixel bar | P | Gen | 1.0 × 0.06 × 0.06 | `cell-1`..`cell-16` |
-| `fixture.led-panel` | LED panel | P | Gen | 0.5 × 0.5 × 0.08 | `cell-r-c` (8 × 8) |
-| `fixture.laser` | Laser | P | Gen | 0.25 × 0.15 × 0.3 | aperture |
+| `fixture.led-panel` | LED panel | P | Gen | 0.5 × 0.56 × 0.2 | `cell-r-c` (8 × 8) |
+| `fixture.laser` | Laser | P | Gen | 0.25 × 0.15 × 0.32 | aperture |
 | `fixture.flame-projector` | Flame projector | P | Gen | 0.3 × 0.4 × 0.3 | nozzle |
 | `fixture.co2-jet` | CO2 jet | P | Gen | 0.2 × 0.4 × 0.2 | nozzle |
 | `fixture.cold-spark` | Cold spark machine | P | Gen | 0.35 × 0.25 × 0.35 | nozzle |

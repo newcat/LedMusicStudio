@@ -11,6 +11,7 @@ import {
     type AssetCatalog,
     type AssetCategory,
     type AssetDefinition,
+    type BeamDescription,
     type FixtureAssetDefinition,
     type ParamValues,
     type ValidationIssue,
@@ -32,6 +33,7 @@ const MAX_EXTENT = 20;
 const PARAMETRIC_TOLERANCE = 0.02;
 const PARAMETRIC_TOLERANCE_MIN = 0.001;
 const UNIT_TOLERANCE = 0.01;
+const BEAM_REST_TOLERANCE_DEG = 1;
 
 export type BuildAt = (params: ParamValues) => THREE.Object3D;
 
@@ -191,6 +193,25 @@ function isDescendant(node: THREE.Object3D, ancestor: THREE.Object3D): boolean {
     return false;
 }
 
+/**
+ * Beam direction in the model frame at rest (the template is built at pan = tilt = 0). Without a template only
+ * beams on the model root can be resolved; otherwise `null`.
+ */
+function restBeamDirection(beam: BeamDescription, template: THREE.Object3D | undefined): THREE.Vector3 | null {
+    const local = new THREE.Vector3(...beam.direction).normalize();
+    if (beam.node === "") {
+        return local;
+    }
+    const node = template ? findNode(template, beam.node) : undefined;
+    if (!template || !node) {
+        return null;
+    }
+    template.updateMatrixWorld(true);
+    const rootInverse = template.getWorldQuaternion(new THREE.Quaternion()).invert();
+    const nodeInRoot = rootInverse.multiply(node.getWorldQuaternion(new THREE.Quaternion()));
+    return local.applyQuaternion(nodeInRoot);
+}
+
 function checkFixtureContract(def: FixtureAssetDefinition, template: THREE.Object3D | undefined, issues: Issues) {
     const f = def.fixture;
     if (!f) {
@@ -229,6 +250,15 @@ function checkFixtureContract(def: FixtureAssetDefinition, template: THREE.Objec
         nodeExists(f.beam.node, "beam");
         if (!isUnit(f.beam.direction)) {
             issues.error(`beam.direction ${fmt(f.beam.direction)} is not a unit vector`);
+        }
+        // research R3: at pan = tilt = 0 the beam points up. Only Moving Head and Spot use the beam; a Generic-only
+        // model (e.g. the level laser) may point elsewhere.
+        const usesBeam = f.visualizationTypes?.some((t) => t === VisualizationType.MOVING_HEAD || t === VisualizationType.SPOT);
+        if (usesBeam) {
+            const direction = restBeamDirection(f.beam, template);
+            if (direction && direction.angleTo(new THREE.Vector3(0, 1, 0)) > THREE.MathUtils.degToRad(BEAM_REST_TOLERANCE_DEG)) {
+                issues.error(`Beam points to ${fmt(direction)} at rest, expected +Y (±${BEAM_REST_TOLERANCE_DEG}°)`);
+            }
         }
     }
     if (!(f.lensRadius > 0)) {
