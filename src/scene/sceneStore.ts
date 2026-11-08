@@ -35,8 +35,10 @@ import {
     type LocalTransform,
 } from "./model/transformMath";
 import type { SceneSink } from "./sceneSink";
+import { hasPlausibleDimensions, modelForType, modelScaleForFixture, withModelRanges } from "./fixtureModels";
 import type {
     CameraPose,
+    FixtureVisualizationModelFields,
     FixtureVisualizationObject,
     PersistedSceneState,
     SceneAsset,
@@ -366,8 +368,16 @@ export const useScene = defineStore("scene", () => {
         emitSceneToast({ severity: "error", summary: "Cannot assign fixture", detail: `${name} already has a visualization.`, life: 4000 });
     }
 
-    /** Creates the visualization object of a fixture with the default config of `type`. Returns its id. */
-    function addFixtureVisualization(fixtureId: string, type: VisualizationType, placement?: { position: Vec3 }): string | null {
+    /**
+     * Creates the visualization object of a fixture with the default config of `type`. Returns its id.
+     * Without `model`, the category preselection is used if its type is `type`, otherwise the type's default model.
+     */
+    function addFixtureVisualization(
+        fixtureId: string,
+        type: VisualizationType,
+        placement?: { position: Vec3 },
+        model?: Partial<FixtureVisualizationModelFields>
+    ): string | null {
         const fixture = useStage().fixtures.get(fixtureId);
         if (!fixture) {
             return null;
@@ -381,7 +391,13 @@ export const useScene = defineStore("scene", () => {
             emitSceneToast({ severity: "error", summary: "Incompatible visualization", detail: `${fixture.name} cannot use the ${type} visualization.`, life: 4000 });
             return null;
         }
-        const obj = createFixtureVisualizationObject(fixtureId, type, visualization.defaultConfig(fixture as never) as FixtureVisualizationObject["config"], fixture.name);
+        const fallback = modelForType(fixture, type, true);
+        const modelFields: FixtureVisualizationModelFields = {
+            modelId: model?.modelId ?? fallback.modelId,
+            modelScale: model?.modelScale ?? (model?.modelId ? modelScaleForFixture(fixture, model.modelId) : fallback.modelScale),
+        };
+        const config = withModelRanges(type, visualization.defaultConfig(fixture as never) as FixtureVisualizationObject["config"], modelFields.modelId);
+        const obj = createFixtureVisualizationObject(fixtureId, type, config, fixture.name, modelFields);
         if (placement) {
             obj.position = [...placement.position];
         }
@@ -394,15 +410,48 @@ export const useScene = defineStore("scene", () => {
         return obj.id;
     }
 
-    /** Replaces type and config (default config of the new type), keeps id, name, transform and parent. */
+    /**
+     * Replaces type and config (default config of the new type), keeps id, name, transform and parent. The model
+     * becomes the fixture's mapped model if it supports the new type, otherwise the type's default (invariant 2).
+     */
     function setVisualizationType(objectId: string, type: VisualizationType) {
         const obj = scene.value.objects[objectId];
         if (!obj || !isFixtureVisualization(obj) || obj.visualizationType === type) {
             return;
         }
         const fixture = obj.fixtureId ? useStage().fixtures.get(obj.fixtureId) : undefined;
-        const config = getVisualizationByType(type).defaultConfig(fixture as never);
-        updateObjects({ [objectId]: { visualizationType: type, config } as Partial<SceneObject> }, "Change visualization type");
+        const { modelId, modelScale } = modelForType(fixture, type, false);
+        const config = withModelRanges(type, getVisualizationByType(type).defaultConfig(fixture as never), modelId);
+        updateObjects({ [objectId]: { visualizationType: type, config, modelId, modelScale } as Partial<SceneObject> }, "Change visualization type");
+    }
+
+    /**
+     * Switches the model and keeps everything else (invariant 4). With plausible fixture dimensions, the scale is
+     * recomputed for the new model.
+     */
+    function setFixtureModel(objectId: string, modelId: string) {
+        const obj = scene.value.objects[objectId];
+        const definition = assetCatalog.get(modelId);
+        if (!obj || !isFixtureVisualization(obj) || obj.modelId === modelId) {
+            return;
+        }
+        if (definition?.category !== "fixtures" || !definition.fixture.visualizationTypes.includes(obj.visualizationType)) {
+            return;
+        }
+        const fixture = obj.fixtureId ? useStage().fixtures.get(obj.fixtureId) : undefined;
+        const patch: Partial<FixtureVisualizationModelFields> = { modelId };
+        if (hasPlausibleDimensions(fixture)) {
+            patch.modelScale = modelScaleForFixture(fixture, modelId);
+        }
+        updateObjects({ [objectId]: patch as Partial<SceneObject> }, "Change model");
+    }
+
+    function resetModelScale(objectId: string) {
+        const obj = scene.value.objects[objectId];
+        if (!obj || !isFixtureVisualization(obj) || obj.modelScale === 1) {
+            return;
+        }
+        updateObjects({ [objectId]: { modelScale: 1 } as Partial<SceneObject> }, "Reset model size");
     }
 
     /** Links an object to a fixture (or unlinks with null). Returns false if the fixture is already linked elsewhere. */
@@ -740,6 +789,27 @@ export const useScene = defineStore("scene", () => {
         return obj.id;
     }
 
+    /**
+     * A fixture model from the library becomes an unlinked fixture visualization of the model's first type
+     * (contracts/library-ui.md → Placement, item 4). Selects it.
+     */
+    function addFixtureModel(modelId: string, placement?: Placement): string | null {
+        const definition = assetCatalog.get(modelId);
+        if (definition?.category !== "fixtures" || definition.fixture.visualizationTypes.length === 0) {
+            return null;
+        }
+        const type = definition.fixture.visualizationTypes[0];
+        const config = withModelRanges(type, getVisualizationByType(type).defaultConfig(undefined as never), modelId);
+        const obj = createFixtureVisualizationObject(null, type, config as FixtureVisualizationObject["config"], nextObjectName(scene.value, definition.name), {
+            modelId,
+            modelScale: 1,
+        });
+        obj.position = placementPosition(placement);
+        addObjects([obj], null, `Add ${definition.name}`);
+        select([obj.id]);
+        return obj.id;
+    }
+
     function libraryAssetOf(id: string) {
         const obj = scene.value.objects[id];
         return obj && isLibraryAsset(obj) ? obj : undefined;
@@ -926,6 +996,8 @@ export const useScene = defineStore("scene", () => {
         findObjectByFixture,
         addFixtureVisualization,
         setVisualizationType,
+        setFixtureModel,
+        resetModelScale,
         linkFixture,
         // shapes, groups, clipboard
         addShape,
@@ -948,6 +1020,7 @@ export const useScene = defineStore("scene", () => {
         addImportedModel,
         // library assets
         addLibraryAsset,
+        addFixtureModel,
         setAssetParams,
         setAssetMaterial,
         setAssetColor,

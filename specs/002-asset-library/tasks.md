@@ -219,51 +219,51 @@ description: "Task list for feature 002: Asset Library & Model Contract"
 
 ### Fixture models for the existing visualizations
 
-- [ ] T038 [P] [US2] Create `src/assetLibrary/builders/fixtures/movingHeadSpot.ts` and the definition `fixture.moving-head-spot` ("Moving head (spot/beam)"):
+- [X] T038 [P] [US2] Create `src/assetLibrary/builders/fixtures/movingHeadSpot.ts` and the definition `fixture.moving-head-spot` ("Moving head (spot/beam)"):
   - Geometry: a base box of 0.35 × 0.14 × 0.3 m with a display on the front; a node **`pan`** at (0, 0.14, 0) holding a U-shaped yoke (two arms of 0.04 × 0.3 × 0.12 m at x = ±0.15); a node **`tilt`** at (0, 0.38, 0) (pivot between the arm tops) holding a head (lathe profile, length 0.36 m along +Y from y = −0.12 to 0.24 relative to the tilt node, max radius 0.11 m, front lens ring at the +Y end).
   - Slots `body`, `accent`, `glass`. `kit.mergeBySlot(root, ["pan", "tilt"])`. `defaultSize [0.35, 0.6, 0.3]`.
   - Description: `visualizationTypes: [MOVING_HEAD]`, `categories: ["Moving Head"]`, `movingParts: { pan: { node: "pan", axis: "y", min: -270, max: 270 }, tilt: { node: "tilt", axis: "x", min: -135, max: 135 } }`, `beam: { node: "tilt", position: [0, 0.24, 0], direction: [0, 1, 0] }`, `lensRadius: 0.06`, `emitters: [{ id: "lens", node: "tilt", shape: "circle", radius: 0.06, position: [0, 0.241, 0], normal: [0, 1, 0] }]`, `mountingPoints: [{ id: "base", node: "", position: [0, 0, 0], direction: [0, -1, 0] }]`.
   - Keywords ["moving head", "spot", "beam", "mover", "intelligent"]. Adjust the numbers so `defaultSize` and the validator agree. Asset gate.
-- [ ] T039 [P] [US2] Create `src/assetLibrary/builders/fixtures/movingHeadBeam.ts` and `fixture.moving-head-beam` ("Moving head (beam)"): the same node structure as T038 (`pan` axis y −270..270, `tilt` axis x −135..135), but slimmer: base 0.3 × 0.12 × 0.25 m, a narrow cylindrical head (radius 0.075 m) with a small lens (`lensRadius 0.035`); `defaultSize [0.3, 0.5, 0.25]`; keywords ["moving head", "beam", "sharpy", "mover"]. Asset gate
-- [ ] T040 [P] [US2] Create `src/assetLibrary/builders/fixtures/movingHeadWash.ts` and `fixture.moving-head-wash` ("Moving head (wash)"): the same node structure; a wider, shorter head (radius 0.15 m) with a flat front plate carrying 7 LED lenses in a hexagonal pattern. Emitters: `lens` (circle, radius 0.13 m, the whole front, used by the beam visual) **plus** `cell-1`..`cell-7` (circles of radius 0.03 m at the 7 hex positions, 2 mm in front of the plate); `beam.position` at the plate center; `lensRadius 0.13`; `defaultSize [0.4, 0.55, 0.35]`; keywords ["moving head", "wash", "led", "mover"]. Asset gate
-- [ ] T041 [P] [US2] Create `src/assetLibrary/builders/fixtures/parCan.ts` and `fixture.par-can` ("Par can"):
+- [X] T039 [P] [US2] Create `src/assetLibrary/builders/fixtures/movingHeadBeam.ts` and `fixture.moving-head-beam` ("Moving head (beam)"): the same node structure as T038 (`pan` axis y −270..270, `tilt` axis x −135..135), but slimmer: base 0.3 × 0.12 × 0.25 m, a narrow cylindrical head (radius 0.075 m) with a small lens (`lensRadius 0.035`); `defaultSize [0.3, 0.5, 0.25]`; keywords ["moving head", "beam", "sharpy", "mover"]. Asset gate
+- [X] T040 [P] [US2] Create `src/assetLibrary/builders/fixtures/movingHeadWash.ts` and `fixture.moving-head-wash` ("Moving head (wash)"): the same node structure; a wider, shorter head (radius 0.15 m) with a flat front plate carrying 7 LED lenses in a hexagonal pattern. Emitters: `lens` (circle, radius 0.13 m, the whole front, used by the beam visual) **plus** `cell-1`..`cell-7` (circles of radius 0.03 m at the 7 hex positions, 2 mm in front of the plate); `beam.position` at the plate center; `lensRadius 0.13`; `defaultSize [0.4, 0.55, 0.35]`; keywords ["moving head", "wash", "led", "mover"]. Asset gate
+- [X] T041 [P] [US2] Create `src/assetLibrary/builders/fixtures/parCan.ts` and `fixture.par-can` ("Par can"):
   - Geometry: a U-bracket (node-less, static) holding a can (lathe, radius 0.11 m, length 0.28 m) pointing **up**, lens at the top; standing on the bracket feet. Slots `body`, `metal`, `glass`.
   - Description: `visualizationTypes: [SPOT, GENERIC]`, `categories: ["Color Changer", "Dimmer"]`, `beam: { node: "", position: [0, 0.35, 0], direction: [0, 1, 0] }`, `lensRadius: 0.09`, emitter `lens` (circle, radius 0.09 m, at y = 0.351 m), `mountingPoints` `base` at the origin, direction [0, −1, 0].
   - `defaultSize [0.25, 0.35, 0.25]`; keywords ["par", "par can", "spot", "light", "can"]. Asset gate.
-- [ ] T042 [US2] Implement the spot re-orientation from research R3 in `src/scene/model/transformMath.ts` and `src/scene/model/sanitize.ts`. Add `composeLocalRotation(rotationDeg: Vec3, axis: Axis, angleDeg: number): Vec3`, which returns the Euler XYZ (degrees, normalized to (−180, 180]) of `q(rotation) × q(axis, angle)`. In `sanitize.ts`, for a `fixtureVisualization` with `visualizationType === "Spot"` and **no** `modelId` in the raw data, set `rotation = composeLocalRotation(rotation, "x", 180)` so the beam, which now leaves the model along local +Y, points where the old −Y beam pointed. Record no problem message (silent conversion)
-- [ ] T043 [US2] Rewrite `src/visualization/fixtureVisualizations/movingHead/movingHead.renderer.ts` on top of the contract:
+- [X] T042 [US2] Implement the spot re-orientation from research R3 in `src/scene/model/transformMath.ts` and `src/scene/model/sanitize.ts`. Add `composeLocalRotation(rotationDeg: Vec3, axis: Axis, angleDeg: number): Vec3`, which returns the Euler XYZ (degrees, normalized to (−180, 180]) of `q(rotation) × q(axis, angle)`. In `sanitize.ts`, for a `fixtureVisualization` with `visualizationType === "Spot"` and **no** `modelId` in the raw data, set `rotation = composeLocalRotation(rotation, "x", 180)` so the beam, which now leaves the model along local +Y, points where the old −Y beam pointed. Record no problem message (silent conversion)
+- [X] T043 [US2] Rewrite `src/visualization/fixtureVisualizations/movingHead/movingHead.renderer.ts` on top of the contract:
   - Remove the `modelLibrary` import, the `base_001`/`yoke_001`/`head_001` lookups and every `0.73` offset.
   - `onModelUpdate` → `loadBody(modelId)` and `body.setModelScale(scale)`.
   - `onBodyReady(body)`: attach `beam`, `cap` (circle of radius = description `lensRadius`, at the anchor origin, facing +Z), `spotlight` and `target` to `body.beamAnchor`. The beam cylinder and the target are oriented along the anchor's **+Z** (rotate the beam geometry by +90° about X so its axis is +Z, and translate it by `len / 2` along +Z). Set `topRadius` to `lensRadius`. Re-apply the last values.
   - `onFixtureValueUpdate`: `body.setPanTilt(pan, tilt)` instead of setting `yoke.rotation.y` / `head.rotation.x`. The color also goes to `body.setEmitterColor("all", …)`. Until the body is ready, values are only stored.
   - `updateWorld` is unchanged (it uses the world positions of `spotlight` and `target`).
   - `dispose` releases the body.
-- [ ] T044 [US2] Rewrite `src/visualization/fixtureVisualizations/spot/spot.renderer.ts`:
+- [X] T044 [US2] Rewrite `src/visualization/fixtureVisualizations/spot/spot.renderer.ts`:
   - Remove `createEditorProxy` and the proxy fields, because the body can be picked (FR-021).
   - `onModelUpdate` → `loadBody`.
   - `onBodyReady`: attach the volume cone, the `spotlight` and its target to `body.beamAnchor`, oriented along the anchor's +Z (rotate the cone geometry so it starts at the origin and widens along +Z; target at (0, 0, 1)). The cone's top radius = `lensRadius`.
   - The color also drives `body.setEmitterColor("all", …)`.
   - Rename the doc comment "emits local −Y" to "emits along the model's beam direction".
-- [ ] T045 [US2] Create the LED strip body `src/assetLibrary/builders/fixtures/ledProfile.ts` and the definition `fixture.led-profile` ("LED strip profile"):
+- [X] T045 [US2] Create the LED strip body `src/assetLibrary/builders/fixtures/ledProfile.ts` and the definition `fixture.led-profile` ("LED strip profile"):
   - A parametric source with `params: [{ key: "length", label: "Length", type: "number", min: 0.05, max: 50, step: 0.01, unit: "m", default: 1 }]` and `size: (p) => [p.length, 0.02, 0.02]`. `build` creates an aluminium U-channel (slot `metal`) of 0.02 × 0.012 m and a diffuser strip (slot `glass`, emissive-free) along **+X**, centered on the origin, bottom at y = 0.
   - Description: `visualizationTypes: [LED_STRIP]`, `categories: ["Pixel Bar"]`, `lensRadius: 0.008`, one `emitters` entry `strip` (rect `[length, 0.012]`, at the default length 1), `mountingPoints` `back` at the origin with direction [0, −1, 0], and `ledStrip: { profileWidth: 0.02, profileHeight: 0.02 }`.
   - Asset gate (validator role check for Led Strip).
-- [ ] T046 [US2] Update `src/visualization/fixtureVisualizations/ledStrip/ledStrip.renderer.ts`:
+- [X] T046 [US2] Update `src/visualization/fixtureVisualizations/ledStrip/ledStrip.renderer.ts`:
   - In `onModelUpdate` and `onConfigUpdate`, rebuild the body as `instantiate(acquire({ assetId: modelId, params: { length: |end − start| } }))`, positioned at the midpoint of `start`/`end` and rotated so its +X follows `end − start` and its −Y (the bottom) faces the strip's emission direction (local +Y of the object, per 001: "direction = local +Y"; the diffuser therefore faces local +Y).
   - Release the previous template (acquire keyed by the rounded length, to 1 cm, to limit rebuilds).
   - Remove the box part of the editor proxy, keep the direction arrow. The body is pickable (no `raycast` override).
-- [ ] T047 [US2] Delete `public/3d-models/moving_head_lowpoly.glb` (and the then-empty `public/3d-models/`) and `src/visualization/modelLibrary.ts`. Remove every `modelLibrary.initialize()` call (search `modelLibrary` in `src/`, e.g. `src/visualization/main.ts`, `src/visualization/sceneView.ts`, `src/scene/editor/Viewport.vue`) and anything awaiting it before creating renderers. Search the repository for `3d-models` and fix the remaining references
+- [X] T047 [US2] Delete `public/3d-models/moving_head_lowpoly.glb` (and the then-empty `public/3d-models/`) and `src/visualization/modelLibrary.ts`. Remove every `modelLibrary.initialize()` call (search `modelLibrary` in `src/`, e.g. `src/visualization/main.ts`, `src/visualization/sceneView.ts`, `src/scene/editor/Viewport.vue`) and anything awaiting it before creating renderers. Search the repository for `3d-models` and fix the remaining references
 
 ### Model selection, preselection and scaling
 
-- [ ] T048 [US2] Add to `src/scene/sceneStore.ts`:
+- [X] T048 [US2] Add to `src/scene/sceneStore.ts`:
   - `setFixtureModel(objectId, modelId)` keeps everything except `modelId` and, when the linked fixture has plausible dimensions, `modelScale` = `preselectForFixture(...).modelScale` recomputed for the new model; label "Change model"; data-model invariant 4.
   - `resetModelScale(objectId)` sets `modelScale = 1`, label "Reset model size".
   - `addFixtureModel(modelId, placement)` creates an **unlinked** fixture visualization (`fixtureId: null`) with `visualizationType = def.fixture.visualizationTypes[0]`, the default config of that type, `modelId`, `modelScale: 1` and name `nextObjectName(scene, def.name)`; it selects it (contracts/library-ui.md → Placement, item 4).
   - Change `setVisualizationType` to also set `modelId` to the mapped model for the linked fixture (`preselectForFixture`) if that model supports the new type, otherwise `defaultModelFor(type)` (invariant 2).
   - Change `addFixtureVisualization(fixtureId, type, placement?, model?)` to accept an optional `{ modelId, modelScale }` and, when it is missing, to use `preselectForFixture` if its type equals `type`, otherwise `defaultModelFor(type)` with scale 1.
   - Turn on `showFixtures` in the library panel (T034).
-- [ ] T049 [P] [US2] Create `src/assetLibrary/categoryMapping.ts` with `preselectForFixture(definition, mode): FixturePreselection`, implementing the table in research R13 exactly:
+- [X] T049 [P] [US2] Create `src/assetLibrary/categoryMapping.ts` with `preselectForFixture(definition, mode): FixturePreselection`, implementing the table in research R13 exactly:
   - Walk `definition.categories` in order and use the first mapped category. Name tests are case-insensitive on `definition.name`; `lens = (mode?.physical ?? definition.physical)?.lens`; matrix pixel count = product of `definition.matrix?.pixelCount ?? [1]`.
   - Moving Head → MOVING_HEAD + `fixture.moving-head-wash` if the name contains "wash" or `lens.degreesMinMax[1] ≥ 25`, else `fixture.moving-head-spot`.
   - Scanner / Barrel Scanner → MOVING_HEAD + `fixture.scanner`.
@@ -273,11 +273,11 @@ description: "Task list for feature 002: Asset Library & Model Contract"
   - A mapped model id that is not registered (yet) falls back to `assetCatalog.defaultModelFor(type)`.
   - **Scale**: `dims = (mode?.physical ?? definition.physical)?.dimensions` (mm, `[width, height, depth]`); "used only if all three are between 30 mm and 3000 mm"; `modelScale = clamp(median(dims[i] / 1000 / def.defaultSize[i]), 0.25, 4)`, otherwise `1`.
   - Also export `defaultChannelRanges(def)`, which returns pan/tilt `min`/`max` from `movingParts` for new Moving Head configs.
-- [ ] T050 [US2] Use the preselection in the creation flows:
+- [X] T050 [US2] Use the preselection in the creation flows:
   - `src/scene/editor/AddFixtureVisualizationDialog.vue`: when the fixture changes, set `type` and a new `modelId` ref from `preselectForFixture(fixture.config.definition, fixture.config.mode)` for DMX fixtures, or the type's default model for other fixture types. Add a **Model** `Select` under the type select that lists `assetCatalog.modelsFor(type)` with a 32 px preview image and the name, and resets to the mapped/default model when the type changes. Emit `confirm(fixtureId, type, modelId)` and pass the model through `SceneEditor.vue` to `store.addFixtureVisualization(..., { modelId, modelScale })` (the scale from the preselection only if the chosen model is the preselected one, otherwise it is recomputed with the same dimension rule for the chosen model).
   - `src/stage/components/FixtureSettings.vue`: creating a visualization passes the preselection.
   - Moving Head default configs use `defaultChannelRanges` for the pan/tilt `min`/`max` (in `store.addFixtureVisualization`).
-- [ ] T051 [US2] Update `src/scene/editor/inspector/FixtureVisualizationProperties.vue` (contracts/library-ui.md → Fixture visualization):
+- [X] T051 [US2] Update `src/scene/editor/inspector/FixtureVisualizationProperties.vue` (contracts/library-ui.md → Fixture visualization):
   - A **Model** `Select` with preview and name from `assetCatalog.modelsFor(object.visualizationType)` → `store.setFixtureModel`. If `object.modelId` is unknown, show the notice "Model <id> is not available; showing the generic fixture." and include the id as a disabled option.
   - **Model size** shows `Math.round(modelScale * 100) + " %"` with a **Reset to model size** button (disabled at 100 %) and the hint "Scaled to fixture dimensions" when `modelScale !== 1` and the linked fixture has plausible dimensions.
 

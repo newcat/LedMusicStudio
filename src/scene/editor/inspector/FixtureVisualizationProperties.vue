@@ -19,6 +19,25 @@
             />
         </LabelledFormField>
 
+        <LabelledFormField label="Model">
+            <ModelSelect :model-value="object.modelId" :type="object.visualizationType" @update:model-value="onModelChanged" />
+        </LabelledFormField>
+        <div v-if="modelUnknown" class="notice">Model {{ object.modelId }} is not available; showing the generic fixture.</div>
+        <LabelledFormField label="Model size">
+            <div class="model-size">
+                <span>{{ modelSizeLabel }}</span>
+                <Button
+                    text
+                    size="small"
+                    label="Reset to model size"
+                    icon="pi pi-refresh"
+                    :disabled="object.modelScale === 1"
+                    @click="store.resetModelScale(object.id)"
+                />
+            </div>
+            <div v-if="scaledToFixture" class="hint">Scaled to fixture dimensions</div>
+        </LabelledFormField>
+
         <template v-if="settingsComponent">
             <component
                 :is="settingsComponent"
@@ -44,7 +63,10 @@ import { useStage } from "@/stage/stage";
 import { VisualizationType } from "@/visualization/fixtureVisualization";
 import { getVisualizationByType } from "@/visualization/fixtureVisualizations/factory";
 import { activeStageTab, selectedFixtureId, STAGE_TAB_FIXTURES } from "@/views/stageViewState";
+import { assetCatalog } from "@/assetLibrary/catalog";
 import { useScene } from "../../sceneStore";
+import { hasPlausibleDimensions } from "../../fixtureModels";
+import ModelSelect from "./ModelSelect.vue";
 import type { FixtureVisualizationObject, SceneObject } from "../../model/types";
 
 const NONE = "NONE";
@@ -83,6 +105,17 @@ const typeOptions = computed(() => {
         .map((type) => ({ label: type, value: type }));
 });
 
+const modelUnknown = computed(() => assetCatalog.get(props.object.modelId)?.category !== "fixtures");
+const modelSizeLabel = computed(() => `${Math.round(props.object.modelScale * 100)} %`);
+const scaledToFixture = computed(() => {
+    const fixture = props.object.fixtureId ? stage.fixtures.get(props.object.fixtureId) : undefined;
+    return props.object.modelScale !== 1 && hasPlausibleDimensions(fixture);
+});
+
+function onModelChanged(modelId: string) {
+    store.setFixtureModel(props.object.id, modelId);
+}
+
 function onLinkChanged(value: string) {
     store.linkFixture(props.object.id, value === NONE ? null : value);
 }
@@ -108,6 +141,18 @@ function openFixtureSettings() {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+}
+
+.model-size {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.notice {
+    font-size: 0.85rem;
+    color: var(--p-orange-400, orange);
 }
 
 .hint {

@@ -18,7 +18,6 @@ import * as THREE from "three";
 import type { CameraPose } from "@/scene/model/types";
 import { SceneView } from "./sceneView";
 import { ShowWindowClient } from "./showWindowClient";
-import { modelLibrary } from "./modelLibrary";
 
 const stageViewEl = ref<HTMLElement>();
 const canvas = ref<HTMLCanvasElement>();
@@ -42,13 +41,11 @@ function applyCamera(pose: CameraPose) {
     controls.update();
 }
 
-async function initialize() {
+function initialize() {
     if (!stageViewEl.value || !canvas.value) {
         console.warn("stageViewEl or canvas is not set");
         return;
     }
-
-    await modelLibrary.initialize();
 
     view = new SceneView(canvas.value, { showEditorProxies: false });
     controls = new OrbitControls(view.camera, canvas.value);
@@ -88,9 +85,9 @@ function cleanup() {
     view = undefined;
 }
 
-onMounted(async () => {
+onMounted(() => {
     window.addEventListener("pagehide", cleanup);
-    await initialize();
+    initialize();
 });
 
 onBeforeUnmount(() => {

@@ -13,7 +13,7 @@
             <DmxChannelSelector v-model="config.colorChannels[3]" :fixture="controller.fixture" />
         </LabelledFormField>
     </div>
-    <div class="text-sm opacity-70">The spot emits along the object's local -Y axis.</div>
+    <div class="text-sm opacity-70">The spot emits along the model's beam direction.</div>
 </template>
 
 <script setup lang="ts">

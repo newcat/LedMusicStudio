@@ -40,8 +40,12 @@ function convertSpot(config: Rec): FixtureVisualizationObject | null {
     });
     obj.position = [...config.position];
     if (dir.lengthSq() > 1e-12) {
-        // local -Y has to point from position to target
-        obj.rotation = rotationFromTo(new Vector3(0, -1, 0), dir);
+        // feature 002 (research R3): spot models emit along local +Y, which has to point from position to target.
+        // The object already has a modelId, so the 001 spot fix in sanitize.ts does not apply to it.
+        obj.rotation = rotationFromTo(new Vector3(0, 1, 0), dir);
+    } else {
+        // no aim: the pre-scene spot pointed down (local -Y), which is now a 180° turn about X
+        obj.rotation = [180, 0, 0];
     }
     return obj;
 }

@@ -49,6 +49,7 @@ import LabelledInputText from "@/components/LabelledInputText.vue";
 import LabelledFormField from "@/components/LabelledFormField.vue";
 import { VisualizationType } from "@/visualization/fixtureVisualization";
 import { useScene } from "@/scene/sceneStore";
+import { modelForType } from "@/scene/fixtureModels";
 import type { SceneObject } from "@/scene/model/types";
 import { BaseFixture } from "../fixtures";
 import { useStage } from "../stage";
@@ -101,9 +102,11 @@ const visualizationType = computed<VisualizationType | "NONE">({
                     scene.removeObjects([object.id], true, "Remove fixture visualization");
                 }
             } else if (object) {
+                // also applies the mapped (or default) model of the new type (feature 002, invariant 2)
                 scene.setVisualizationType(object.id, newType);
             } else {
-                scene.addFixtureVisualization(props.fixture.id, newType);
+                // feature 002: model and model scale come from the category preselection when its type matches
+                scene.addFixtureVisualization(props.fixture.id, newType, undefined, modelForType(props.fixture, newType, true));
             }
         });
     },

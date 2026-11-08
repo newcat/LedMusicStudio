@@ -18,7 +18,6 @@ import { onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
 import { useResizeObserver, useThrottleFn } from "@vueuse/core";
 
 import { SceneView } from "@/visualization/sceneView";
-import { modelLibrary } from "@/visualization/modelLibrary";
 import { LocalSceneSink } from "../sceneSink";
 import { useScene } from "../sceneStore";
 import { EditorOverlay } from "./editorOverlay";
@@ -36,7 +35,6 @@ const overlay = shallowRef<EditorOverlay | null>(null);
 
 let view: SceneView | undefined;
 let unregisterSink: (() => void) | undefined;
-let unmounted = false;
 
 const throttledResize = useThrottleFn(() => onResize(), 100, true);
 useResizeObserver(container, () => void throttledResize());
@@ -48,16 +46,10 @@ function onResize() {
     overlay.value?.resize(container.value.clientWidth, container.value.clientHeight);
 }
 
-onMounted(async () => {
+onMounted(() => {
     if (!canvas.value || !container.value) {
         return;
     }
-    // renderers of moving heads need the model library (idempotent)
-    await modelLibrary.initialize();
-    if (unmounted || !canvas.value || !container.value) {
-        return;
-    }
-
     view = new SceneView(canvas.value, { showEditorProxies: true });
     unregisterSink = store.registerSink(new LocalSceneSink(view));
     const editorOverlay = new EditorOverlay(view, container.value, store);
@@ -87,7 +79,6 @@ function onDrop(event: DragEvent) {
 
 // FR-062: everything is released when the tab is left or the project is replaced
 onBeforeUnmount(() => {
-    unmounted = true;
     unregisterSink?.();
     overlay.value?.dispose();
     overlay.value = null;

@@ -38,9 +38,7 @@ const emit = defineEmits<{
     showCredits: [];
 }>();
 
-// TODO(002): fixture models can be placed once `store.addFixtureModel` exists (T048, US2), which turns this on.
-const showFixtures = false;
-const categories: AssetCategory[] = showFixtures ? ["fixtures", "stage", "decoration", "shapes"] : ["stage", "decoration", "shapes"];
+const categories: AssetCategory[] = ["fixtures", "stage", "decoration", "shapes"];
 
 const menu = ref<InstanceType<typeof Menu>>();
 const menuItems: MenuItem[] = [{ label: "Asset credits", icon: "pi pi-info-circle", command: () => emit("showCredits") }];

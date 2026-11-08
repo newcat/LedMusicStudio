@@ -1,3 +1,4 @@
+import { Matrix4 } from "three";
 import { v4 as uuidv4 } from "uuid";
 
 import { VisualizationType } from "@/visualization/fixtureVisualization";
@@ -14,7 +15,7 @@ import {
     MODEL_SCALE_MAX,
     MODEL_SCALE_MIN,
 } from "./defaults";
-import { MIN_SCALE } from "./transformMath";
+import { composeLocalRotation, fromMatrix, MIN_SCALE, toMatrix } from "./transformMath";
 import type { CameraPose, CameraPosition, SceneEditorSettings, SceneObject, SceneState, ShapeType, Vec3 } from "./types";
 
 type Rec = Record<string, unknown>;
@@ -155,6 +156,31 @@ function sanitizeFixtureModel(obj: Rec, raw: Rec, ctx: SanitizeContext) {
     }
 }
 
+/**
+ * Research R3 / T042: 001 spots emitted along local −Y, models now emit along local +Y. A spot saved by 001 is
+ * turned by 180° about its local X axis so the beam keeps pointing where it did. Its children get the inverse turn
+ * (Rx(180°) is its own inverse), so they keep their world transform. Silent conversion, no problem message.
+ */
+function reorientLegacySpots(objects: Record<string, SceneObject>, spotIds: string[]) {
+    const flip = new Matrix4().makeRotationX(Math.PI);
+    for (const id of spotIds) {
+        const spot = objects[id];
+        if (!spot) {
+            continue;
+        }
+        spot.rotation = composeLocalRotation(spot.rotation, "x", 180);
+        for (const childId of spot.children) {
+            const child = objects[childId];
+            if (child) {
+                const t = fromMatrix(flip.clone().multiply(toMatrix(child)));
+                child.position = t.position;
+                child.rotation = t.rotation;
+                child.scale = t.scale;
+            }
+        }
+    }
+}
+
 /** Sanitizes fields common to all kinds, keeps every other property as it is. */
 function sanitizeObject(id: string, raw: Rec, ctx: SanitizeContext): SceneObject {
     const problems = ctx.problems;
@@ -289,6 +315,8 @@ function sanitizeSceneUnsafe(raw: unknown, ctx: SanitizeContext): SceneState {
             }
         }
     }
+
+    reorientLegacySpots(objects, ctx.legacySpotIds);
 
     // imported models need their asset
     for (const obj of Object.values(objects)) {

@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-import { modelLibrary } from "../../modelLibrary";
+import type { FixtureBody } from "@/assetLibrary/fixtureBody";
 import { BaseRenderer, RendererInputs } from "../base.renderer";
 import { MovingHeadVisualizationConfig } from "./movingHead.visualizationConfig";
 
@@ -16,17 +16,31 @@ const SPOTLIGHT_PHYSICALLY_CORRECT_PENUMBRA = 1.2;
 const BEAM_RESOLUTION = 100;
 const BEAM_SEGMENTS = 1;
 const BEAM_LENGTH = 100;
-const BEAM_TOP_RADIUS = 0.09;
-// const BEAM_MAX_ANGLE = 45;
+/** Used until the body (and with it the model's lens radius) is ready. */
+const DEFAULT_LENS_RADIUS = 0.06;
+/** Emitter output factor, so a full color blooms. */
+const EMITTER_GAIN = 4;
 
 function degToRad(degAngle: number) {
     return degAngle * (Math.PI / 180);
 }
 
+/** Open cylinder whose bottom ring (geometry −Y) has the lens radius; the shader widens the +Y ring. */
+function createBeamGeometry(lensRadius: number): THREE.CylinderGeometry {
+    const geometry = new THREE.CylinderGeometry(lensRadius, lensRadius, BEAM_LENGTH, BEAM_RESOLUTION, BEAM_SEGMENTS, true);
+    const verticesIndexBuffer = [];
+    for (let i = 0; i < geometry.attributes.position.count; i++) {
+        verticesIndexBuffer[i] = i;
+    }
+    geometry.setAttribute("index", new THREE.BufferAttribute(new Float32Array(verticesIndexBuffer), 1).setUsage(THREE.StaticDrawUsage));
+    return geometry;
+}
+
+/**
+ * Moving head on top of the fixture model contract (feature 002, research R7): the body comes from the model,
+ * pan and tilt drive its pan/tilt nodes, and beam, cap and SpotLight hang on its beam anchor (local +Z = beam).
+ */
 export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConfig, number[]> {
-    private readonly base: THREE.Mesh;
-    private readonly head: THREE.Mesh;
-    private readonly yoke: THREE.Mesh;
     private readonly beam;
     private readonly cap;
     private readonly target = new THREE.Object3D();
@@ -35,16 +49,12 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
     private readonly spotlight: THREE.SpotLight;
     private beamMaterial!: THREE.ShaderMaterial;
 
-    private config!: MovingHeadVisualizationConfig;
+    private config?: MovingHeadVisualizationConfig;
     private previousValues?: number[];
+    private modelScale = 1;
 
     public constructor(inputs: RendererInputs) {
         super(inputs);
-
-        const model = modelLibrary.getModel("MovingHead").children[0].clone();
-        this.base = model.getObjectByName("base_001")! as THREE.Mesh;
-        this.yoke = model.getObjectByName("yoke_001")! as THREE.Mesh;
-        this.head = model.getObjectByName("head_001")! as THREE.Mesh;
 
         this.spotlight = new THREE.SpotLight(
             0xffffff,
@@ -54,25 +64,32 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
             SPOTLIGHT_PHYSICALLY_CORRECT_PENUMBRA,
             SPOTLIGHT_PHYSICALLY_CORRECT_DECAY
         );
-        this.spotlight.applyMatrix4(new THREE.Matrix4().makeTranslation(0, -0.73, 0));
-
-        this.target.translateY(10);
+        // along the anchor's +Z
+        this.target.position.set(0, 0, 10);
+        this.spotlight.target = this.target;
 
         this.beam = this.getBeam();
         this.cap = this.getCap();
+    }
 
-        this.base.attach(this.yoke);
-        this.yoke.attach(this.head);
-        this.head.attach(this.beam);
-        this.head.attach(this.cap);
-        this.head.attach(this.spotlight);
-        this.head.attach(this.target);
-        this.spotlight.target = this.target;
+    public override onModelUpdate(modelId: string, modelScale: number): void {
+        this.modelScale = modelScale;
+        this.body?.setModelScale(modelScale);
+        this.loadBody(modelId);
+    }
 
-        this.add(this.base);
-
-        this.yoke.rotateY(Math.PI / 4);
-        this.head.rotateX(Math.PI / 4);
+    protected override onBodyReady(body: FixtureBody): void {
+        body.setModelScale(this.modelScale);
+        const lensRadius = body.definition.fixture.lensRadius;
+        this.beamMaterial.uniforms.topRadius.value = lensRadius;
+        if (this.beam.geometry.parameters.radiusBottom !== lensRadius) {
+            this.beam.geometry.dispose();
+            this.beam.geometry = createBeamGeometry(lensRadius);
+        }
+        this.cap.scale.setScalar(lensRadius / DEFAULT_LENS_RADIUS);
+        body.beamAnchor.add(this.beam, this.cap, this.spotlight, this.target);
+        this.add(body);
+        this.onFixtureValueUpdate(this.previousValues ?? []);
     }
 
     public onConfigUpdate(c: MovingHeadVisualizationConfig): void {
@@ -82,25 +99,30 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
     }
 
     public onFixtureValueUpdate(v: number[]): void {
+        this.previousValues = v;
+        if (!this.config) {
+            return;
+        }
         const pan = getChannelValue(this.config.channelMapping.pan, v);
         const tilt = getChannelValue(this.config.channelMapping.tilt, v);
         const beamAngle = getChannelValue(this.config.channelMapping.beamAngle, v);
-        const red = getChannelValue(this.config.channelMapping.red, v);
-        const green = getChannelValue(this.config.channelMapping.green, v);
-        const blue = getChannelValue(this.config.channelMapping.blue, v);
+        const red = getChannelValue(this.config.channelMapping.red, v) / 255;
+        const green = getChannelValue(this.config.channelMapping.green, v) / 255;
+        const blue = getChannelValue(this.config.channelMapping.blue, v) / 255;
 
-        this.yoke.rotation.y = degToRad(pan);
-        this.head.rotation.x = degToRad(tilt);
-
-        this.spotlight.color.setRGB(red / 255, green / 255, blue / 255);
-        this.beamMaterial.uniforms.color.value = new THREE.Color(red / 255, green / 255, blue / 255);
-        this.cap.material.color.setRGB(red / 255, green / 255, blue / 255);
-        this.cap.material.emissive.setRGB(red / 255, green / 255, blue / 255);
+        this.spotlight.color.setRGB(red, green, blue);
+        (this.beamMaterial.uniforms.color.value as THREE.Color).setRGB(red, green, blue);
+        this.cap.material.color.setRGB(red, green, blue);
+        this.cap.material.emissive.setRGB(red, green, blue);
 
         this.spotlight.angle = degToRad(beamAngle);
         this.beamMaterial.uniforms.angle.value = new THREE.Vector3(beamAngle, 0, 0);
 
-        this.previousValues = v;
+        // until the body is ready the values are only stored; onBodyReady applies them
+        if (this.body) {
+            this.body.setPanTilt(pan, tilt);
+            this.body.setEmitterColor("all", red * EMITTER_GAIN, green * EMITTER_GAIN, blue * EMITTER_GAIN);
+        }
     }
 
     public override getSurfaceLight(): THREE.Light {
@@ -118,6 +140,10 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
     }
 
     public override dispose(): void {
+        this.beam.removeFromParent();
+        this.cap.removeFromParent();
+        this.spotlight.removeFromParent();
+        this.target.removeFromParent();
         this.beam.geometry.dispose();
         this.beamMaterial.dispose();
         this.cap.geometry.dispose();
@@ -128,16 +154,7 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
 
     private getBeam() {
         const beamLength = BEAM_LENGTH;
-        const beamGeometry = new THREE.CylinderGeometry(BEAM_TOP_RADIUS, BEAM_TOP_RADIUS, beamLength, BEAM_RESOLUTION, BEAM_SEGMENTS, true);
-
-        const verticesIndexBuffer = [];
-        for (let i = 0; i < beamGeometry.attributes.position.count; i++) {
-            verticesIndexBuffer[i] = i;
-        }
-        beamGeometry.setAttribute(
-            "index",
-            new THREE.BufferAttribute(new Float32Array(verticesIndexBuffer), 1).setUsage(THREE.StaticDrawUsage)
-        );
+        const beamGeometry = createBeamGeometry(DEFAULT_LENS_RADIUS);
 
         const cameraDir = new THREE.Vector3();
         const cameraPos = new THREE.Vector3();
@@ -168,7 +185,7 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
                     value: beamGeometry.attributes.position.count,
                 },
                 topRadius: {
-                    value: BEAM_TOP_RADIUS,
+                    value: DEFAULT_LENS_RADIUS,
                 },
                 len: {
                     value: beamLength,
@@ -211,22 +228,23 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
         beamMesh.raycast = () => undefined;
         beamMesh.userData.excludeFromBounds = true;
 
-        // beamMesh.rotateX(Math.PI);
-        beamMesh.translateY(beamGeometry.parameters.height / 2 + 0.73);
+        // The shader widens the cylinder in its geometry space (+Y end), so the geometry stays untouched and the mesh
+        // is turned instead: +90 degrees about X puts the cylinder axis on the anchor's +Z, starting at the lens.
+        beamMesh.rotation.x = Math.PI / 2;
+        beamMesh.position.z = beamGeometry.parameters.height / 2;
 
         return beamMesh;
     }
 
     private getCap() {
-        const capGeometry = new THREE.CircleGeometry(BEAM_TOP_RADIUS, 40);
+        // at the anchor origin, facing +Z (the beam direction); scaled to the model's lens radius in onBodyReady
+        const capGeometry = new THREE.CircleGeometry(DEFAULT_LENS_RADIUS, 40);
         const capMaterial = new THREE.MeshStandardMaterial({
             side: THREE.DoubleSide,
             emissive: 0xffffff,
             emissiveIntensity: 10.0,
         });
 
-        capGeometry.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0, 0.73));
-        capGeometry.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
 
         const capMesh = new THREE.Mesh(capGeometry, capMaterial);
         return capMesh;

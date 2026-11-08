@@ -32,8 +32,10 @@ import type { MenuItem } from "primevue/menuitem";
 import { useFocusWithin } from "@vueuse/core";
 
 import { activeStageTab, selectedFixtureId, STAGE_TAB_FIXTURES } from "@/views/stageViewState";
+import { useStage } from "@/stage/stage";
 import type { VisualizationType } from "@/visualization/fixtureVisualization";
 import { useScene } from "../sceneStore";
+import { modelScaleForFixture, preselectionOf } from "../fixtureModels";
 import { isFixtureVisualization } from "../model/types";
 import EditorToolbar, { type AddKind } from "./EditorToolbar.vue";
 import Outliner from "./Outliner.vue";
@@ -46,6 +48,7 @@ import { importModelFile } from "./modelImport";
 import { useEditorShortcuts } from "./useEditorShortcuts";
 
 const store = useScene();
+const stage = useStage();
 
 const root = ref<HTMLElement>();
 const viewport = ref<InstanceType<typeof Viewport>>();
@@ -122,9 +125,13 @@ function onAdd(kind: AddKind) {
     }
 }
 
-function addFixtureVisualization(fixtureId: string, type: VisualizationType) {
+/** The scale comes from the preselection for the mapped model, otherwise it is recomputed for the chosen one. */
+function addFixtureVisualization(fixtureId: string, type: VisualizationType, modelId: string) {
     const hit = overlay.value?.getLastSurfaceHit();
-    store.addFixtureVisualization(fixtureId, type, hit ? { position: hit.point } : undefined);
+    const fixture = stage.fixtures.get(fixtureId);
+    const preselection = preselectionOf(fixture);
+    const modelScale = preselection?.modelId === modelId ? preselection.modelScale : modelScaleForFixture(fixture, modelId);
+    store.addFixtureVisualization(fixtureId, type, hit ? { position: hit.point } : undefined, { modelId, modelScale });
 }
 
 /** Double-click / Enter on a library tile: the surface point in the viewport center, the origin if nothing is hit. */

@@ -55,6 +55,25 @@ export function fromMatrix(matrix: Matrix4): LocalTransform {
     };
 }
 
+const AXIS_VECTOR: Record<"x" | "y" | "z", Vector3> = {
+    x: new Vector3(1, 0, 0),
+    y: new Vector3(0, 1, 0),
+    z: new Vector3(0, 0, 1),
+};
+
+/**
+ * Euler XYZ (degrees, normalized to (−180, 180]) of `q(rotation) × q(axis, angle)`, i.e. `rotationDeg` followed by
+ * a rotation about the object's own (local) `axis` (feature 002, research R3).
+ */
+export function composeLocalRotation(rotationDeg: Vec3, axis: "x" | "y" | "z", angleDeg: number): Vec3 {
+    const q = new Quaternion().setFromEuler(
+        new Euler(MathUtils.degToRad(rotationDeg[0]), MathUtils.degToRad(rotationDeg[1]), MathUtils.degToRad(rotationDeg[2]), "XYZ")
+    );
+    q.multiply(new Quaternion().setFromAxisAngle(AXIS_VECTOR[axis], MathUtils.degToRad(angleDeg)));
+    const e = new Euler().setFromQuaternion(q, "XYZ");
+    return [round(normalizeAngle(MathUtils.radToDeg(e.x))), round(normalizeAngle(MathUtils.radToDeg(e.y))), round(normalizeAngle(MathUtils.radToDeg(e.z)))];
+}
+
 export function getWorldMatrix(scene: SceneObjects, id: string): Matrix4 {
     const chain: SceneObject[] = [];
     const seen = new Set<string>();

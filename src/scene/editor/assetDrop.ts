@@ -48,9 +48,6 @@ export function getCurrentDragAssetId(): string | null {
     return currentDragAssetId;
 }
 
-// TODO(002): fixture models are placed by `store.addFixtureModel` (T048, US2); until then the panel hides fixtures.
-type FixtureModelAdder = (assetId: string, placement?: SurfacePlacement | null) => string | null;
-
 /**
  * Adds a library asset through store commands only (FR-003): shapes become 001 shape objects, fixture models become
  * unlinked fixture visualizations and everything else a `libraryAsset`. Every command selects the new object.
@@ -64,12 +61,7 @@ export function addAssetById(store: SceneStore, assetId: string, placement: Surf
         return store.addShape(definition.source.shape, placement);
     }
     if (definition.category === "fixtures") {
-        const addFixtureModel = (store as unknown as { addFixtureModel?: FixtureModelAdder }).addFixtureModel;
-        if (!addFixtureModel) {
-            console.warn(`[asset-library] fixture models cannot be placed yet (${assetId})`);
-            return null;
-        }
-        return addFixtureModel(definition.id, placement);
+        return store.addFixtureModel(definition.id, placement);
     }
     if (snap) {
         return store.addLibraryAsset(definition.id, placement, snap.transform, snap.parentId);
