@@ -170,14 +170,14 @@ It runs in three places:
 |---|---|---|
 | Moving Head | Moving Head | `fixture.moving-head-spot`; `fixture.moving-head-wash` if the fixture name contains "wash" or `lens.degreesMinMax[1] ≥ 25` |
 | Scanner, Barrel Scanner | Moving Head | `fixture.scanner` |
-| Color Changer, Dimmer | Spot | `fixture.par-can`; `fixture.wash-fresnel` if the name contains "wash" or "fresnel"; `fixture.profile-spot` if it contains "profile", "ellipsoidal" or "leko"; `fixture.led-bar` if `matrix.pixelCount` has more than one pixel |
+| Color Changer, Dimmer | Spot | `fixture.par-can`; `fixture.wash-fresnel` if the name contains "wash" or "fresnel"; `fixture.profile-spot` if it contains "profile", "ellipsoidal", "leko" or "source four"; `fixture.led-bar` if `matrix.pixelCount` has more than one pixel or the name contains "bar" or "batten" |
 | Pixel Bar | Generic | `fixture.pixel-bar` |
 | Matrix | Generic | `fixture.led-panel` |
 | Strobe | Generic | `fixture.strobe` |
 | Blinder | Generic | `fixture.blinder` |
 | Laser | Generic | `fixture.laser` |
 | Smoke, Hazer | Generic | `fixture.fog-machine` |
-| Effect, Flower, Fan, Stand, Other | Generic | `fixture.generic`; the name decides `fixture.flame-projector` ("flame", "fire"), `fixture.co2-jet` ("co2", "cryo"), `fixture.cold-spark` ("spark", "sparkular") |
+| Effect, Flower, Fan, Stand, Other | Generic | `fixture.generic`; the name decides `fixture.flame-projector` ("flame", "fire", "gasprojector"), `fixture.co2-jet` ("co2", "cryo"), `fixture.cold-spark` ("spark", "sparkular"), then `fixture.led-bar` ("bar") and `fixture.par-can` ("par") |
 | none / unmapped | Generic | `fixture.generic` |
 
 Name matching is case-insensitive on `definition.name`. **Dimensions**: `mode.physical ?? definition.physical`, `dimensions = [width, height, depth]` in mm. They are used only if all three are between 30 mm and 3000 mm. In that case `modelScale = clamp(median(dim_i / 1000 / defaultSize_i), 0.25, 4)`; otherwise `modelScale = 1` (spec edge case). Then **Reset to model size** in the inspector sets `modelScale = 1`. The default channel mapping ranges for pan and tilt come from the model's `movingParts` limits when the visualization is created.

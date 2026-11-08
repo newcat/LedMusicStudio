@@ -11,6 +11,7 @@ import Button from "primevue/button";
 import SelectButton from "primevue/selectbutton";
 import ToggleSwitch from "primevue/toggleswitch";
 import { LedStripLighting } from "@/visualization/ledLitMaterial";
+import CategoryMapping from "./CategoryMapping.vue";
 import {
     AssetCache,
     assetCatalog,
@@ -29,6 +30,7 @@ import {
 } from "@/assetLibrary";
 
 type ParamMode = "min" | "default" | "max";
+type Tab = "Assets" | "Category mapping";
 type Status = "pending" | "ok" | "warning" | "error";
 
 interface Row {
@@ -59,6 +61,8 @@ const selectedDef = computed(() => (selectedId.value ? assetCatalog.get(selected
 const selectedRow = computed(() => rows.value.find((r) => r.id === selectedId.value));
 const errorCount = computed(() => rows.value.reduce((n, r) => n + r.issues.filter((i) => i.severity === "error").length, 0));
 const paramModes: ParamMode[] = ["min", "default", "max"];
+const tabs: Tab[] = ["Assets", "Category mapping"];
+const tab = ref<Tab>("Assets");
 
 // ---------------------------------------------------------------------------------------------------------------
 // Three.js state (kept outside Vue reactivity)
@@ -492,21 +496,25 @@ const STATUS_CLASS: Record<Status, string> = {
         </aside>
         <main class="flex min-w-0 flex-1 flex-col">
             <div class="flex items-center gap-4 border-b border-gray-700 p-2">
-                <span class="font-semibold">{{ selectedDef?.name ?? "No asset selected" }}</span>
-                <SelectButton
-                    v-if="selectedDef?.source.type === 'parametric'"
-                    v-model="paramMode"
-                    :options="paramModes"
-                    :allow-empty="false"
-                    size="small"
-                />
-                <label v-if="selectedDef?.category === 'fixtures'" class="flex items-center gap-2">
-                    <ToggleSwitch v-model="sweep" />
-                    Sweep
-                </label>
+                <SelectButton v-model="tab" :options="tabs" :allow-empty="false" size="small" />
+                <template v-if="tab === 'Assets'">
+                    <span class="font-semibold">{{ selectedDef?.name ?? "No asset selected" }}</span>
+                    <SelectButton
+                        v-if="selectedDef?.source.type === 'parametric'"
+                        v-model="paramMode"
+                        :options="paramModes"
+                        :allow-empty="false"
+                        size="small"
+                    />
+                    <label v-if="selectedDef?.category === 'fixtures'" class="flex items-center gap-2">
+                        <ToggleSwitch v-model="sweep" />
+                        Sweep
+                    </label>
+                </template>
             </div>
-            <div ref="canvasHost" class="relative min-h-0 flex-1"></div>
-            <div class="h-40 shrink-0 overflow-auto border-t border-gray-700 p-2">
+            <CategoryMapping v-if="tab === 'Category mapping'" class="min-h-0 flex-1" />
+            <div v-show="tab === 'Assets'" ref="canvasHost" class="relative min-h-0 flex-1"></div>
+            <div v-show="tab === 'Assets'" class="h-40 shrink-0 overflow-auto border-t border-gray-700 p-2">
                 <div v-if="!selectedRow">-</div>
                 <div v-else-if="selectedRow.status === 'pending'" class="text-gray-400">Validating…</div>
                 <div v-else-if="selectedRow.issues.length === 0" class="text-green-400">No issues.</div>

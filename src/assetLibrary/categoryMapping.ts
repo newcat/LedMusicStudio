@@ -28,9 +28,12 @@ function nameHas(input: MappingInput, ...words: string[]): boolean {
 }
 
 function effectModel(input: MappingInput): string {
-    if (nameHas(input, "flame", "fire")) return "fixture.flame-projector";
+    if (nameHas(input, "flame", "fire", "gasprojector")) return "fixture.flame-projector";
     if (nameHas(input, "co2", "cryo")) return "fixture.co2-jet";
     if (nameHas(input, "spark", "sparkular")) return "fixture.cold-spark";
+    // light sets on a stand ("GigBAR", "Compact LED Bar") and par-type effects ("COREpar UV"); after "spark", which contains "par"
+    if (nameHas(input, "bar")) return "fixture.led-bar";
+    if (nameHas(input, "par")) return "fixture.par-can";
     return "fixture.generic";
 }
 
@@ -63,8 +66,8 @@ const RULES: Partial<Record<OflCategory, CategoryRule>> = {
 };
 
 function colorChangerModel(input: MappingInput): string {
-    if (input.pixelCount > 1) return "fixture.led-bar";
-    if (nameHas(input, "profile", "ellipsoidal", "leko")) return "fixture.profile-spot";
+    if (input.pixelCount > 1 || nameHas(input, "bar", "batten")) return "fixture.led-bar";
+    if (nameHas(input, "profile", "ellipsoidal", "leko", "source four")) return "fixture.profile-spot";
     if (nameHas(input, "wash", "fresnel")) return "fixture.wash-fresnel";
     return "fixture.par-can";
 }
