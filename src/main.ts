@@ -55,6 +55,15 @@ async function main() {
         .mount("#app");
 
     window.dispatchEvent(new Event("app-loaded"));
+
+    if (import.meta.env.DEV) {
+        // feature 002: catalog metadata check; missing preview files are reported by the asset workbench
+        void import("@/assetLibrary").then(({ assetCatalog, validateCatalogMetadata }) => {
+            for (const issue of validateCatalogMetadata(assetCatalog)) {
+                console.error("[asset-library]", issue);
+            }
+        });
+    }
 }
 
 void main();

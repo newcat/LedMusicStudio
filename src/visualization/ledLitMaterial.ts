@@ -141,12 +141,26 @@ export interface LedLitMaterialParams {
     transparent?: boolean;
     opacity?: number;
     side?: THREE.Side;
+    /** Fabric look. `sheenColor` defaults to `color`, `sheenRoughness` to 0.8. */
+    sheen?: number;
+    sheenColor?: THREE.ColorRepresentation;
+    sheenRoughness?: number;
+    /** Glossy plastic look. `clearcoatRoughness` defaults to 0.1. */
+    clearcoat?: number;
+    clearcoatRoughness?: number;
 }
 
 export type LedLitMaterial = CustomShaderMaterial<typeof THREE.MeshPhysicalMaterial>;
 
 export function createLedLitMaterial(lighting: LedStripLighting, params: LedLitMaterialParams = {}): LedLitMaterial {
-    const defined = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined));
+    const defined: Record<string, unknown> = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined));
+    if (params.sheen) {
+        defined.sheenColor ??= params.color ?? 0xffffff;
+        defined.sheenRoughness ??= 0.8;
+    }
+    if (params.clearcoat) {
+        defined.clearcoatRoughness ??= 0.1;
+    }
     return new CustomShaderMaterial<typeof THREE.MeshPhysicalMaterial>({
         baseMaterial: THREE.MeshPhysicalMaterial,
         uniforms: lighting.uniforms,

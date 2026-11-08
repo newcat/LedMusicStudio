@@ -51,7 +51,7 @@ description: "Task list for feature 002: Asset Library & Model Contract"
 
 ### Catalog runtime
 
-- [ ] T004 [P] Create `src/assetLibrary/builders/kit.ts`, which implements `BuilderKit` (contracts/asset-catalog.ts):
+- [X] T004 [P] Create `src/assetLibrary/builders/kit.ts`, which implements `BuilderKit` (contracts/asset-catalog.ts):
   - `box(size, slot, { bevel })`: `BoxGeometry`, or a beveled box made from `ExtrudeGeometry` of a rounded rectangle when `bevel > 0`. Centered on x/z, bottom at y = 0.
   - `cylinder(rTop, rBottom, height, slot, segments = 16)`: bottom at y = 0.
   - `tube(from, to, radius, slot)`: a 12-segment cylinder oriented from `from` to `to`.
@@ -59,41 +59,41 @@ description: "Task list for feature 002: Asset Library & Model Contract"
   - `group(name, ...children)`: a named group.
   - `mergeBySlot(root, keep = [])`: updates world matrices, then collects every mesh that is **not** inside a subtree whose root name is in `keep`. Geometries are baked to the root frame, grouped by `userData.slot` and merged with `mergeGeometries` from `three/examples/jsm/utils/BufferGeometryUtils` (convert to non-indexed first if index presence differs). The result is one mesh per slot, named `slot:<slot>`, with `userData.slot` set. Kept subtrees are re-attached unchanged under the new root, keeping their transforms. Each kept subtree is also merged per slot internally, except for nested kept nodes.
   - Every mesh the kit creates has `userData.slot = slot` and a placeholder `MeshStandardMaterial` (the slot color is applied later by the asset cache).
-- [ ] T005 [P] Create `src/assetLibrary/materials.ts`:
+- [X] T005 [P] Create `src/assetLibrary/materials.ts`:
   - `MATERIAL_PRESETS: Record<MaterialPresetId, MaterialPreset>` with exactly these values (research R14): `stage-floor-black` "Black stage floor" #141414 roughness 0.85 metalness 0; `wood` "Wood" #8a5a35 0.6 0; `metal-brushed` "Brushed metal" #b8bcc2 0.35 1; `fabric-black` "Black fabric" #0e0e0e 1 0 sheen 1; `fabric-white` "White fabric" #e8e8e8 1 0 sheen 1; `concrete` "Concrete" #8d8d8a 0.95 0; `plastic-glossy` "Glossy plastic" #d0d0d0 0.25 0 clearcoat 1.
   - `DEFAULT_SLOT_STYLE: Record<string, { color; roughness; metalness }>` for the standard slots `body` (#1c1c1c, 0.7, 0), `accent` (#3a3a3a, 0.5, 0), `metal` (#9a9ea4, 0.4, 1), `fabric` (#111111, 1, 0), `glass` (#202830, 0.1, 0), `screen` (#05070a, 0.3, 0); unknown slots use `body`.
   - `isMaterialPresetId(v): v is MaterialPresetId`.
   - `resolveSlotStyle(definition, slot, { material, color, variant })`, which applies, in this order: the default slot style, the definition's variant colors (`variants[].slots`), the material preset (replaces the **`body`** slot's color, roughness, metalness, sheen and clearcoat), and the `color` override (body slot color only).
-- [ ] T006 [P] Extend `LedLitMaterialParams` in `src/visualization/ledLitMaterial.ts` with `sheen?: number`, `sheenColor?: THREE.ColorRepresentation`, `sheenRoughness?: number`, `clearcoat?: number` and `clearcoatRoughness?: number`, all passed through to `MeshPhysicalMaterial` by `createLedLitMaterial` (fabric: `sheenColor` = base color, `sheenRoughness` 0.8; plastic: `clearcoatRoughness` 0.1)
-- [ ] T007 Create `src/assetLibrary/catalog.ts` with an `AssetCatalog` implementation built from the arrays exported by `catalog/fixtures.ts`, `catalog/stage.ts`, `catalog/decoration.ts` and `catalog/shapes.ts` (create these four files with empty exported arrays `FIXTURE_ASSETS`, `STAGE_ASSETS`, `DECORATION_ASSETS`, `SHAPE_ASSETS`):
+- [X] T006 [P] Extend `LedLitMaterialParams` in `src/visualization/ledLitMaterial.ts` with `sheen?: number`, `sheenColor?: THREE.ColorRepresentation`, `sheenRoughness?: number`, `clearcoat?: number` and `clearcoatRoughness?: number`, all passed through to `MeshPhysicalMaterial` by `createLedLitMaterial` (fabric: `sheenColor` = base color, `sheenRoughness` 0.8; plastic: `clearcoatRoughness` 0.1)
+- [X] T007 Create `src/assetLibrary/catalog.ts` with an `AssetCatalog` implementation built from the arrays exported by `catalog/fixtures.ts`, `catalog/stage.ts`, `catalog/decoration.ts` and `catalog/shapes.ts` (create these four files with empty exported arrays `FIXTURE_ASSETS`, `STAGE_ASSETS`, `DECORATION_ASSETS`, `SHAPE_ASSETS`):
   - `all()` in category order fixtures, stage, decoration, shapes;
   - `get(id)`;
   - `search(query)`: lower-case, split on whitespace, every word must be a substring of `name + " " + category + " " + keywords.join(" ")`; an empty query returns all;
   - `modelsFor(type)`: fixture definitions whose `fixture.visualizationTypes` include `type` and whose id is not in the runtime blocklist (`markInvalid(id)`, research R10, point 3);
   - `defaultModelFor(type)`: Moving Head → `fixture.moving-head-spot`, Spot → `fixture.par-can`, Generic Fixture → `fixture.generic`, Led Strip → `fixture.led-profile`, falling back to `fixture.generic` if the id is not (yet) registered.
   - Throw at module load in DEV if two definitions share an id. Export a singleton `assetCatalog`.
-- [ ] T008 Create `src/assetLibrary/assetCache.ts`, with one instance per `SceneView`:
+- [X] T008 Create `src/assetLibrary/assetCache.ts`, with one instance per `SceneView`:
   - `templateKey(assetId, params, variant, material, color)` → string (params sorted by key).
   - `acquire(key spec, userId): Promise<THREE.Object3D | null>`. For `procedural` it calls `build(kit)`; for `parametric`, `build(params, kit)` with the params completed and clamped by `completeParams` (T010); for `glb`, `fetch(source.file)` (relative to the app base, exactly like the old `modelLibrary.ts`) and parses it with `GLTFLoader.parseAsync`, caching the parsed scene per file. `shape` sources are not handled here.
   - Then it replaces the materials: every mesh gets an LED-lit material (`createLedLitMaterial(lighting, …)`) from `resolveSlotStyle` for its slot (for GLB meshes, slot = material name; if the GLB material has a texture map, use `convertToLedLit` and only recolor when a variant or color override applies). Materials are shared per slot within one template.
   - The template is cached and reference-counted by `userId`. `release(key, userId)` disposes geometry and materials when the last user goes away. Concurrent `acquire` calls share one promise. `getSync(key)` returns a ready template or `undefined`. `dispose()` frees everything.
   - Failed loads resolve to `null` and log `console.error`; the caller shows a placeholder.
-- [ ] T009 [P] Add `instantiate(template): THREE.Object3D` to `src/assetLibrary/assetCache.ts`. It returns `template.clone(true)`, which shares geometry and materials, with `userData.sharedResources = true` on the clone root (the flag that `objectBuilders.disposeObject3D` and `SceneView.clearModelContent` already respect)
-- [ ] T010 [P] Create `src/assetLibrary/params.ts`:
+- [X] T009 [P] Add `instantiate(template): THREE.Object3D` to `src/assetLibrary/assetCache.ts`. It returns `template.clone(true)`, which shares geometry and materials, with `userData.sharedResources = true` on the clone root (the flag that `objectBuilders.disposeObject3D` and `SceneView.clearModelContent` already respect)
+- [X] T010 [P] Create `src/assetLibrary/params.ts`:
   - `completeParams(definition, raw): ParamValues` returns `{}` for non-parametric sources. For parametric sources it returns every `ParamSpec` key: numbers clamped to `[min, max]` and rounded to `step`; choices limited to the listed option values, otherwise the default; missing keys get `default`; unknown keys are dropped (data-model invariant 3).
   - `sizeOf(definition, params): Vec3` returns `source.size(completeParams(...))` for parametric sources, otherwise `defaultSize`. Each component is at least 0.01.
   - Export both from `index.ts`.
 
 ### Validator and workbench
 
-- [ ] T011 Create `src/assetLibrary/validate.ts` with `validateAsset(definition, template?) → ValidationIssue[]`, which implements every check in research R10:
+- [X] T011 Create `src/assetLibrary/validate.ts` with `validateAsset(definition, template?) → ValidationIssue[]`, which implements every check in research R10:
   - **Metadata**: id matches `ASSET_ID_PATTERN` and starts with the category prefix (`fixture.`, `stage.`, `decoration.`, `shape.`); non-empty name; at least one keyword; `preview === "asset-library/previews/" + id + ".webp"`; credits complete; license in `ALLOWED_LICENSES`; `madeForProject` ⇒ `GPL-3.0-or-later`; `fixture` present if and only if `category === "fixtures"`.
   - **Geometry** (only with `template`): the bounding box (ignoring objects with `userData.excludeFromBounds`) matches `defaultSize` per axis within "±15 % … at least 2 cm tolerance"; the lowest point is at "y = 0 ± 1 cm"; the size is between 5 cm and 20 m; triangle count is within the budget (see Conventions).
   - **Fixture contract**: every `node` named in `movingParts`, `beam`, `emitters` and `mountingPoints` exists (`""` = root); tilt is a descendant of pan; `axis` is one of x/y/z and `min < max`; beam `direction` and emitter `normal`/`up` are unit vectors ±1 %; `lensRadius > 0`; emitter ids are unique and there is at least one emitter; at least one mounting point. Role requirements per visualization type: Moving Head needs pan, tilt and beam; Spot needs beam; Generic Fixture needs at least one emitter; Led Strip needs `ledStrip` and a parametric source with a `length` parameter.
   - **Parametric** (with a template factory `buildAt(params)` passed as an optional third argument): builds at min, default and max of every number parameter. Each build's bounding box must match `size(params)` within ±2 %.
   - Also export `validateCatalogMetadata(catalog)`, which runs the metadata checks for all definitions and reports duplicate ids.
-- [ ] T012 Call `validateCatalogMetadata(assetCatalog)` once at startup when `import.meta.env.DEV` is true, in `src/main.ts` (main window only) via a dynamic `import("@/assetLibrary")`, and log each issue with `console.error("[asset-library]", issue)`. Missing preview files cannot be checked synchronously here and are left to the workbench
-- [ ] T013 Implement `src/assetLibrary/workbench/Workbench.vue`, the dev-only page (research R10, point 1; quickstart "Asset gate"):
+- [X] T012 Call `validateCatalogMetadata(assetCatalog)` once at startup when `import.meta.env.DEV` is true, in `src/main.ts` (main window only) via a dynamic `import("@/assetLibrary")`, and log each issue with `console.error("[asset-library]", issue)`. Missing preview files cannot be checked synchronously here and are left to the workbench
+- [X] T013 Implement `src/assetLibrary/workbench/Workbench.vue`, the dev-only page (research R10, point 1; quickstart "Asset gate"):
   - **Left**: a list of all catalog assets with a status dot (green, yellow for warnings, red for errors) and the summary line "<N> assets, <E> errors".
   - **Right**: a Three.js canvas using its own `WebGLRenderer`, `OrbitControls`, `HemisphereLight` plus a directional light, a 1 m grid, and an `AssetCache`. It shows the selected asset (for parametric assets, a "min / default / max" toggle) and the list of its issues. For each asset it runs `validateAsset` with the built template; parametric assets also get `buildAt`. Previews are checked with `fetch(preview, { method: "HEAD" })` (a missing file is an error).
   - **Contract overlay** for fixtures: small axis gizmos at the pan and tilt pivots, an arrow from the beam origin along the beam direction (length 0.5 m), emitter outlines, mounting points as cones along `direction`. For stage elements: mounting areas (lines/rects) and connection points (arrows). Toggle "Sweep" animates pan and tilt between their limits (5 s period) using `FixtureBody` (T015) once it exists.
