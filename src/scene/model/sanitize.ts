@@ -1,12 +1,40 @@
 import { v4 as uuidv4 } from "uuid";
 
 import { VisualizationType } from "@/visualization/fixtureVisualization";
+import { assetCatalog } from "@/assetLibrary/catalog";
+import { isMaterialPresetId } from "@/assetLibrary/materials";
+import { completeParams, sizeOf } from "@/assetLibrary/params";
+import type { ParamValues } from "@/assetLibrary/types";
 import { deserializeAssets } from "./assets";
-import { createDefaultCameraPose, createDefaultScene, createDefaultSettings, defaultShapeDimensions } from "./defaults";
+import {
+    createDefaultCameraPose,
+    createDefaultScene,
+    createDefaultSettings,
+    defaultShapeDimensions,
+    MODEL_SCALE_MAX,
+    MODEL_SCALE_MIN,
+} from "./defaults";
 import { MIN_SCALE } from "./transformMath";
 import type { CameraPose, CameraPosition, SceneEditorSettings, SceneObject, SceneState, ShapeType, Vec3 } from "./types";
 
 type Rec = Record<string, unknown>;
+
+export interface SanitizeResult {
+    scene: SceneState;
+    problems: string[];
+    /** `libraryAsset` objects whose asset is not in the catalog (shown as placeholders). */
+    unknownAssets: number;
+    /** Fixture visualizations whose model id is not in the catalog (shown with the generic body). */
+    unknownModels: number;
+}
+
+interface SanitizeContext {
+    problems: string[];
+    unknownAssets: number;
+    unknownModels: number;
+    /** Spot visualizations saved by 001 (no `modelId`), which need the re-orientation of research R3 (T042). */
+    legacySpotIds: string[];
+}
 
 function isRec(v: unknown): v is Rec {
     return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -71,8 +99,65 @@ function sanitizeColor(v: unknown, fallback: string): string {
     return typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v) ? v : fallback;
 }
 
+function sanitizeNullableColor(v: unknown): string | null {
+    return typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v) ? v : null;
+}
+
+/** Load rule 1 (data-model.md): known assets are fixed, unknown ones keep their values if the types fit. */
+function sanitizeLibraryAsset(obj: Rec, raw: Rec, ctx: SanitizeContext) {
+    if (typeof raw.assetId !== "string") {
+        ctx.problems.push(`Library asset "${String(obj.name)}" is invalid and was converted to a group`);
+        obj.kind = "group";
+        for (const key of ["assetId", "params", "material", "color", "variant", "size"]) {
+            Reflect.deleteProperty(obj, key);
+        }
+        return;
+    }
+    const def = assetCatalog.get(raw.assetId);
+    obj.assetId = raw.assetId;
+    if (def) {
+        obj.params = completeParams(def, isRec(raw.params) ? (raw.params as Partial<ParamValues>) : {});
+        obj.material = isMaterialPresetId(raw.material) && def.supportsMaterial ? raw.material : null;
+        obj.color = sanitizeNullableColor(raw.color);
+        obj.variant = typeof raw.variant === "string" && def.variants?.some((v) => v.id === raw.variant) ? raw.variant : null;
+    } else {
+        ctx.unknownAssets++;
+        obj.params = isRec(raw.params) ? raw.params : {};
+        obj.material = typeof raw.material === "string" ? raw.material : null;
+        obj.color = typeof raw.color === "string" ? raw.color : null;
+        obj.variant = typeof raw.variant === "string" ? raw.variant : null;
+    }
+    const fallbackSize = def ? sizeOf(def, obj.params as ParamValues) : ([0.5, 0.5, 0.5] as Vec3);
+    obj.size = vec3(raw.size, fallbackSize).map((v) => Math.max(0.01, v)) as Vec3;
+}
+
+/** Load rule 2 (data-model.md): `modelId` and `modelScale` of fixture visualizations. */
+function sanitizeFixtureModel(obj: Rec, raw: Rec, ctx: SanitizeContext) {
+    const type = obj.visualizationType as VisualizationType;
+    obj.modelScale = Math.min(MODEL_SCALE_MAX, Math.max(MODEL_SCALE_MIN, num(raw.modelScale, 1)));
+    if (typeof raw.modelId !== "string") {
+        // saved by 001
+        obj.modelId = assetCatalog.defaultModelFor(type).id;
+        if (type === VisualizationType.SPOT) {
+            ctx.legacySpotIds.push(String(obj.id));
+        }
+        return;
+    }
+    const def = assetCatalog.get(raw.modelId);
+    if (!def) {
+        // a newer file: keep the id, the generic body is shown
+        ctx.unknownModels++;
+        obj.modelId = raw.modelId;
+    } else if (def.category !== "fixtures" || !def.fixture.visualizationTypes.includes(type)) {
+        obj.modelId = assetCatalog.defaultModelFor(type).id;
+    } else {
+        obj.modelId = raw.modelId;
+    }
+}
+
 /** Sanitizes fields common to all kinds, keeps every other property as it is. */
-function sanitizeObject(id: string, raw: Rec, problems: string[]): SceneObject {
+function sanitizeObject(id: string, raw: Rec, ctx: SanitizeContext): SceneObject {
+    const problems = ctx.problems;
     const obj: Rec = { ...raw };
     obj.id = id;
     obj.name = typeof raw.name === "string" && raw.name.trim().length > 0 ? raw.name : "Object";
@@ -97,6 +182,7 @@ function sanitizeObject(id: string, raw: Rec, problems: string[]): SceneObject {
         obj.shape = shape;
         obj.dimensions = out;
         obj.color = sanitizeColor(raw.color, "#9e9e9e");
+        obj.material = isMaterialPresetId(raw.material) ? raw.material : null;
     } else if (obj.kind === "fixtureVisualization") {
         obj.fixtureId = typeof raw.fixtureId === "string" ? raw.fixtureId : null;
         if (!Object.values(VisualizationType).includes(raw.visualizationType as VisualizationType) || !isRec(raw.config)) {
@@ -105,7 +191,13 @@ function sanitizeObject(id: string, raw: Rec, problems: string[]): SceneObject {
             delete obj.fixtureId;
             delete obj.visualizationType;
             delete obj.config;
+            delete obj.modelId;
+            delete obj.modelScale;
+        } else {
+            sanitizeFixtureModel(obj, raw, ctx);
         }
+    } else if (obj.kind === "libraryAsset") {
+        sanitizeLibraryAsset(obj, raw, ctx);
     } else if (obj.kind === "importedModel") {
         obj.assetId = typeof raw.assetId === "string" ? raw.assetId : "";
         obj.originalScale = vec3(raw.originalScale, [1, 1, 1]).map((s) => Math.max(MIN_SCALE, s)) as Vec3;
@@ -114,17 +206,19 @@ function sanitizeObject(id: string, raw: Rec, problems: string[]): SceneObject {
 }
 
 /** Tolerant load (data-model.md, validation rule 7). Never throws. */
-export function sanitizeScene(raw: unknown): { scene: SceneState; problems: string[] } {
-    const problems: string[] = [];
+export function sanitizeScene(raw: unknown): SanitizeResult {
+    const ctx: SanitizeContext = { problems: [], unknownAssets: 0, unknownModels: 0, legacySpotIds: [] };
     try {
-        return sanitizeSceneUnsafe(raw, problems);
+        const scene = sanitizeSceneUnsafe(raw, ctx);
+        return { scene, problems: ctx.problems, unknownAssets: ctx.unknownAssets, unknownModels: ctx.unknownModels };
     } catch (err) {
-        problems.push(`Scene could not be read: ${err instanceof Error ? err.message : String(err)}`);
-        return { scene: createDefaultScene(), problems };
+        ctx.problems.push(`Scene could not be read: ${err instanceof Error ? err.message : String(err)}`);
+        return { scene: createDefaultScene(), problems: ctx.problems, unknownAssets: 0, unknownModels: 0 };
     }
 }
 
-function sanitizeSceneUnsafe(raw: unknown, problems: string[]): { scene: SceneState; problems: string[] } {
+function sanitizeSceneUnsafe(raw: unknown, ctx: SanitizeContext): SceneState {
+    const problems = ctx.problems;
     const r = isRec(raw) ? raw : {};
     const { assets, problems: assetProblems } = deserializeAssets(r.assets);
     problems.push(...assetProblems);
@@ -137,7 +231,7 @@ function sanitizeSceneUnsafe(raw: unknown, problems: string[]): { scene: SceneSt
             continue;
         }
         const id = typeof value.id === "string" && value.id.length > 0 ? value.id : key;
-        objects[id] = sanitizeObject(id, value, problems);
+        objects[id] = sanitizeObject(id, value, ctx);
     }
 
     // missing parents -> root objects, cycles broken
@@ -234,5 +328,5 @@ function sanitizeSceneUnsafe(raw: unknown, problems: string[]): { scene: SceneSt
         settings: sanitizeSettings(r.settings),
         assets,
     };
-    return { scene, problems };
+    return scene;
 }

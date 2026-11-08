@@ -1,8 +1,9 @@
 import * as THREE from "three";
 
-import type { SceneObject, ShapeObject } from "@/scene/model/types";
-import { isShape } from "@/scene/model/types";
-import { createLedLitMaterial, LedStripLighting } from "./ledLitMaterial";
+import type { SceneObject, ShapeObject, Vec3 } from "@/scene/model/types";
+import { isLibraryAsset, isShape } from "@/scene/model/types";
+import { MATERIAL_PRESETS } from "@/assetLibrary/materials";
+import { createLedLitMaterial, LedStripLighting, type LedLitMaterialParams } from "./ledLitMaterial";
 
 export interface BuildContext {
     lighting: LedStripLighting;
@@ -17,6 +18,10 @@ export const SCENE_OBJECT_ID = "sceneObjectId";
 export const SCENE_OBJECT_KIND = "kind";
 const DISPOSABLES = "disposables";
 const SHAPE_KEY = "shapeKey";
+const MATERIAL_KEY = "materialKey";
+
+/** 001 defaults, used when a shape has no material preset. */
+const PLAIN_SHAPE_SURFACE = { roughness: 0.8, metalness: 0, sheen: 0, clearcoat: 0 };
 
 function track(o3d: THREE.Object3D, disposable: Disposable) {
     ((o3d.userData[DISPOSABLES] ??= []) as Disposable[]).push(disposable);
@@ -51,9 +56,29 @@ function shapeKey(obj: ShapeObject) {
     return `${obj.shape}:${JSON.stringify(obj.dimensions)}`;
 }
 
-export function createPlaceholder(label: string, color = 0xff3030): THREE.Mesh {
-    const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-    geometry.translate(0, 0.25, 0);
+/** Surface properties of a shape: its material preset (feature 002) or the 001 defaults. */
+function shapeSurface(obj: ShapeObject) {
+    const preset = obj.material ? MATERIAL_PRESETS[obj.material] : undefined;
+    if (!preset) {
+        return PLAIN_SHAPE_SURFACE;
+    }
+    return { roughness: preset.roughness, metalness: preset.metalness, sheen: preset.sheen ?? 0, clearcoat: preset.clearcoat ?? 0 };
+}
+
+function createShapeMaterial(obj: ShapeObject, ctx: BuildContext) {
+    const params: LedLitMaterialParams = {
+        color: obj.color,
+        side: obj.shape === "plane" ? THREE.DoubleSide : THREE.FrontSide,
+        ...shapeSurface(obj),
+    };
+    return createLedLitMaterial(ctx.lighting, params);
+}
+
+/** Wireframe box of `size` (default 0.5 m) standing on y = 0. */
+export function createPlaceholder(label: string, color = 0xff3030, size: Vec3 = [0.5, 0.5, 0.5]): THREE.Mesh {
+    const [w, h, d] = size.map((v) => Math.max(0.01, v));
+    const geometry = new THREE.BoxGeometry(w, h, d);
+    geometry.translate(0, h / 2, 0);
     const material = new THREE.MeshBasicMaterial({ color, wireframe: true });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.userData.placeholderLabel = label;
@@ -82,17 +107,19 @@ export function buildObject3D(obj: SceneObject, ctx: BuildContext): THREE.Object
 
     if (isShape(obj)) {
         const geometry = createShapeGeometry(obj);
-        const material = createLedLitMaterial(ctx.lighting, {
-            color: obj.color,
-            side: obj.shape === "plane" ? THREE.DoubleSide : THREE.FrontSide,
-        });
+        const material = createShapeMaterial(obj, ctx);
         const mesh = new THREE.Mesh(geometry, material);
         mesh.userData[SHAPE_KEY] = shapeKey(obj);
+        mesh.userData[MATERIAL_KEY] = obj.material ?? null;
         o3d = mesh;
         track(o3d, material);
     } else if (obj.kind === "group" || obj.kind === "fixtureVisualization") {
         // fixture visualizations get their renderer from the view
         o3d = new THREE.Group();
+    } else if (isLibraryAsset(obj)) {
+        // loading placeholder, replaced by the view when the asset template is ready (feature 002)
+        o3d = new THREE.Group();
+        o3d.add(createPlaceholder("Loading asset…", 0x909090, obj.size));
     } else if (obj.kind === "importedModel") {
         // loading placeholder, replaced by the view when the asset is available (US7)
         o3d = new THREE.Group();
@@ -127,7 +154,27 @@ export function updateObject3D(o3d: THREE.Object3D, obj: SceneObject, ctx: Build
             const side = obj.shape === "plane" ? THREE.DoubleSide : THREE.FrontSide;
             (o3d.material as unknown as THREE.MeshPhysicalMaterial).side = side;
         }
-        (o3d.material as unknown as THREE.MeshPhysicalMaterial).color.set(obj.color);
+        const material = o3d.material as unknown as THREE.MeshPhysicalMaterial;
+        material.color.set(obj.color);
+        const materialKey = obj.material ?? null;
+        if (o3d.userData[MATERIAL_KEY] !== materialKey) {
+            const surface = shapeSurface(obj);
+            material.roughness = surface.roughness;
+            material.metalness = surface.metalness;
+            material.sheen = surface.sheen;
+            material.clearcoat = surface.clearcoat;
+            if (surface.sheen > 0) {
+                material.sheenRoughness = 0.8;
+            }
+            if (surface.clearcoat > 0) {
+                material.clearcoatRoughness = 0.1;
+            }
+            o3d.userData[MATERIAL_KEY] = materialKey;
+        }
+        if (material.sheen > 0) {
+            // fabric sheen follows the base color
+            material.sheenColor.set(obj.color);
+        }
     }
     void ctx;
     return true;

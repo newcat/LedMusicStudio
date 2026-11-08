@@ -17,10 +17,10 @@ import {
     boundsOf,
     completeParams,
     createBuilderKit,
+    FixtureBody,
     instantiate,
     validateAsset,
     type AssetDefinition,
-    type Axis,
     type ConnectionPoint,
     type MountingArea,
     type ParamValues,
@@ -79,14 +79,8 @@ const display = new THREE.Group();
 scene.add(display);
 const overlayDisposables: Array<{ dispose(): void }> = [];
 
-interface SweepTarget {
-    node: THREE.Object3D;
-    rest: THREE.Quaternion;
-    axis: THREE.Vector3;
-    min: number;
-    max: number;
-}
-let sweepTargets: SweepTarget[] = [];
+/** Body of the selected fixture model, driven by the sweep. */
+let fixtureBody: FixtureBody | null = null;
 let showToken = 0;
 
 function addLights(target: THREE.Scene) {
@@ -244,14 +238,7 @@ function addArrow(parent: THREE.Object3D, origin: Vec3, direction: Vec3, length:
     parent.add(overlayObject(arrow));
 }
 
-const AXIS_VECTORS: Record<Axis, THREE.Vector3> = {
-    x: new THREE.Vector3(1, 0, 0),
-    y: new THREE.Vector3(0, 1, 0),
-    z: new THREE.Vector3(0, 0, 1),
-};
-
 function buildOverlay(def: AssetDefinition, instance: THREE.Object3D, params: ParamValues) {
-    sweepTargets = [];
     if (def.category === "fixtures") {
         const f = def.fixture;
         for (const role of ["pan", "tilt"] as const) {
@@ -263,7 +250,6 @@ function buildOverlay(def: AssetDefinition, instance: THREE.Object3D, params: Pa
             const gizmo = new THREE.AxesHelper(0.15);
             overlayDisposables.push(gizmo);
             node.add(overlayObject(gizmo));
-            sweepTargets.push({ node, rest: node.quaternion.clone(), axis: AXIS_VECTORS[part.axis] ?? AXIS_VECTORS.y, min: part.min, max: part.max });
         }
         if (f.beam) {
             addArrow(nodeOf(instance, f.beam.node), f.beam.position, f.beam.direction, 0.5, 0xffd400);
@@ -314,7 +300,8 @@ function clearDisplay() {
     for (const d of overlayDisposables.splice(0)) {
         d.dispose();
     }
-    sweepTargets = [];
+    fixtureBody?.dispose();
+    fixtureBody = null;
 }
 
 async function showSelected(frameCamera: boolean) {
@@ -328,9 +315,17 @@ async function showSelected(frameCamera: boolean) {
     if (token !== showToken || !template) {
         return;
     }
-    const instance = instantiate(template);
+    let instance: THREE.Object3D;
+    if (def.category === "fixtures") {
+        fixtureBody = new FixtureBody(def, template);
+        fixtureBody.setEmitterColor("all", 1, 1, 1);
+        instance = fixtureBody.model;
+        display.add(fixtureBody);
+    } else {
+        instance = instantiate(template);
+        display.add(instance);
+    }
     buildOverlay(def, instance, paramsFor(def, paramMode.value));
-    display.add(instance);
     if (frameCamera && controls) {
         const sphere = boundsOf(instance).getBoundingSphere(new THREE.Sphere());
         const radius = Math.max(sphere.radius, 0.1);
@@ -344,16 +339,18 @@ watch(selectedId, () => void showSelected(true));
 watch(paramMode, () => void showSelected(false));
 
 function applySweep(time: number) {
-    // TODO(002): drive the sweep through FixtureBody.setPanTilt once T015 adds src/assetLibrary/fixtureBody.ts
-    const phase = sweep.value ? (1 - Math.cos((time / SWEEP_PERIOD_MS) * Math.PI * 2)) / 2 : null;
-    for (const t of sweepTargets) {
-        if (phase === null) {
-            t.node.quaternion.copy(t.rest);
-        } else {
-            const angle = THREE.MathUtils.degToRad(t.min + (t.max - t.min) * phase);
-            t.node.quaternion.copy(t.rest).multiply(new THREE.Quaternion().setFromAxisAngle(t.axis, angle));
-        }
+    const body = fixtureBody;
+    if (!body) {
+        return;
     }
+    if (!sweep.value) {
+        body.setPanTilt(0, 0);
+        return;
+    }
+    const phase = (1 - Math.cos((time / SWEEP_PERIOD_MS) * Math.PI * 2)) / 2;
+    const parts = body.definition.fixture.movingParts;
+    const angle = (part: { min: number; max: number } | undefined) => (part ? part.min + (part.max - part.min) * phase : 0);
+    body.setPanTilt(angle(parts?.pan), angle(parts?.tilt));
 }
 
 function animate(time: number) {

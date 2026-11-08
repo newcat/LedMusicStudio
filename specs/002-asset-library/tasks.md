@@ -101,8 +101,8 @@ description: "Task list for feature 002: Asset Library & Model Contract"
 
 ### Fixture contract runtime and Generic Fixture
 
-- [ ] T014 Add `VisualizationType.GENERIC = "Generic Fixture"` to `src/visualization/fixtureVisualization.ts`. Then add the matching entries so the code compiles: `RENDERER_TYPES` in `src/visualization/sceneView.ts` (pointing to `GenericRenderer` from T017) and `getVisualizationByType` in `src/visualization/fixtureVisualizations/factory.ts` (pointing to `GenericVisualization` from T018). Accept `"Generic Fixture"` in `sanitize.ts` (it already checks `Object.values(VisualizationType)`)
-- [ ] T015 Create `src/assetLibrary/fixtureBody.ts`, class `FixtureBody extends THREE.Group` (research R7):
+- [X] T014 Add `VisualizationType.GENERIC = "Generic Fixture"` to `src/visualization/fixtureVisualization.ts`. Then add the matching entries so the code compiles: `RENDERER_TYPES` in `src/visualization/sceneView.ts` (pointing to `GenericRenderer` from T017) and `getVisualizationByType` in `src/visualization/fixtureVisualizations/factory.ts` (pointing to `GenericVisualization` from T018). Accept `"Generic Fixture"` in `sanitize.ts` (it already checks `Object.values(VisualizationType)`)
+- [X] T015 Create `src/assetLibrary/fixtureBody.ts`, class `FixtureBody extends THREE.Group` (research R7):
   - Constructor `(definition: FixtureAssetDefinition, template: Object3D)`. It instantiates the template and finds `panNode` and `tiltNode` by `getObjectByName` (root for `""`), storing their rest quaternions.
   - `setPanTilt(panDeg, tiltDeg)` sets each node's quaternion to `rest × rotation(axis, deg)`.
   - It creates `beamAnchor: Object3D` as a child of the beam node at `beam.position`, oriented so its local **+Z** equals `beam.direction` (`quaternion.setFromUnitVectors((0,0,1), direction)`). If there is no `beam`, the anchor sits at the root and points +Y.
@@ -111,19 +111,19 @@ description: "Task list for feature 002: Asset Library & Model Contract"
   - `setModelScale(s)` scales the body group uniformly.
   - `dispose()` disposes only the emitter geometries and materials; template resources stay shared.
   - **Performance**: when one `FixtureBody` has more than 8 emitters, it also builds a merged emitter mesh with vertex colors. `setEmitterColor("all", …)` then updates only that mesh. The per-id meshes are created lazily and hidden until `setEmitterColor(id, …)` is called with a single id (feature 003).
-- [ ] T016 Extend `BaseRenderer` in `src/visualization/fixtureVisualizations/base.renderer.ts`:
+- [X] T016 Extend `BaseRenderer` in `src/visualization/fixtureVisualizations/base.renderer.ts`:
   - Add `assets: AssetCache` to `RendererInputs`.
   - Add a virtual `onModelUpdate(modelId: string, modelScale: number): void`, which by default does nothing.
   - Add a protected helper `loadBody(modelId)`. It resolves the definition (unknown, invalid or wrong category → `assetCatalog.defaultModelFor(GENERIC)`, with a `console.warn`), acquires the template through `inputs.assets` with the renderer's uuid as user id, builds a `FixtureBody`, replaces the previous body (releasing it), and calls an abstract-ish `protected onBodyReady(body)` hook. Late results from an older model id are discarded.
   - Releasing the body template happens in `dispose()`.
   - In `src/visualization/sceneView.ts`: create `this.assets = new AssetCache(this.lighting)` in the constructor and pass it into every renderer's inputs. In `syncFixture`, keep a `modelKey = modelId + ":" + modelScale` in `FixtureEntry` and call `renderer.onModelUpdate(obj.modelId, obj.modelScale)` when it changes (also right after creating a renderer). `dispose()` calls `this.assets.dispose()` after `clear()`.
-- [ ] T017 Create `src/visualization/fixtureVisualizations/generic/generic.renderer.ts`, class `GenericRenderer extends BaseRenderer<GenericVisualizationConfig, number[]>`:
+- [X] T017 Create `src/visualization/fixtureVisualizations/generic/generic.renderer.ts`, class `GenericRenderer extends BaseRenderer<GenericVisualizationConfig, number[]>`:
   - `onModelUpdate` → `loadBody` and `setModelScale`; `onBodyReady` adds the body.
   - `onFixtureValueUpdate(values)` computes `intensity` from `channelMapping.intensity` with the same mapping math as `MovingHeadRenderer.getChannelValue` (move that function into a shared `src/visualization/fixtureVisualizations/channelValue.ts` and use it from both). Unmapped intensity = `defaultValue` (1). Color = `(R, G, B)/255 + W/255` added to each component. If none of red, green, blue or white is mapped (all `-1`), the color is white (1, 1, 1) (FR-022: "white when no color is mapped, full when no intensity is mapped").
   - Calls `body.setEmitterColor("all", c.r * intensity * 4, c.g * intensity * 4, c.b * intensity * 4)` (factor 4 so full output blooms).
   - The latest values are stored and re-applied in `onBodyReady`.
-- [ ] T018 [P] Create `src/visualization/fixtureVisualizations/generic/generic.visualization.ts` (`GenericVisualization`: type `GENERIC`, `compatibleFixtures: [FixtureType.DMX]`, `defaultConfig` = `{ channelMapping: { intensity: { channel: -1, defaultValue: 1, min: 0, max: 1 }, red: -1, green: -1, blue: -1, white: -1 } }`, `onFixtureValueUpdate: (value) => ({ value })`) and `generic/types.ts` exporting `GenericVisualizationConfig` exactly as in `contracts/scene-state-delta.ts`. Then create `generic/GenericVisualizationSettings.vue`, modelled on `MovingHeadVisualizationSettings.vue` and reusing `ChannelMapping.vue` for intensity and `DmxChannelSelector.vue` for red/green/blue/white. Add `GenericVisualizationConfig` to the `FixtureVisualizationObject` union in `src/scene/model/types.ts` as `{ visualizationType: VisualizationType.GENERIC; config: GenericVisualizationConfig }`
-- [ ] T019 [P] Create the fallback model `src/assetLibrary/builders/fixtures/generic.ts` and its definition `fixture.generic` in `src/assetLibrary/catalog/fixtures.ts`:
+- [X] T018 [P] Create `src/visualization/fixtureVisualizations/generic/generic.visualization.ts` (`GenericVisualization`: type `GENERIC`, `compatibleFixtures: [FixtureType.DMX]`, `defaultConfig` = `{ channelMapping: { intensity: { channel: -1, defaultValue: 1, min: 0, max: 1 }, red: -1, green: -1, blue: -1, white: -1 } }`, `onFixtureValueUpdate: (value) => ({ value })`) and `generic/types.ts` exporting `GenericVisualizationConfig` exactly as in `contracts/scene-state-delta.ts`. Then create `generic/GenericVisualizationSettings.vue`, modelled on `MovingHeadVisualizationSettings.vue` and reusing `ChannelMapping.vue` for intensity and `DmxChannelSelector.vue` for red/green/blue/white. Add `GenericVisualizationConfig` to the `FixtureVisualizationObject` union in `src/scene/model/types.ts` as `{ visualizationType: VisualizationType.GENERIC; config: GenericVisualizationConfig }`
+- [X] T019 [P] Create the fallback model `src/assetLibrary/builders/fixtures/generic.ts` and its definition `fixture.generic` in `src/assetLibrary/catalog/fixtures.ts`:
   - Geometry: a dark rounded box 0.25 × 0.22 × 0.25 m on a short bracket (total height 0.3 m) with a round lens face on top.
   - Name "Generic fixture", keywords ["generic", "fixture", "light", "unknown", "fallback"], `defaultSize [0.25, 0.3, 0.25]`.
   - Fixture description: `visualizationTypes: [GENERIC, SPOT]`, `categories: ["Other", "Effect"]`, `beam: { node: "", position: [0, 0.3, 0], direction: [0, 1, 0] }`, `lensRadius: 0.08`, `emitters: [{ id: "lens", node: "", shape: "circle", radius: 0.08, position: [0, 0.301, 0], normal: [0, 1, 0] }]`, `mountingPoints: [{ id: "base", node: "", position: [0, 0, 0], direction: [0, -1, 0] }]`.
@@ -131,22 +131,22 @@ description: "Task list for feature 002: Asset Library & Model Contract"
 
 ### Scene model changes
 
-- [ ] T020 Update `src/scene/model/types.ts` following `contracts/scene-state-delta.ts`:
+- [X] T020 Update `src/scene/model/types.ts` following `contracts/scene-state-delta.ts`:
   - add `LibraryAssetObject` (`assetId: string; params: ParamValues; material: MaterialPresetId | null; color: string | null; variant: string | null; size: Vec3`), with `SceneObject` and `KNOWN_KINDS` extended by `"libraryAsset"` and an `isLibraryAsset` guard;
   - add `material: MaterialPresetId | null` to `ShapeObject`;
   - add `modelId: string; modelScale: number` to every `FixtureVisualizationObject` variant (intersect the union with `FixtureVisualizationModelFields`).
   - Import `MaterialPresetId` and `ParamValues` as type-only imports from `@/assetLibrary/types`. Update the header comment to name feature 002.
-- [ ] T021 Update `src/scene/model/defaults.ts`:
+- [X] T021 Update `src/scene/model/defaults.ts`:
   - `createShapeObject` sets `material: null`.
   - `createFixtureVisualizationObject(fixtureId, type, config, name?, model?)` sets `modelId = model?.modelId ?? assetCatalog.defaultModelFor(type).id` and `modelScale = model?.modelScale ?? 1`.
   - New `createLibraryAssetObject(definition, partial?)`: name = `nextObjectName(scene, definition.name)` (passed in by the caller), `assetId = definition.id`, `params = completeParams(definition, {})`, `material = null`, `color = null`, `variant = null`, `size = sizeOf(definition, params)`.
   - Export `MODEL_SCALE_MIN = 0.25` and `MODEL_SCALE_MAX = 4`.
-- [ ] T022 Update `src/scene/model/sanitize.ts` with load rules 1, 3 and 4 of data-model.md ("Load rules"):
+- [X] T022 Update `src/scene/model/sanitize.ts` with load rules 1, 3 and 4 of data-model.md ("Load rules"):
   - **`libraryAsset`**: `assetId` must be a string, otherwise the object becomes a `group` and the problem `Library asset "<name>" is invalid and was converted to a group` is recorded. For a **known** asset, `params = completeParams(def, raw.params)`, `material` = valid preset id **and** `def.supportsMaterial`, otherwise `null`, `color` = `#rrggbb` or `null`, `variant` = one of `def.variants[].id` or `null`. For an **unknown** asset, `params`, `material`, `color` and `variant` are kept if they have the right type (objects / strings / `null`), so newer files are not changed. `size` = `vec3(raw.size, def ? sizeOf(def, params) : [0.5, 0.5, 0.5])` with "Each component ≥ 0.01".
   - **`shape`**: `material` = a valid preset id or `null`.
   - **`fixtureVisualization`**: `modelScale` = `num(raw.modelScale, 1)` clamped to 0.25–4. `modelId` = a string if present. **If `modelId` is missing** (a 001 file), set `modelId = defaultModelFor(type).id` and record whether the object needs the spot fix (T042). If it is present but **known and incompatible** with the type, replace it with the default. If it is **unknown**, keep it.
   - Return counts `unknownAssets` and `unknownModels` alongside `problems` (extend the return type; update the caller in `src/stage/stage.ts`/the store load path so that each count produces one toast as worded in contracts/library-ui.md → Messages: "<n> objects use assets that are not available and are shown as placeholders." and "<n> fixture visualizations use unknown models; the generic fixture is shown.", using `emitSceneToast` with severity `warn`).
-- [ ] T023 Update `src/scene/sceneStore.ts` with these commands, all through `addObjects` / `updateObjects`, so they are undoable and synced:
+- [X] T023 Update `src/scene/sceneStore.ts` with these commands, all through `addObjects` / `updateObjects`, so they are undoable and synced:
   - `addLibraryAsset(assetId, placement?, transform?: Partial<LocalTransform>, parentId?: string | null): string | null` creates via `createLibraryAssetObject`, with the position from `placementPosition(placement)`, label `Add <asset name>`; selects it.
   - `setAssetParams(id, partialParams)` merges, runs `completeParams`, recomputes `size` (`sizeOf`), mergeKey `params:<id>`.
   - `setAssetMaterial(id, material)`: when `material !== null`, also sets `color` to the preset color in the same patch (research R14); label "Change material".
@@ -155,11 +155,11 @@ description: "Task list for feature 002: Asset Library & Model Contract"
   - `replaceAsset(id, newAssetId)` keeps id, name, transform, parent and children; resets `params`/`material`/`color`/`variant` and recomputes `size`; label "Replace asset".
   - `setShapeMaterial(id, material)`, same rule as `setAssetMaterial`.
   - Extend `clampPatch` so `modelScale` stays within 0.25–4 and `size` components stay ≥ 0.01.
-- [ ] T024 Render `libraryAsset` objects in `src/visualization/objectBuilders.ts` and `src/visualization/sceneView.ts`:
+- [X] T024 Render `libraryAsset` objects in `src/visualization/objectBuilders.ts` and `src/visualization/sceneView.ts`:
   - `buildObject3D` returns a `THREE.Group` with a loading placeholder (grey wireframe box of the object's `size`) for `libraryAsset`. Change `createPlaceholder(label, color, size?: Vec3)` to accept a size (default `[0.5, 0.5, 0.5]`), with the box translated so its bottom is at y = 0.
   - In `SceneView`, add `syncLibraryAsset(entry)`, analogous to `syncModel`: compute `templateKey` from `assetId`, `params`, `variant`, `material` and `color`. When the key changes, release the old template, acquire the new one with the object id as user, and when it is ready, replace the content with `instantiate(template)`, using `clearModelContent`. If `assetCatalog.get(assetId)` is `undefined` or the load fails, show the **red** placeholder of the stored `size` with label `Unknown asset: <assetId>` (FR-070). A `shape` source is never stored as `libraryAsset`.
   - Call `syncLibraryAsset` from `applyObjects`, and release in `disposeEntry`. Make sure `updateObject3D` returns `true` for `libraryAsset` (no rebuild on transform changes).
-- [ ] T025 Render `shape.material` in `src/visualization/objectBuilders.ts`. When `material` is set, `createShapeMaterial` uses the preset's roughness, metalness, sheen and clearcoat together with `obj.color`; `updateObject3D` updates these properties in place (key `material`). When `material` is `null`, keep the 001 defaults (roughness 0.8, metalness 0)
+- [X] T025 Render `shape.material` in `src/visualization/objectBuilders.ts`. When `material` is set, `createShapeMaterial` uses the preset's roughness, metalness, sheen and clearcoat together with `obj.color`; `updateObject3D` updates these properties in place (key `material`). When `material` is `null`, keep the 001 defaults (roughness 0.8, metalness 0)
 
 **Checkpoint**: `pnpm lint` and `pnpm build` pass. A hand-edited project with a `libraryAsset` object referencing `decoration.does-not-exist` and a Generic Fixture visualization (created by editing the type of an existing visualization in the JSON) loads; the unknown one shows a red placeholder of its stored size in editor and show window; save/load keeps both unchanged. The workbench shows `fixture.generic` green.
 

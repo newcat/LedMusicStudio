@@ -4,13 +4,20 @@ import { defineStore } from "pinia";
 import { useStage } from "@/stage/stage";
 import { VisualizationType } from "@/visualization/fixtureVisualization";
 import { getVisualizationByType } from "@/visualization/fixtureVisualizations/factory";
+import { assetCatalog } from "@/assetLibrary/catalog";
+import { isMaterialPresetId, MATERIAL_PRESETS } from "@/assetLibrary/materials";
+import { completeParams, sizeOf } from "@/assetLibrary/params";
+import type { MaterialPresetId, ParamValues } from "@/assetLibrary/types";
 import { collectReferencedAssetIds, serializeAssets } from "./model/assets";
 import {
     createDefaultScene,
     createFixtureVisualizationObject,
     createGroupObject,
     createImportedModelObject,
+    createLibraryAssetObject,
     createShapeObject,
+    MODEL_SCALE_MAX,
+    MODEL_SCALE_MIN,
     nextObjectName,
     SHAPE_LABELS,
 } from "./model/defaults";
@@ -40,7 +47,7 @@ import type {
     Vec3,
 } from "./model/types";
 import { emitSceneToast } from "./toastBus";
-import { isFixtureVisualization } from "./model/types";
+import { isFixtureVisualization, isLibraryAsset, isShape } from "./model/types";
 
 export type TransformMode = "translate" | "rotate" | "scale";
 export type SelectMode = "replace" | "toggle" | "add";
@@ -65,6 +72,12 @@ function clampPatch(patch: Partial<SceneObject>): Partial<SceneObject> {
         result.dimensions = Object.fromEntries(
             Object.entries(patch.dimensions as Record<string, number>).map(([k, v]) => [k, Math.max(0.01, Number.isFinite(v) ? v : 1)])
         );
+    }
+    if ("modelScale" in patch && typeof patch.modelScale === "number") {
+        result.modelScale = Math.min(MODEL_SCALE_MAX, Math.max(MODEL_SCALE_MIN, Number.isFinite(patch.modelScale) ? patch.modelScale : 1));
+    }
+    if ("size" in patch && Array.isArray(patch.size)) {
+        result.size = patch.size.map((v) => Math.max(0.01, Number.isFinite(v) ? v : 0.01));
     }
     if (typeof patch.name === "string") {
         if (patch.name.trim().length === 0) {
@@ -706,6 +719,94 @@ export const useScene = defineStore("scene", () => {
         return obj.id;
     }
 
+    // library assets (feature 002) ----------------------------------------------------------------------------
+
+    /**
+     * Adds a library item (stage element or decoration) and selects it. Fixture models become fixture visualizations
+     * and basic shapes become shape objects, so neither is added here (research R4).
+     */
+    function addLibraryAsset(assetId: string, placement?: Placement, transform?: Partial<LocalTransform>, parentId?: string | null): string | null {
+        const definition = assetCatalog.get(assetId);
+        if (!definition || definition.category === "fixtures" || definition.source.type === "shape") {
+            return null;
+        }
+        const obj = createLibraryAssetObject(definition, { name: nextObjectName(scene.value, definition.name) });
+        obj.position = placementPosition(placement);
+        if (transform?.position) obj.position = [...transform.position];
+        if (transform?.rotation) obj.rotation = [...transform.rotation];
+        if (transform?.scale) obj.scale = transform.scale.map((v) => Math.max(MIN_SCALE, v)) as Vec3;
+        addObjects([obj], parentId ?? null, `Add ${definition.name}`);
+        select([obj.id]);
+        return obj.id;
+    }
+
+    function libraryAssetOf(id: string) {
+        const obj = scene.value.objects[id];
+        return obj && isLibraryAsset(obj) ? obj : undefined;
+    }
+
+    function setAssetParams(id: string, partialParams: Partial<ParamValues>) {
+        const obj = libraryAssetOf(id);
+        const definition = obj ? assetCatalog.get(obj.assetId) : undefined;
+        if (!obj || !definition) return;
+        const params = completeParams(definition, { ...toRaw(obj.params), ...partialParams });
+        updateObjects({ [id]: { params, size: sizeOf(definition, params) } as Partial<SceneObject> }, "Change parameters", `params:${id}`);
+    }
+
+    /** research R14: choosing a preset also sets the color to the preset color. */
+    function materialPatch(material: MaterialPresetId | null): Partial<SceneObject> | null {
+        if (material === null) {
+            return { material: null } as Partial<SceneObject>;
+        }
+        if (!isMaterialPresetId(material)) {
+            return null;
+        }
+        return { material, color: MATERIAL_PRESETS[material].color } as Partial<SceneObject>;
+    }
+
+    function setAssetMaterial(id: string, material: MaterialPresetId | null) {
+        const patch = materialPatch(material);
+        if (!libraryAssetOf(id) || !patch) return;
+        updateObjects({ [id]: patch }, "Change material");
+    }
+
+    function setAssetColor(id: string, color: string | null) {
+        if (!libraryAssetOf(id) || (color !== null && !/^#[0-9a-fA-F]{6}$/.test(color))) return;
+        updateObjects({ [id]: { color } as Partial<SceneObject> }, "Change color", `color:${id}`);
+    }
+
+    function setAssetVariant(id: string, variant: string | null) {
+        if (!libraryAssetOf(id)) return;
+        updateObjects({ [id]: { variant } as Partial<SceneObject> }, "Change variant");
+    }
+
+    /** Keeps id, name, transform, parent and children; resets the asset-specific fields. */
+    function replaceAsset(id: string, newAssetId: string) {
+        const definition = assetCatalog.get(newAssetId);
+        if (!libraryAssetOf(id) || !definition || definition.category === "fixtures" || definition.source.type === "shape") return;
+        const params = completeParams(definition, {});
+        updateObjects(
+            {
+                [id]: {
+                    assetId: definition.id,
+                    params,
+                    material: null,
+                    color: null,
+                    variant: null,
+                    size: sizeOf(definition, params),
+                } as Partial<SceneObject>,
+            },
+            "Replace asset"
+        );
+    }
+
+    function setShapeMaterial(id: string, material: MaterialPresetId | null) {
+        const obj = scene.value.objects[id];
+        const patch = materialPatch(material);
+        if (!obj || !isShape(obj) || !patch) return;
+        updateObjects({ [id]: patch }, "Change material");
+    }
+
     // selection ----------------------------------------------------------------------------------------------
 
     function select(ids: string[], mode: SelectMode = "replace") {
@@ -845,6 +946,14 @@ export const useScene = defineStore("scene", () => {
         setShowDefault,
         // models
         addImportedModel,
+        // library assets
+        addLibraryAsset,
+        setAssetParams,
+        setAssetMaterial,
+        setAssetColor,
+        setAssetVariant,
+        replaceAsset,
+        setShapeMaterial,
         // selection
         select,
         clearSelection,

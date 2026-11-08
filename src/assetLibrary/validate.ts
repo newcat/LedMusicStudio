@@ -17,9 +17,6 @@ import {
     type Vec3,
 } from "./types";
 
-// TODO(002): use VisualizationType.GENERIC once T014 adds it
-const GENERIC_TYPE = "Generic Fixture";
-
 const CATEGORY_PREFIX: Record<AssetCategory, string> = {
     fixtures: "fixture.",
     stage: "stage.",
@@ -272,7 +269,7 @@ function checkFixtureContract(def: FixtureAssetDefinition, template: THREE.Objec
             if (!f.beam) {
                 issues.error("Spot needs beam");
             }
-        } else if ((type as string) === GENERIC_TYPE) {
+        } else if (type === VisualizationType.GENERIC) {
             if (!f.emitters?.length) {
                 issues.error("Generic Fixture needs at least one emitter");
             }

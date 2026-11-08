@@ -1,11 +1,16 @@
 import { v4 as uuidv4 } from "uuid";
 
 import type { VisualizationType } from "@/visualization/fixtureVisualization";
+import { assetCatalog } from "@/assetLibrary/catalog";
+import { completeParams, sizeOf } from "@/assetLibrary/params";
+import type { AssetDefinition } from "@/assetLibrary/types";
 import type {
     CameraPose,
+    FixtureVisualizationModelFields,
     FixtureVisualizationObject,
     GroupObject,
     ImportedModelObject,
+    LibraryAssetObject,
     SceneEditorSettings,
     SceneObjectBase,
     SceneState,
@@ -14,6 +19,10 @@ import type {
 } from "./types";
 
 export const DEFAULT_SHAPE_COLOR = "#9e9e9e";
+
+/** Range of `FixtureVisualizationObject.modelScale` (FR-015). */
+export const MODEL_SCALE_MIN = 0.25;
+export const MODEL_SCALE_MAX = 4;
 
 export function createDefaultSettings(): SceneEditorSettings {
     return {
@@ -72,6 +81,7 @@ export function createShapeObject(shape: ShapeType, partial: Partial<Omit<ShapeO
         ...baseFields("shape", SHAPE_LABELS[shape]),
         ...defaultShapeDimensions(shape),
         color: DEFAULT_SHAPE_COLOR,
+        material: null,
         ...partial,
     } as ShapeObject;
 }
@@ -88,14 +98,32 @@ export function createFixtureVisualizationObject(
     fixtureId: string | null,
     visualizationType: VisualizationType,
     config: FixtureVisualizationObject["config"],
-    name = "Fixture"
+    name = "Fixture",
+    model?: Partial<FixtureVisualizationModelFields>
 ): FixtureVisualizationObject {
     return {
         ...baseFields("fixtureVisualization", name),
         fixtureId,
         visualizationType,
         config,
+        modelId: model?.modelId ?? assetCatalog.defaultModelFor(visualizationType).id,
+        modelScale: model?.modelScale ?? 1,
     } as FixtureVisualizationObject;
+}
+
+/** A library item at default parameters. The caller passes the name (`nextObjectName(scene, definition.name)`). */
+export function createLibraryAssetObject(definition: AssetDefinition, partial: Partial<Omit<LibraryAssetObject, "kind">> = {}): LibraryAssetObject {
+    const params = completeParams(definition, {});
+    return {
+        ...baseFields("libraryAsset", definition.name),
+        assetId: definition.id,
+        params,
+        material: null,
+        color: null,
+        variant: null,
+        size: sizeOf(definition, params),
+        ...partial,
+    };
 }
 
 /** Returns e.g. "Box 3": one more than the highest number used by an existing name with this label. */

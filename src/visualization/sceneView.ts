@@ -4,13 +4,16 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass";
 
 import type { CameraPose, SceneObject, SceneSnapshot } from "@/scene/model/types";
-import { isFixtureVisualization, isImportedModel } from "@/scene/model/types";
+import { isFixtureVisualization, isImportedModel, isLibraryAsset } from "@/scene/model/types";
+import { AssetCache, instantiate, templateKey } from "@/assetLibrary/assetCache";
+import { assetCatalog } from "@/assetLibrary/catalog";
 import { isEffectivelyVisible } from "@/scene/model/transformMath";
 import { VisualizationType } from "./fixtureVisualization";
 import type { BaseRenderer, RendererInputs } from "./fixtureVisualizations/base.renderer";
 import { LedStripRenderer } from "./fixtureVisualizations/ledStrip/ledStrip.renderer";
 import { SpotRenderer } from "./fixtureVisualizations/spot/spot.renderer";
 import { MovingHeadRenderer } from "./fixtureVisualizations/movingHead/movingHead.renderer";
+import { GenericRenderer } from "./fixtureVisualizations/generic/generic.renderer";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { UnrealBloomPass } from "./bloom";
 import { convertToLedLit, LedStripLighting } from "./ledLitMaterial";
@@ -32,6 +35,7 @@ const RENDERER_TYPES: Record<VisualizationType, RendererConstructor> = {
     [VisualizationType.LED_STRIP]: LedStripRenderer,
     [VisualizationType.SPOT]: SpotRenderer,
     [VisualizationType.MOVING_HEAD]: MovingHeadRenderer,
+    [VisualizationType.GENERIC]: GenericRenderer,
 };
 
 interface FixtureEntry {
@@ -39,6 +43,17 @@ interface FixtureEntry {
     renderer: BaseRenderer;
     proxy: THREE.Object3D | null;
     configKey: string;
+    /** `modelId + ":" + modelScale`, re-sent to the renderer when it changes. */
+    modelKey: string;
+}
+
+/** Template of a library asset object (feature 002). */
+interface LibraryEntry {
+    key: string;
+    /** "loading" until the template is attached; "failed" shows the red placeholder. */
+    state: "loading" | "ready" | "failed";
+    /** stored size the placeholder was built with */
+    placeholderSize: string;
 }
 
 /** A parsed GLB asset (materials converted to LED-lit ones), shared by all objects that use it. */
@@ -68,6 +83,7 @@ interface ViewEntry {
     data: SceneObject;
     o3d: THREE.Object3D;
     fixture?: FixtureEntry;
+    library?: LibraryEntry;
 }
 
 export class SceneView {
@@ -77,13 +93,16 @@ export class SceneView {
     public readonly camera = new THREE.PerspectiveCamera(50, 1, 0.05, 1000);
     public readonly lighting = new LedStripLighting();
     public readonly renderer: THREE.WebGLRenderer;
+    /** Templates of library assets and fixture bodies (feature 002). */
+    public readonly assets: AssetCache;
 
     private readonly composer: EffectComposer;
     private readonly bloomPass: UnrealBloomPass;
     private readonly entries = new Map<string, ViewEntry>();
     /** states of all objects, needed for effective visibility */
     private readonly states: { objects: Record<string, SceneObject> } = { objects: {} };
-    private readonly assets = new Map<string, Uint8Array>();
+    /** Bytes of imported models (001), by scene asset id. */
+    private readonly modelData = new Map<string, Uint8Array>();
     private readonly models = new Map<string, ModelCacheEntry>();
     private readonly fixtureValues = new Map<string, unknown>();
     private readonly fixtureConfigs = new Map<string, unknown>();
@@ -97,6 +116,7 @@ export class SceneView {
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 4;
+        this.assets = new AssetCache(this.lighting);
 
         this.scene.add(this.root);
         this.scene.add(new THREE.HemisphereLight(0xffffff, 0x909090, 1.2));
@@ -139,6 +159,7 @@ export class SceneView {
             entry.data = obj;
             this.syncFixture(entry);
             this.syncModel(entry);
+            this.syncLibraryAsset(entry);
         }
 
         for (const obj of objects) {
@@ -173,7 +194,7 @@ export class SceneView {
     }
 
     public setAsset(assetId: string, data: ArrayBuffer | Uint8Array) {
-        this.assets.set(assetId, data instanceof Uint8Array ? data : new Uint8Array(data));
+        this.modelData.set(assetId, data instanceof Uint8Array ? data : new Uint8Array(data));
         // objects that were waiting for their data show the model now
         for (const entry of this.entries.values()) {
             if (isImportedModel(entry.data) && entry.data.assetId === assetId) {
@@ -258,6 +279,7 @@ export class SceneView {
         this.disposed = true;
         cancelAnimationFrame(this.animationFrame);
         this.clear();
+        this.assets.dispose();
         this.beforeRenderCallbacks.clear();
         this.afterRenderCallbacks.clear();
         this.lighting.dispose();
@@ -282,6 +304,7 @@ export class SceneView {
             this.removeFixtureRenderer(entry);
         }
         this.releaseModel(entry);
+        this.releaseLibraryAsset(entry);
         entry.o3d.removeFromParent();
         disposeObject3D(entry.o3d);
     }
@@ -322,7 +345,7 @@ export class SceneView {
                 return;
             }
             try {
-                const renderer = new Ctor({ camera: this.camera, lighting: this.lighting });
+                const renderer = new Ctor({ camera: this.camera, lighting: this.lighting, assets: this.assets });
                 (renderer as { isFixtureRenderer?: boolean }).isFixtureRenderer = true;
                 let proxy: THREE.Object3D | null = null;
                 if (this.options.showEditorProxies) {
@@ -333,7 +356,7 @@ export class SceneView {
                     }
                 }
                 entry.o3d.add(renderer);
-                entry.fixture = { type: obj.visualizationType, renderer, proxy, configKey: "" };
+                entry.fixture = { type: obj.visualizationType, renderer, proxy, configKey: "", modelKey: "" };
             } catch (err) {
                 console.error(`Could not create renderer for "${obj.name}"`, err);
                 return;
@@ -341,6 +364,11 @@ export class SceneView {
         }
 
         const fixture = entry.fixture;
+        const modelKey = `${obj.modelId}:${obj.modelScale}`;
+        if (fixture.modelKey !== modelKey) {
+            fixture.modelKey = modelKey;
+            fixture.renderer.onModelUpdate(obj.modelId, obj.modelScale);
+        }
         const configKey = JSON.stringify(obj.config);
         if (fixture.configKey !== configKey) {
             fixture.configKey = configKey;
@@ -362,7 +390,7 @@ export class SceneView {
         }
         let cache = this.models.get(obj.assetId);
         if (!cache) {
-            const data = this.assets.get(obj.assetId);
+            const data = this.modelData.get(obj.assetId);
             if (!data) {
                 return;
             }
@@ -450,6 +478,74 @@ export class SceneView {
             this.models.delete(obj.assetId);
             disposeModelScene(cache.scene);
         }
+    }
+
+    /**
+     * Shows the template of a library asset (feature 002). The template is re-acquired whenever asset, params,
+     * variant, material or color change; unknown assets and failed loads show a red placeholder (FR-070).
+     */
+    private syncLibraryAsset(entry: ViewEntry) {
+        const obj = entry.data;
+        if (!isLibraryAsset(obj)) {
+            return;
+        }
+        const key = templateKey(obj.assetId, obj.params, obj.variant, obj.material, obj.color);
+        const current = entry.library;
+        if (current && current.key === key) {
+            if (current.state !== "ready" && current.placeholderSize !== JSON.stringify(obj.size)) {
+                this.showLibraryPlaceholder(entry, current);
+            }
+            return;
+        }
+        this.releaseLibraryAsset(entry);
+
+        const definition = assetCatalog.get(obj.assetId);
+        const library: LibraryEntry = { key, state: "loading", placeholderSize: "" };
+        entry.library = library;
+        if (!definition || definition.source.type === "shape") {
+            library.state = "failed";
+            this.showLibraryPlaceholder(entry, library);
+            return;
+        }
+        this.showLibraryPlaceholder(entry, library);
+        const objectId = obj.id;
+        void this.assets
+            .acquire({ assetId: obj.assetId, params: obj.params, variant: obj.variant, material: obj.material, color: obj.color }, objectId)
+            .then((template) => {
+                if (this.disposed || entry.library !== library || this.entries.get(objectId) !== entry) {
+                    return;
+                }
+                if (!template) {
+                    library.state = "failed";
+                    this.showLibraryPlaceholder(entry, library);
+                    return;
+                }
+                this.clearModelContent(entry.o3d);
+                entry.o3d.add(instantiate(template));
+                library.state = "ready";
+            });
+    }
+
+    private showLibraryPlaceholder(entry: ViewEntry, library: LibraryEntry) {
+        const obj = entry.data;
+        if (!isLibraryAsset(obj)) {
+            return;
+        }
+        this.clearModelContent(entry.o3d);
+        const placeholder =
+            library.state === "failed"
+                ? createPlaceholder(`Unknown asset: ${obj.assetId}`, 0xff3030, obj.size)
+                : createPlaceholder("Loading asset…", 0x909090, obj.size);
+        entry.o3d.add(placeholder);
+        library.placeholderSize = JSON.stringify(obj.size);
+    }
+
+    private releaseLibraryAsset(entry: ViewEntry) {
+        if (!entry.library) {
+            return;
+        }
+        this.assets.release(entry.library.key, entry.data.id);
+        entry.library = undefined;
     }
 
     private refreshVisibility() {

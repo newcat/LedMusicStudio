@@ -5,6 +5,7 @@ export enum VisualizationType {
     LED_STRIP = "Led Strip",
     SPOT = "Spot",
     MOVING_HEAD = "Moving Head",
+    GENERIC = "Generic Fixture",
 }
 
 export interface FixtureVisualizationContext<Fixture extends BaseFixture, Config, Value> {

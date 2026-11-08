@@ -41,6 +41,7 @@ const KIND_LABELS: Record<string, string> = {
     fixtureVisualization: "Fixture visualization",
     importedModel: "Imported model",
     group: "Group",
+    libraryAsset: "Library asset",
 };
 
 const active = computed(() => (store.activeId ? store.scene.objects[store.activeId] : undefined));

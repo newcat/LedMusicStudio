@@ -10,13 +10,10 @@ import type { AssetCatalog, AssetDefinition, FixtureAssetDefinition } from "./ty
 
 export const GENERIC_MODEL_ID = "fixture.generic";
 
-// TODO(002): use VisualizationType.GENERIC once T014 adds it
-const GENERIC_TYPE = "Generic Fixture";
-
 const DEFAULT_MODEL_BY_TYPE: Record<string, string> = {
     [VisualizationType.MOVING_HEAD]: "fixture.moving-head-spot",
     [VisualizationType.SPOT]: "fixture.par-can",
-    [GENERIC_TYPE]: GENERIC_MODEL_ID,
+    [VisualizationType.GENERIC]: GENERIC_MODEL_ID,
     [VisualizationType.LED_STRIP]: "fixture.led-profile",
 };
 

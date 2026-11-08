@@ -6,7 +6,7 @@ import { MovingHeadVisualizationConfig } from "./movingHead.visualizationConfig"
 
 import VOLUMETRIC_BEAM_VERTEX_SHADER from "./beam.vertex.glsl?raw";
 import VOLUMETRIC_BEAM_FRAGMENT_SHADER from "./beam.fragment.glsl?raw";
-import { ChannelMapping } from "../types";
+import { getChannelValue } from "../channelValue";
 
 const SPOTLIGHT_PHYSICALLY_CORRECT_DISTANCE = 0;
 const SPOTLIGHT_PHYSICALLY_CORRECT_INTENSITY = 100.0;
@@ -82,12 +82,12 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
     }
 
     public onFixtureValueUpdate(v: number[]): void {
-        const pan = this.getChannelValue(this.config.channelMapping.pan, v);
-        const tilt = this.getChannelValue(this.config.channelMapping.tilt, v);
-        const beamAngle = this.getChannelValue(this.config.channelMapping.beamAngle, v);
-        const red = this.getChannelValue(this.config.channelMapping.red, v);
-        const green = this.getChannelValue(this.config.channelMapping.green, v);
-        const blue = this.getChannelValue(this.config.channelMapping.blue, v);
+        const pan = getChannelValue(this.config.channelMapping.pan, v);
+        const tilt = getChannelValue(this.config.channelMapping.tilt, v);
+        const beamAngle = getChannelValue(this.config.channelMapping.beamAngle, v);
+        const red = getChannelValue(this.config.channelMapping.red, v);
+        const green = getChannelValue(this.config.channelMapping.green, v);
+        const blue = getChannelValue(this.config.channelMapping.blue, v);
 
         this.yoke.rotation.y = degToRad(pan);
         this.head.rotation.x = degToRad(tilt);
@@ -230,22 +230,5 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
 
         const capMesh = new THREE.Mesh(capGeometry, capMaterial);
         return capMesh;
-    }
-
-    private getChannelValue(channelOrMapping: number | ChannelMapping, channelValues: number[]): number {
-        const channel = typeof channelOrMapping === "number" ? channelOrMapping : channelOrMapping.channel;
-        const defaultValue = typeof channelOrMapping === "number" ? 0 : channelOrMapping.defaultValue;
-        if (channel < 0) {
-            return defaultValue;
-        }
-
-        const channelValue = channelValues[channel];
-        if (channelValue === undefined) {
-            return defaultValue;
-        }
-        if (typeof channelOrMapping === "number") {
-            return channelValue;
-        }
-        return (channelValue / 255) * (channelOrMapping.max - channelOrMapping.min) + channelOrMapping.min;
     }
 }

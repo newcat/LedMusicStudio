@@ -1,5 +1,6 @@
 /**
- * Scene data model (feature 001-scene-editor). Mirrors specs/001-scene-editor/contracts/scene-state.ts.
+ * Scene data model (feature 001-scene-editor, extended by feature 002-asset-library). Mirrors
+ * specs/001-scene-editor/contracts/scene-state.ts and specs/002-asset-library/contracts/scene-state-delta.ts.
  *
  * Conventions: meters, degrees, +Y up, floor at y = 0, Euler order XYZ, transforms relative to the parent.
  * This module is shared by the main window and the show window and must stay free of Pinia/Vue imports.
@@ -8,11 +9,14 @@ import { VisualizationType } from "@/visualization/fixtureVisualization";
 import type { LedStripVisualizationConfig } from "@/visualization/fixtureVisualizations/ledStrip/types";
 import type { SpotVisualizationConfig } from "@/visualization/fixtureVisualizations/spot/types";
 import type { MovingHeadVisualizationConfig } from "@/visualization/fixtureVisualizations/movingHead/movingHead.visualizationConfig";
+import type { GenericVisualizationConfig } from "@/visualization/fixtureVisualizations/generic/types";
+import type { MaterialPresetId, ParamValues } from "@/assetLibrary/types";
 
 export type Vec3 = [number, number, number];
 
 export { VisualizationType };
-export type { LedStripVisualizationConfig, SpotVisualizationConfig, MovingHeadVisualizationConfig };
+export type { LedStripVisualizationConfig, SpotVisualizationConfig, MovingHeadVisualizationConfig, GenericVisualizationConfig };
+export type { MaterialPresetId, ParamValues };
 
 // ---------------------------------------------------------------------------
 // Objects
@@ -46,16 +50,42 @@ export type ShapeObject = SceneObjectBase<"shape"> &
     ShapeDimensions & {
         /** "#rrggbb" */
         color: string;
+        /** Material preset (feature 002), null = plain color. */
+        material: MaterialPresetId | null;
     };
+
+/** Fields added to every FixtureVisualizationObject variant by feature 002. */
+export interface FixtureVisualizationModelFields {
+    /** Catalog id of a model compatible with `visualizationType` (unknown ids are kept, FR-070). */
+    modelId: string;
+    /** Uniform body scale, 0.25..4, default 1 (FR-015). */
+    modelScale: number;
+}
 
 export type FixtureVisualizationObject = SceneObjectBase<"fixtureVisualization"> & {
     /** null = not linked to a fixture (e.g. after duplicate/paste). */
     fixtureId: string | null;
-} & (
+} & FixtureVisualizationModelFields &
+    (
         | { visualizationType: VisualizationType.MOVING_HEAD; config: MovingHeadVisualizationConfig }
         | { visualizationType: VisualizationType.SPOT; config: SpotVisualizationConfig }
         | { visualizationType: VisualizationType.LED_STRIP; config: LedStripVisualizationConfig }
+        | { visualizationType: VisualizationType.GENERIC; config: GenericVisualizationConfig }
     );
+
+/** An item of the built-in asset library (feature 002). */
+export type LibraryAssetObject = SceneObjectBase<"libraryAsset"> & {
+    /** Catalog id; unknown ids are kept and shown as a placeholder (FR-070). */
+    assetId: string;
+    /** Parametric elements only, otherwise {}. Always complete and within range for known assets. */
+    params: ParamValues;
+    material: MaterialPresetId | null;
+    /** "#rrggbb" override of the "body" slot, null = asset default. */
+    color: string | null;
+    variant: string | null;
+    /** Bounding size at the last edit, used for placeholders. Each component >= 0.01. */
+    size: Vec3;
+};
 
 export type ImportedModelObject = SceneObjectBase<"importedModel"> & {
     assetId: string;
@@ -67,14 +97,14 @@ export type GroupObject = SceneObjectBase<"group">;
 
 /**
  * Objects of kinds unknown to this version are preserved verbatim
- * (forward compatibility for feature 002 "libraryAsset" etc.).
+ * (forward compatibility for kinds added by later features).
  */
 export type UnknownObject = SceneObjectBase<string> & Record<string, unknown>;
 
-export type SceneObject = ShapeObject | FixtureVisualizationObject | ImportedModelObject | GroupObject;
+export type SceneObject = ShapeObject | FixtureVisualizationObject | ImportedModelObject | GroupObject | LibraryAssetObject;
 export type SceneObjectKind = SceneObject["kind"];
 
-const KNOWN_KINDS: ReadonlySet<string> = new Set<SceneObjectKind>(["shape", "fixtureVisualization", "importedModel", "group"]);
+const KNOWN_KINDS: ReadonlySet<string> = new Set<SceneObjectKind>(["shape", "fixtureVisualization", "importedModel", "group", "libraryAsset"]);
 
 export function isKnownKind(kind: string): kind is SceneObjectKind {
     return KNOWN_KINDS.has(kind);
@@ -87,6 +117,9 @@ export function isFixtureVisualization(obj: { kind: string }): obj is FixtureVis
 }
 export function isImportedModel(obj: { kind: string }): obj is ImportedModelObject {
     return obj.kind === "importedModel";
+}
+export function isLibraryAsset(obj: { kind: string }): obj is LibraryAssetObject {
+    return obj.kind === "libraryAsset";
 }
 export function isGroup(obj: { kind: string }): obj is GroupObject {
     return obj.kind === "group";

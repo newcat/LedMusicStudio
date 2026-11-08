@@ -66,9 +66,11 @@ export const useStage = defineStore("stage", () => {
     function loadScene(state: StageState | LegacyStageState): void {
         let sceneState: SceneState;
         let problems: string[] = [];
+        let unknownAssets = 0;
+        let unknownModels = 0;
 
         if ("scene" in state && state.scene) {
-            ({ scene: sceneState, problems } = sanitizeScene(state.scene));
+            ({ scene: sceneState, problems, unknownAssets, unknownModels } = sanitizeScene(state.scene));
         } else if ("visualization" in state && state.visualization) {
             sceneState = convertLegacyVisualization(state.visualization, new Set(fixtures.value.keys()));
             for (const obj of Object.values(sceneState.objects)) {
@@ -106,6 +108,23 @@ export const useStage = defineStore("stage", () => {
                 severity: "warn",
                 summary: "Problems while loading the scene",
                 detail: `${problems.length} problem${problems.length === 1 ? "" : "s"} found; affected objects were repaired or replaced by placeholders.`,
+                life: 8000,
+            });
+        }
+        // feature 002, contracts/library-ui.md → Messages
+        if (unknownAssets > 0) {
+            emitSceneToast({
+                severity: "warn",
+                summary: "Unknown assets",
+                detail: `${unknownAssets} objects use assets that are not available and are shown as placeholders.`,
+                life: 8000,
+            });
+        }
+        if (unknownModels > 0) {
+            emitSceneToast({
+                severity: "warn",
+                summary: "Unknown fixture models",
+                detail: `${unknownModels} fixture visualizations use unknown models; the generic fixture is shown.`,
                 life: 8000,
             });
         }
