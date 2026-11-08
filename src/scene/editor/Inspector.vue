@@ -15,6 +15,7 @@
                 <ShapeProperties v-if="isShape(active)" :object="active" />
                 <FixtureVisualizationProperties v-else-if="isFixtureVisualization(active)" :object="active" />
                 <ImportedModelProperties v-else-if="isImportedModel(active)" :object="active" />
+                <LibraryAssetProperties v-else-if="isLibraryAsset(active)" :object="active" />
                 <div v-else-if="!isKnownKind(active.kind)" class="hint">Created by a newer version – only transform can be edited</div>
             </template>
         </template>
@@ -28,11 +29,12 @@ import Chip from "primevue/chip";
 import Divider from "primevue/divider";
 
 import { useScene } from "../sceneStore";
-import { isFixtureVisualization, isImportedModel, isKnownKind, isShape } from "../model/types";
+import { isFixtureVisualization, isImportedModel, isKnownKind, isLibraryAsset, isShape } from "../model/types";
 import TransformFields from "./inspector/TransformFields.vue";
 import ShapeProperties from "./inspector/ShapeProperties.vue";
 import FixtureVisualizationProperties from "./inspector/FixtureVisualizationProperties.vue";
 import ImportedModelProperties from "./inspector/ImportedModelProperties.vue";
+import LibraryAssetProperties from "./inspector/LibraryAssetProperties.vue";
 
 const store = useScene();
 

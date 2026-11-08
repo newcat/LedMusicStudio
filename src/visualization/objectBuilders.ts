@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-import type { SceneObject, ShapeObject, Vec3 } from "@/scene/model/types";
+import type { SceneObject, ShapeDimensions, ShapeObject, Vec3 } from "@/scene/model/types";
 import { isLibraryAsset, isShape } from "@/scene/model/types";
 import { MATERIAL_PRESETS } from "@/assetLibrary/materials";
 import { createLedLitMaterial, LedStripLighting, type LedLitMaterialParams } from "./ledLitMaterial";
@@ -27,7 +27,7 @@ function track(o3d: THREE.Object3D, disposable: Disposable) {
     ((o3d.userData[DISPOSABLES] ??= []) as Disposable[]).push(disposable);
 }
 
-function createShapeGeometry(obj: ShapeObject): THREE.BufferGeometry {
+export function createShapeGeometry(obj: ShapeDimensions): THREE.BufferGeometry {
     switch (obj.shape) {
         case "box": {
             const { width, height, depth } = obj.dimensions;

@@ -11,6 +11,7 @@ import { isFixtureVisualization, type CameraPose, type SceneObject, type Vec3 } 
 import { VisualizationType } from "@/visualization/fixtureVisualization";
 import type { ObjectStates, useScene } from "../sceneStore";
 import { computeObjectBounds } from "./bounds";
+import { AssetDropController, type SurfacePlacement } from "./assetDrop";
 
 type SceneStore = ReturnType<typeof useScene>;
 export type ViewPreset = "top" | "front" | "side" | "perspective";
@@ -71,6 +72,8 @@ export class EditorOverlay {
     public readonly controls: OrbitControls;
     /** Called for a right click that was not a camera pan. */
     public onContextMenu: ((event: MouseEvent) => void) | null = null;
+    /** Drag & drop placement of library assets (feature 002). */
+    public readonly assetDrop: AssetDropController;
 
     private readonly transform: TransformControls;
     private readonly endpointTransform: TransformControls;
@@ -177,6 +180,11 @@ export class EditorOverlay {
             )
         );
         this.onSelectionChanged();
+
+        this.assetDrop = new AssetDropController(view, store, canvas, (ndc) => {
+            this.raycaster.setFromCamera(ndc, this.view.camera);
+            return { placement: this.raycastSurface(), ray: this.raycaster.ray.clone() };
+        });
     }
 
     // -----------------------------------------------------------------------------------------------------------
@@ -188,6 +196,12 @@ export class EditorOverlay {
 
     public getLastSurfaceHit() {
         return this.lastSurfaceHit;
+    }
+
+    /** Surface point under the given normalized device coordinates, e.g. `{ x: 0, y: 0 }` for the viewport center. */
+    public surfaceHitAt(ndc: { x: number; y: number }): SurfacePlacement | null {
+        this.raycaster.setFromCamera(new THREE.Vector2(ndc.x, ndc.y), this.view.camera);
+        return this.raycastSurface();
     }
 
     public getCameraPose(): CameraPose {
@@ -310,6 +324,7 @@ export class EditorOverlay {
         }
         this.disposed = true;
         clearTimeout(this.persistTimeout);
+        this.assetDrop.dispose();
         const canvas = this.view.canvas;
         canvas.removeEventListener("pointerdown", this.onPointerDown);
         canvas.removeEventListener("pointerup", this.onPointerUp);
@@ -643,16 +658,20 @@ export class EditorOverlay {
         }
         this.lastHitTime = now;
         this.raycaster.setFromCamera(this.ndcFromEvent(event), this.view.camera);
+        this.lastSurfaceHit = this.raycastSurface();
+    }
+
+    /** First visible scene object surface hit by the raycaster's current ray. */
+    private raycastSurface(): SurfacePlacement | null {
         for (const hit of this.raycaster.intersectObject(this.view.root, true)) {
             const id = this.resolveSceneObjectId(hit.object);
             if (!id || !isEffectivelyVisible(this.store.scene, id) || !hit.face) {
                 continue;
             }
             const normal = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
-            this.lastSurfaceHit = { point: toVec3(hit.point), normal: toVec3(normal) };
-            return;
+            return { point: toVec3(hit.point), normal: toVec3(normal) };
         }
-        this.lastSurfaceHit = null;
+        return null;
     }
 
     private lastRightDown: { x: number; y: number } | null = null;

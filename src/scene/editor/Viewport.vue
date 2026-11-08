@@ -1,5 +1,14 @@
 <template>
-    <div ref="container" class="scene-viewport" tabindex="0" @mouseenter="hovered = true" @mouseleave="hovered = false">
+    <div
+        ref="container"
+        class="scene-viewport"
+        tabindex="0"
+        @mouseenter="hovered = true"
+        @mouseleave="hovered = false"
+        @dragover="onDragOver"
+        @dragleave="onDragLeave"
+        @drop="onDrop"
+    >
         <canvas ref="canvas"></canvas>
     </div>
 </template>
@@ -56,6 +65,25 @@ onMounted(async () => {
     overlay.value = editorOverlay;
     onResize();
 });
+
+// feature 002: drag & drop of library assets
+function onDragOver(event: DragEvent) {
+    overlay.value?.assetDrop.dragOver(event);
+}
+
+function onDragLeave(event: DragEvent) {
+    // moving between child elements of the viewport also fires dragleave
+    const next = event.relatedTarget as Node | null;
+    if (next && container.value?.contains(next)) {
+        return;
+    }
+    overlay.value?.assetDrop.dragLeave();
+}
+
+function onDrop(event: DragEvent) {
+    overlay.value?.assetDrop.drop(event);
+    container.value?.focus();
+}
 
 // FR-062: everything is released when the tab is left or the project is replaced
 onBeforeUnmount(() => {

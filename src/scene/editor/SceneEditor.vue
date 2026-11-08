@@ -3,7 +3,14 @@
         <EditorToolbar :overlay="overlay" @add="onAdd" @undo="undo" @redo="redo" />
         <splitpanes class="panes">
             <pane size="18" min-size="10">
-                <Outliner ref="outliner" @contextmenu="showContextMenu" />
+                <splitpanes horizontal class="left-column">
+                    <pane size="50" min-size="15">
+                        <Outliner ref="outliner" @contextmenu="showContextMenu" />
+                    </pane>
+                    <pane size="50" min-size="15">
+                        <AssetLibraryPanel @add="addAssetAtCenter" />
+                    </pane>
+                </splitpanes>
             </pane>
             <pane size="62" min-size="20">
                 <Viewport ref="viewport" @contextmenu="showContextMenu" />
@@ -33,6 +40,8 @@ import Outliner from "./Outliner.vue";
 import Viewport from "./Viewport.vue";
 import Inspector from "./Inspector.vue";
 import AddFixtureVisualizationDialog from "./AddFixtureVisualizationDialog.vue";
+import AssetLibraryPanel from "./library/AssetLibraryPanel.vue";
+import { addAssetById } from "./assetDrop";
 import { importModelFile } from "./modelImport";
 import { useEditorShortcuts } from "./useEditorShortcuts";
 
@@ -116,6 +125,12 @@ function onAdd(kind: AddKind) {
 function addFixtureVisualization(fixtureId: string, type: VisualizationType) {
     const hit = overlay.value?.getLastSurfaceHit();
     store.addFixtureVisualization(fixtureId, type, hit ? { position: hit.point } : undefined);
+}
+
+/** Double-click / Enter on a library tile: the surface point in the viewport center, the origin if nothing is hit. */
+function addAssetAtCenter(assetId: string) {
+    const hit = overlay.value?.surfaceHitAt({ x: 0, y: 0 }) ?? null;
+    addAssetById(store, assetId, hit);
 }
 
 // --- cross-view selection (FR-026) -----------------------------------------------------------------------------

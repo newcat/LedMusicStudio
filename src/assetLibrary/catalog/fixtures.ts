@@ -1,14 +1,8 @@
 /** Fixture models of the built-in asset library (feature 002). */
 import { VisualizationType } from "@/visualization/fixtureVisualization";
 import { buildGenericFixture } from "../builders/fixtures/generic";
-import type { Credits, FixtureAssetDefinition } from "../types";
-
-const PROJECT_CREDITS: Credits = {
-    author: "LEDMusic Studio contributors",
-    source: "LEDMusic Studio",
-    license: "GPL-3.0-or-later",
-    madeForProject: true,
-};
+import type { FixtureAssetDefinition } from "../types";
+import { PROJECT_CREDITS } from "./credits";
 
 export const FIXTURE_ASSETS: FixtureAssetDefinition[] = [
     {

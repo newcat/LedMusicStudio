@@ -125,6 +125,8 @@ function iconFor(obj: SceneObject): string {
             return "mdi-shape-outline";
         case "group":
             return "mdi-folder-outline";
+        case "libraryAsset":
+            return "mdi-package-variant-closed";
         default:
             return "mdi-help-box-outline";
     }
