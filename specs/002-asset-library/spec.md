@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-07
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "A wide variety of robust models. One or a few per type is enough (e.g. spot, moving head, laser, flamethrower, ...; but also decoration for stages like speakers, instruments, tables, and models to build the stage itself like floor, ...)." Feature 2 of 3, building on the scene model & editor (feature 001).
 
