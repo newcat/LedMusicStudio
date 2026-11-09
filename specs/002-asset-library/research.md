@@ -186,17 +186,19 @@ Name matching is case-insensitive on `definition.name`. **Dimensions**: `mode.ph
 
 ## R14. Materials and color variants (FR-033, FR-050)
 
-**Decision**: `src/assetLibrary/materials.ts` defines presets as parameter sets for the existing LED-lit material (`createLedLitMaterial`), which is extended with `sheen` and `clearcoat` (both `MeshPhysicalMaterial` properties):
+**Decision**: `src/assetLibrary/materials.ts` defines presets as parameter sets for the existing LED-lit material (`createLedLitMaterial`), which is extended with `sheen`, `clearcoat` and `specularIntensity` (all `MeshPhysicalMaterial` properties):
 
 | Preset | Color | Roughness | Metalness | Extra |
 |---|---|---|---|---|
-| Black stage floor | #141414 | 0.85 | 0 | — |
+| Black stage floor | #161616 | 0.5 | 0 | — |
 | Wood | #8a5a35 | 0.6 | 0 | — |
 | Brushed metal | #b8bcc2 | 0.35 | 1 | — |
-| Black fabric | #0e0e0e | 1 | 0 | sheen 1 |
-| White fabric | #e8e8e8 | 1 | 0 | sheen 1 |
-| Concrete | #8d8d8a | 0.95 | 0 | — |
-| Glossy plastic | #d0d0d0 | 0.25 | 0 | clearcoat 1 |
+| Black fabric | #080808 | 1 | 0 | sheen 1, specularIntensity 0.1 |
+| White fabric | #e8e8e8 | 1 | 0 | sheen 1, specularIntensity 0.1 |
+| Concrete | #75736e | 0.95 | 0 | — |
+| Glossy plastic | #2d5fa8 | 0.15 | 0 | clearcoat 1 |
+
+Values tuned under a moving head beam during verification (T100). A rough black dielectric still reflects about 4 % of a bright beam and then looks grey, so the fabrics lower `specularIntensity` (a `MeshPhysicalMaterial` property) to stay matte black or white with only the sheen rim. The stage floor is semi-matte (soft highlight) so it does not look like black fabric, concrete is darker than white fabric so the two stay apart in a bright beam, and glossy plastic has a saturated default color so its clearcoat highlight stands out against the matte presets.
 
 No textures, so the download stays small. Choosing a preset sets `material` and resets `color` to the preset color in one command. The user can then pick any color, and the preset's surface parameters stay. Shapes and parametric elements keep a material per object. Procedural builders tag their meshes with material **slots** (`body`, `accent`, `metal`, `fabric`, …). A `material` preset replaces the `body` slot. Color variants (`variants: [{ id, name, slots: { body: "#…" } }]`) recolor slots on decoration assets.
 

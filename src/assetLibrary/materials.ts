@@ -5,13 +5,13 @@
 import type { AssetDefinition, MaterialPreset, MaterialPresetId, MaterialSlot } from "./types";
 
 export const MATERIAL_PRESETS: Record<MaterialPresetId, MaterialPreset> = {
-    "stage-floor-black": { id: "stage-floor-black", name: "Black stage floor", color: "#141414", roughness: 0.85, metalness: 0 },
+    "stage-floor-black": { id: "stage-floor-black", name: "Black stage floor", color: "#161616", roughness: 0.5, metalness: 0 },
     wood: { id: "wood", name: "Wood", color: "#8a5a35", roughness: 0.6, metalness: 0 },
     "metal-brushed": { id: "metal-brushed", name: "Brushed metal", color: "#b8bcc2", roughness: 0.35, metalness: 1 },
-    "fabric-black": { id: "fabric-black", name: "Black fabric", color: "#0e0e0e", roughness: 1, metalness: 0, sheen: 1 },
-    "fabric-white": { id: "fabric-white", name: "White fabric", color: "#e8e8e8", roughness: 1, metalness: 0, sheen: 1 },
-    concrete: { id: "concrete", name: "Concrete", color: "#8d8d8a", roughness: 0.95, metalness: 0 },
-    "plastic-glossy": { id: "plastic-glossy", name: "Glossy plastic", color: "#d0d0d0", roughness: 0.25, metalness: 0, clearcoat: 1 },
+    "fabric-black": { id: "fabric-black", name: "Black fabric", color: "#080808", roughness: 1, metalness: 0, sheen: 1, specularIntensity: 0.1 },
+    "fabric-white": { id: "fabric-white", name: "White fabric", color: "#e8e8e8", roughness: 1, metalness: 0, sheen: 1, specularIntensity: 0.1 },
+    concrete: { id: "concrete", name: "Concrete", color: "#75736e", roughness: 0.95, metalness: 0 },
+    "plastic-glossy": { id: "plastic-glossy", name: "Glossy plastic", color: "#2d5fa8", roughness: 0.15, metalness: 0, clearcoat: 1 },
 };
 
 export interface SlotStyle {
@@ -20,6 +20,7 @@ export interface SlotStyle {
     metalness: number;
     sheen?: number;
     clearcoat?: number;
+    specularIntensity?: number;
 }
 
 export const DEFAULT_SLOT_STYLE: Record<string, { color: string; roughness: number; metalness: number }> = {
@@ -69,6 +70,7 @@ export function resolveSlotStyle(definition: AssetDefinition, slot: MaterialSlot
         style.metalness = preset.metalness;
         style.sheen = preset.sheen;
         style.clearcoat = preset.clearcoat;
+        style.specularIntensity = preset.specularIntensity;
     }
 
     if (slot === "body" && options.color) {

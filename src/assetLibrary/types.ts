@@ -57,6 +57,8 @@ export interface MaterialPreset {
     metalness: number;
     sheen?: number;
     clearcoat?: number;
+    /** Strength of the dielectric specular reflection (MeshPhysicalMaterial.specularIntensity, default 1). */
+    specularIntensity?: number;
 }
 
 interface AssetDefinitionBase<C extends AssetCategory, S extends AssetSource> {

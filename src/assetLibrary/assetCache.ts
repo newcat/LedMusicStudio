@@ -224,6 +224,7 @@ export class AssetCache {
                 metalness: style.metalness,
                 sheen: style.sheen,
                 clearcoat: style.clearcoat,
+                specularIntensity: style.specularIntensity,
             });
             cache.set(slot, material);
         }

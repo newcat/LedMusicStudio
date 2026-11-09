@@ -21,7 +21,7 @@ const SHAPE_KEY = "shapeKey";
 const MATERIAL_KEY = "materialKey";
 
 /** 001 defaults, used when a shape has no material preset. */
-const PLAIN_SHAPE_SURFACE = { roughness: 0.8, metalness: 0, sheen: 0, clearcoat: 0 };
+const PLAIN_SHAPE_SURFACE = { roughness: 0.8, metalness: 0, sheen: 0, clearcoat: 0, specularIntensity: 1 };
 
 function track(o3d: THREE.Object3D, disposable: Disposable) {
     ((o3d.userData[DISPOSABLES] ??= []) as Disposable[]).push(disposable);
@@ -62,7 +62,13 @@ function shapeSurface(obj: ShapeObject) {
     if (!preset) {
         return PLAIN_SHAPE_SURFACE;
     }
-    return { roughness: preset.roughness, metalness: preset.metalness, sheen: preset.sheen ?? 0, clearcoat: preset.clearcoat ?? 0 };
+    return {
+        roughness: preset.roughness,
+        metalness: preset.metalness,
+        sheen: preset.sheen ?? 0,
+        clearcoat: preset.clearcoat ?? 0,
+        specularIntensity: preset.specularIntensity ?? 1,
+    };
 }
 
 function createShapeMaterial(obj: ShapeObject, ctx: BuildContext) {
@@ -163,6 +169,7 @@ export function updateObject3D(o3d: THREE.Object3D, obj: SceneObject, ctx: Build
             material.metalness = surface.metalness;
             material.sheen = surface.sheen;
             material.clearcoat = surface.clearcoat;
+            material.specularIntensity = surface.specularIntensity;
             if (surface.sheen > 0) {
                 material.sheenRoughness = 0.8;
             }

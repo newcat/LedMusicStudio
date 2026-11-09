@@ -141,7 +141,7 @@ Built sizes (W × H × D, m; `size(params)` matches the build, checked by the va
 
 ### Material preset
 
-`{ id: MaterialPresetId; name; color; roughness; metalness; sheen?; clearcoat? }`. Ids: `stage-floor-black`, `wood`, `metal-brushed`, `fabric-black`, `fabric-white`, `concrete`, `plastic-glossy` (values: research R14).
+`{ id: MaterialPresetId; name; color; roughness; metalness; sheen?; clearcoat?; specularIntensity? }`. Ids: `stage-floor-black`, `wood`, `metal-brushed`, `fabric-black`, `fabric-white`, `concrete`, `plastic-glossy` (values: research R14).
 
 ### Library inventory (SC-001)
 

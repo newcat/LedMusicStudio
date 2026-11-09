@@ -401,7 +401,7 @@ All builders go into `src/assetLibrary/builders/decoration/`, all definitions in
 
 - [X] T098 [P] [US7] Create `src/scene/editor/inspector/MaterialField.vue`. Props `material: MaterialPresetId | null` and `color: string`; a `Select` with "None (color only)" plus the 7 presets by name (each with a small color swatch) and a `ColorPicker`. It emits `update:material` and `update:color`
 - [X] T099 [US7] Use `MaterialField` in `src/scene/editor/inspector/ShapeProperties.vue` (above the existing color field, replacing it) → `store.setShapeMaterial` / the existing color update, and in `src/scene/editor/inspector/LibraryAssetProperties.vue` for assets with `supportsMaterial` → `store.setAssetMaterial` / `store.setAssetColor`. For library assets, the color shown is `object.color ?? the body slot color of resolveSlotStyle`
-- [ ] T100 [US7] Make sure material changes rebuild correctly in the views: `libraryAsset` already re-keys its template on `material`/`color` (T024); check that shape materials update in place (T025), including switching back to `null`. Tune the presets in `src/assetLibrary/materials.ts` under a moving head beam until the seven are clearly distinct, and update the table in research.md R14 if any value changes
+- [X] T100 [US7] Make sure material changes rebuild correctly in the views: `libraryAsset` already re-keys its template on `material`/`color` (T024); check that shape materials update in place (T025), including switching back to `null`. Tune the presets in `src/assetLibrary/materials.ts` under a moving head beam until the seven are clearly distinct, and update the table in research.md R14 if any value changes
 
 **Checkpoint**: Quickstart scenario 12 passes in both targets.
 

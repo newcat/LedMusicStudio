@@ -148,6 +148,8 @@ export interface LedLitMaterialParams {
     /** Glossy plastic look. `clearcoatRoughness` defaults to 0.1. */
     clearcoat?: number;
     clearcoatRoughness?: number;
+    /** Dielectric specular strength (1 = physical default); fabrics use less so black cloth stays black. */
+    specularIntensity?: number;
 }
 
 export type LedLitMaterial = CustomShaderMaterial<typeof THREE.MeshPhysicalMaterial>;
