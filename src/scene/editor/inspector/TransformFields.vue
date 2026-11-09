@@ -1,6 +1,6 @@
 <template>
     <div class="transform-fields">
-        <template v-for="row in rows" :key="row.key">
+        <template v-for="row in visibleRows" :key="row.key">
             <div class="row-label">{{ row.label }}</div>
             <InputNumber
                 v-for="axis in [0, 1, 2]"
@@ -21,6 +21,10 @@
                 @keydown.enter="commit"
             />
         </template>
+        <template v-if="scaleHidden">
+            <div class="row-label">Scale</div>
+            <div class="scale-hint">Size is set by the parameters</div>
+        </template>
     </div>
 </template>
 
@@ -30,6 +34,7 @@ import InputNumber from "primevue/inputnumber";
 
 import { useScene, type ObjectStates } from "../../sceneStore";
 import { MIN_SCALE } from "../../model/transformMath";
+import { isParametricLibraryAsset } from "../../model/defaults";
 import type { Vec3 } from "../../model/types";
 
 type TransformKey = "position" | "rotation" | "scale";
@@ -48,6 +53,9 @@ const rows: Array<{ key: TransformKey; label: string; digits: number; step: numb
 
 /** The active object's values are shown. */
 const current = computed(() => (store.activeId ? store.scene.objects[store.activeId] : undefined));
+/** Parametric library assets keep scale [1, 1, 1]; their size comes from the parameters (T078). */
+const scaleHidden = computed(() => isParametricLibraryAsset(current.value));
+const visibleRows = computed(() => (scaleHidden.value ? rows.filter((row) => row.key !== "scale") : rows));
 
 let before: ObjectStates | null = null;
 let label = "Edit transform";
@@ -97,6 +105,12 @@ onBeforeUnmount(commit);
     grid-template-columns: auto repeat(3, minmax(0, 1fr));
     gap: 0.25rem 0.4rem;
     align-items: center;
+}
+
+.scale-hint {
+    grid-column: span 3;
+    font-size: 0.8rem;
+    opacity: 0.7;
 }
 
 .row-label {

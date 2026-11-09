@@ -7,7 +7,7 @@ These are the rules for adding an asset to the built-in library. If an asset fol
 ## 1. Coordinates and size
 
 - Meters, +Y up, the front faces **+Z**.
-- The **base point** is the local origin. The lowest point of the geometry is at y = 0, and the asset is centered horizontally on the origin. (Parametric stage elements may anchor at a documented corner instead; currently none do.)
+- The **base point** is the local origin. The lowest point of the geometry is at y = 0, and the asset is centered horizontally on the origin. (Parametric stage elements may anchor at a documented point instead: `stage.truss-corner` at its corner block, `stage.stairs` at the end of its top step; see data-model.md → "Parametric element parameters".)
 - Real-world size. `defaultSize` must match the built bounding box within ±15 %.
 
 ## 2. Fixture models

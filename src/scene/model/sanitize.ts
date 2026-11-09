@@ -128,6 +128,12 @@ function sanitizeLibraryAsset(obj: Rec, raw: Rec, ctx: SanitizeContext) {
         obj.color = typeof raw.color === "string" ? raw.color : null;
         obj.variant = typeof raw.variant === "string" ? raw.variant : null;
     }
+    if (def?.source.type === "parametric") {
+        // the parameters define the size; a stored scale would distort the element (T078)
+        obj.scale = [1, 1, 1];
+        obj.size = sizeOf(def, obj.params as ParamValues);
+        return;
+    }
     const fallbackSize = def ? sizeOf(def, obj.params as ParamValues) : ([0.5, 0.5, 0.5] as Vec3);
     obj.size = vec3(raw.size, fallbackSize).map((v) => Math.max(0.01, v)) as Vec3;
 }

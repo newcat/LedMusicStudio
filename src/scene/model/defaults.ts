@@ -111,6 +111,14 @@ export function createFixtureVisualizationObject(
     } as FixtureVisualizationObject;
 }
 
+/** Parametric library assets get their size from the parameters; their scale stays [1, 1, 1] (feature 002, T078). */
+export function isParametricLibraryAsset(obj: { kind: string; assetId?: unknown } | undefined): boolean {
+    if (!obj || obj.kind !== "libraryAsset" || typeof obj.assetId !== "string") {
+        return false;
+    }
+    return assetCatalog.get(obj.assetId)?.source.type === "parametric";
+}
+
 /** A library item at default parameters. The caller passes the name (`nextObjectName(scene, definition.name)`). */
 export function createLibraryAssetObject(definition: AssetDefinition, partial: Partial<Omit<LibraryAssetObject, "kind">> = {}): LibraryAssetObject {
     const params = completeParams(definition, {});

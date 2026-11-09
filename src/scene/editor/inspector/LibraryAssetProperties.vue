@@ -11,6 +11,10 @@
             </div>
         </div>
         <div v-if="!definition" class="notice">This asset is not available in this version ({{ object.assetId }}).</div>
+        <template v-if="definition && isParametric">
+            <div class="section-title">Parameters</div>
+            <ParameterFields :definition="definition" :params="object.params" @update="setParams" />
+        </template>
         <Button outlined size="small" label="Replace asset…" icon="pi pi-sync" @click="showPicker = true" />
         <AssetPicker v-model:visible="showPicker" :category="pickerCategory" @pick="replace" />
     </div>
@@ -21,9 +25,11 @@ import { computed, ref, watch } from "vue";
 import Button from "primevue/button";
 
 import { assetCatalog } from "@/assetLibrary/catalog";
+import type { ParamValues } from "@/assetLibrary/types";
 import { useScene } from "../../sceneStore";
 import type { LibraryAssetObject } from "../../model/types";
 import AssetPicker from "../library/AssetPicker.vue";
+import ParameterFields from "./ParameterFields.vue";
 
 const props = defineProps<{
     object: LibraryAssetObject;
@@ -32,6 +38,7 @@ const props = defineProps<{
 const store = useScene();
 
 const definition = computed(() => assetCatalog.get(props.object.assetId));
+const isParametric = computed(() => definition.value?.source.type === "parametric");
 const pickerCategory = computed(() => definition.value?.category);
 const showPicker = ref(false);
 const imageFailed = ref(false);
@@ -48,6 +55,10 @@ const sizeLabel = computed(() => {
     const [w, h, d] = props.object.size;
     return `${format(w)} × ${format(h)} × ${format(d)} m`;
 });
+
+function setParams(partial: Partial<ParamValues>) {
+    store.setAssetParams(props.object.id, partial);
+}
 
 function replace(assetId: string) {
     store.replaceAsset(props.object.id, assetId);
@@ -89,6 +100,11 @@ function replace(assetId: string) {
 
 .name {
     font-weight: 600;
+}
+
+.section-title {
+    font-weight: 600;
+    font-size: 0.85rem;
 }
 
 .size,

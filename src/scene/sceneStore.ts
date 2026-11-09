@@ -16,6 +16,7 @@ import {
     createImportedModelObject,
     createLibraryAssetObject,
     createShapeObject,
+    isParametricLibraryAsset,
     MODEL_SCALE_MAX,
     MODEL_SCALE_MIN,
     nextObjectName,
@@ -264,6 +265,10 @@ export const useScene = defineStore("scene", () => {
                     for (const key of ["id", "kind", "parentId", "children"]) {
                         Reflect.deleteProperty(patch, key);
                     }
+                    // parametric library assets are resized through their parameters, never scaled (T078)
+                    if (patch.scale && !("assetId" in patch) && isParametricLibraryAsset(scene.value.objects[id])) {
+                        delete patch.scale;
+                    }
                     Object.assign(scene.value.objects[id], structuredClone(toRaw(patch)));
                 }
             },
@@ -473,7 +478,12 @@ export const useScene = defineStore("scene", () => {
     function previewTransforms(transforms: Record<string, Partial<LocalTransform>>) {
         const ids = Object.keys(transforms).filter((id) => scene.value.objects[id]);
         for (const id of ids) {
-            Object.assign(scene.value.objects[id], clampPatch(transforms[id] as Partial<SceneObject>));
+            const patch = clampPatch(transforms[id] as Partial<SceneObject>);
+            // parametric library assets are resized through their parameters, never scaled (T078)
+            if (patch.scale && isParametricLibraryAsset(scene.value.objects[id])) {
+                delete patch.scale;
+            }
+            Object.assign(scene.value.objects[id], patch);
         }
         notifyStates(ids);
     }
@@ -864,6 +874,8 @@ export const useScene = defineStore("scene", () => {
                     color: null,
                     variant: null,
                     size: sizeOf(definition, params),
+                    // parametric elements get their size from the parameters, never from a scale (T078)
+                    ...(definition.source.type === "parametric" ? { scale: [1, 1, 1] } : {}),
                 } as Partial<SceneObject>,
             },
             "Replace asset"

@@ -125,6 +125,19 @@ Values outside a range are clamped by the inspector and by `sanitize` (FR-032, e
 
 All truss profiles are 0.29 m wide, with chord tubes ⌀ 50 mm and braces ⌀ 20 mm.
 
+Built sizes (W × H × D, m; `size(params)` matches the build, checked by the validator at min/default/max):
+
+| Asset id | Size | Default size | Base point |
+|---|---|---|---|
+| `stage.platform` | width × height × depth | 2 × 0.6 × 1 | centered |
+| `stage.stairs` | width × height × (ceil(height / 0.20) × 0.28) | 1 × 0.6 × 0.84 | centered on x; the top step ends at z = 0, the stairs extend towards −Z |
+| `stage.truss-straight` | length × (flat 0.05, else 0.29) × 0.29 | 2 × 0.29 × 0.29 | centered |
+| `stage.truss-corner` | 0.79 × (flat 0.05, else 0.29) × 0.79 | 0.79 × 0.29 × 0.79 | anchored at the corner block (centered on the origin), legs along +X and +Z |
+| `stage.truss-tower` | 0.8 × height × 0.8 | 0.8 × 3 × 0.8 | centered |
+| `stage.backdrop` | width × height × (curtain 0.10, flat 0.02) | 6 × 4 × 0.1 | centered (corrected from 0.12 / 0.04: fold amplitude ±0.05 m, pipe ⌀ 50 mm inside it; flat panel 0.02 m) |
+| `stage.wall` | width × height × thickness | 4 × 3 × 0.2 | centered |
+| `stage.floor` | width × 0.01 × depth | 10 × 0.01 × 10 | centered |
+
 ### Material preset
 
 `{ id: MaterialPresetId; name; color; roughness; metalness; sheen?; clearcoat? }`. Ids: `stage-floor-black`, `wood`, `metal-brushed`, `fabric-black`, `fabric-white`, `concrete`, `plastic-glossy` (values: research R14).
