@@ -10,11 +10,12 @@
         @drop="onDrop"
     >
         <canvas ref="canvas"></canvas>
+        <div v-if="snapHint" class="snap-hint">{{ snapHint }}</div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
 import { useResizeObserver, useThrottleFn } from "@vueuse/core";
 
 import { SceneView } from "@/visualization/sceneView";
@@ -32,6 +33,9 @@ const container = ref<HTMLElement>();
 const canvas = ref<HTMLCanvasElement>();
 const hovered = ref(false);
 const overlay = shallowRef<EditorOverlay | null>(null);
+
+/** Status hint of the active mount/connection snap candidate (feature 002, T084). */
+const snapHint = computed(() => overlay.value?.snapHint.value ?? null);
 
 let view: SceneView | undefined;
 let unregisterSink: (() => void) | undefined;
@@ -101,5 +105,19 @@ defineExpose({ overlay, hovered });
 
 canvas {
     display: block;
+}
+
+.snap-hint {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #00e5ff;
+    font-size: 12px;
+    white-space: nowrap;
+    pointer-events: none;
 }
 </style>

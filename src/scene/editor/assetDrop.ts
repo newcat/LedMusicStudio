@@ -9,9 +9,9 @@ import { assetCatalog, completeParams, instantiate, sizeOf, templateKey, type As
 import { EDITOR_LAYER, type SceneView } from "@/visualization/sceneView";
 import { createShapeGeometry } from "@/visualization/objectBuilders";
 import { defaultShapeDimensions } from "../model/defaults";
-import type { LocalTransform } from "../model/transformMath";
 import type { ShapeDimensions, Vec3 } from "../model/types";
-import type { useScene } from "../sceneStore";
+import type { AddAssetOptions, useScene } from "../sceneStore";
+import type { SnapResult } from "./snapping";
 
 type SceneStore = ReturnType<typeof useScene>;
 
@@ -23,19 +23,11 @@ export interface SurfacePlacement {
     normal: Vec3;
 }
 
-/** Result of the snapping hook (filled in by US5). */
-export interface SnapResult {
-    /** Transform relative to `parentId`. */
-    transform: Partial<LocalTransform>;
-    /** World matrix of the ghost while snapped. */
-    world: THREE.Matrix4;
-    /** The object becomes a child of this object on release (null = scene root). */
-    parentId: string | null;
-    /** Status hint, e.g. "Hang on Truss 1". */
-    hint: string;
-}
-
-export type ResolveSnap = (assetId: string, point: THREE.Vector3, ray: THREE.Ray) => SnapResult | null;
+/**
+ * Snapping hook (US5): returns the snapped world pose for the dragged asset at `point` (the ghost's unsnapped
+ * position) or null. `event` is the dragover event (Ctrl disables snapping, FR-043).
+ */
+export type ResolveSnap = (assetId: string, point: THREE.Vector3, ray: THREE.Ray, event: DragEvent) => SnapResult | null;
 
 // The drag data cannot be read during dragover, so the tile remembers the dragged id here.
 let currentDragAssetId: string | null = null;
@@ -51,6 +43,8 @@ export function getCurrentDragAssetId(): string | null {
 /**
  * Adds a library asset through store commands only (FR-003): shapes become 001 shape objects, fixture models become
  * unlinked fixture visualizations and everything else a `libraryAsset`. Every command selects the new object.
+ * With a snap result the object gets the snapped world transform and, when mounted, becomes a child of the target,
+ * in the same command (one undo step, T082).
  */
 export function addAssetById(store: SceneStore, assetId: string, placement: SurfacePlacement | null, snap?: SnapResult | null): string | null {
     const definition = assetCatalog.get(assetId);
@@ -60,13 +54,13 @@ export function addAssetById(store: SceneStore, assetId: string, placement: Surf
     if (definition.source.type === "shape") {
         return store.addShape(definition.source.shape, placement);
     }
+    const options: AddAssetOptions | undefined = snap
+        ? { parentId: snap.kind === "connect" ? null : snap.targetId, worldTransform: { position: snap.position, rotation: snap.rotation } }
+        : undefined;
     if (definition.category === "fixtures") {
-        return store.addFixtureModel(definition.id, placement);
+        return store.addFixtureModel(definition.id, placement, options);
     }
-    if (snap) {
-        return store.addLibraryAsset(definition.id, placement, snap.transform, snap.parentId);
-    }
-    return store.addLibraryAsset(definition.id, placement);
+    return store.addLibraryAsset(definition.id, placement, options);
 }
 
 const GHOST_USER = "asset-drop-ghost";
@@ -106,6 +100,8 @@ export type SurfaceRaycast = (ndc: THREE.Vector2) => { placement: SurfacePlaceme
 export class AssetDropController {
     /** Snapping hook (US5). When set and it returns a result, the ghost uses the result's transform. */
     public resolveSnap: ResolveSnap | null = null;
+    /** Called whenever the snap candidate changes (highlight and status hint). */
+    public onSnapChange: ((snap: SnapResult | null) => void) | null = null;
 
     private ghost: Ghost | null = null;
     private lastPlacement: SurfacePlacement | null = null;
@@ -146,7 +142,8 @@ export class AssetDropController {
         const resolved = placement ?? this.floorPlacement(ray);
         this.lastPlacement = resolved;
         const point = new THREE.Vector3(...resolved.point);
-        this.lastSnap = this.resolveSnap?.(definition.id, point, ray) ?? null;
+        this.lastSnap = this.resolveSnap?.(definition.id, point, ray, event) ?? null;
+        this.onSnapChange?.(this.lastSnap);
         this.positionGhost(resolved, this.lastSnap);
     }
 
@@ -161,7 +158,8 @@ export class AssetDropController {
         event.preventDefault();
         const assetId = event.dataTransfer.getData(ASSET_DRAG_TYPE) || currentDragAssetId;
         let placement = this.lastPlacement;
-        let snap = this.lastSnap;
+        // Ctrl pressed after the last dragover still places freely (FR-043)
+        let snap = event.ctrlKey ? null : this.lastSnap;
         if (!this.ghost) {
             // drop without a preceding dragover (should not happen): place under the pointer
             const { placement: hit, ray } = this.raycast(this.ndcFromEvent(event));
@@ -294,7 +292,11 @@ export class AssetDropController {
             return;
         }
         if (snap) {
-            snap.world.decompose(ghost.root.position, ghost.root.quaternion, ghost.root.scale);
+            ghost.root.position.set(...snap.position);
+            ghost.root.quaternion.setFromEuler(
+                new THREE.Euler(THREE.MathUtils.degToRad(snap.rotation[0]), THREE.MathUtils.degToRad(snap.rotation[1]), THREE.MathUtils.degToRad(snap.rotation[2]), "XYZ")
+            );
+            ghost.root.scale.set(1, 1, 1);
             return;
         }
         const [px, py, pz] = placement.point;
@@ -309,7 +311,10 @@ export class AssetDropController {
         const ghost = this.ghost;
         this.ghost = null;
         this.lastPlacement = null;
-        this.lastSnap = null;
+        if (this.lastSnap) {
+            this.lastSnap = null;
+            this.onSnapChange?.(null);
+        }
         if (!ghost) {
             return;
         }

@@ -2,16 +2,28 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls";
 import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer";
-import { watch, type WatchStopHandle } from "vue";
+import { ref, toRaw, watch, type Ref, type WatchStopHandle } from "vue";
 
 import { EDITOR_LAYER, type SceneView } from "@/visualization/sceneView";
 import { SCENE_OBJECT_ID } from "@/visualization/objectBuilders";
-import { fromMatrix, getSelectionRoots, getWorldMatrix, isEffectivelyVisible, worldToLocal } from "../model/transformMath";
-import { isFixtureVisualization, type CameraPose, type SceneObject, type Vec3 } from "../model/types";
+import { assetCatalog, completeParams } from "@/assetLibrary";
+import {
+    fromMatrix,
+    getDescendantIds,
+    getParentWorldMatrix,
+    getSelectionRoots,
+    getWorldMatrix,
+    isEffectivelyVisible,
+    toMatrix,
+    worldToLocal,
+    type LocalTransform,
+} from "../model/transformMath";
+import { isFixtureVisualization, isLibraryAsset, type CameraPose, type SceneObject, type Vec3 } from "../model/types";
 import { VisualizationType } from "@/visualization/fixtureVisualization";
 import type { ObjectStates, useScene } from "../sceneStore";
 import { computeObjectBounds } from "./bounds";
 import { AssetDropController, type SurfacePlacement } from "./assetDrop";
+import { isTrussAsset, SnapHighlightView, SnapResolver, type SnapResult } from "./snapping";
 
 type SceneStore = ReturnType<typeof useScene>;
 export type ViewPreset = "top" | "front" | "side" | "perspective";
@@ -45,6 +57,18 @@ interface DragState {
     /** multi-selection: pivot at drag start and the world matrices of the moved roots */
     pivotStart?: THREE.Matrix4;
     worldStart?: Map<string, THREE.Matrix4>;
+    /** single-object translate drag of a fixture or truss element: mount/connection snapping (T083) */
+    snap?: GizmoSnap;
+}
+
+interface GizmoSnap {
+    kind: "fixture" | "truss";
+    id: string;
+    /** local transform at drag start; the gizmo only moves the position */
+    start: LocalTransform;
+    /** unsnapped local position from the gizmo (the preview may show the snapped one) */
+    raw: THREE.Vector3 | null;
+    result: SnapResult | null;
 }
 
 function toVec3(v: THREE.Vector3): Vec3 {
@@ -74,6 +98,8 @@ export class EditorOverlay {
     public onContextMenu: ((event: MouseEvent) => void) | null = null;
     /** Drag & drop placement of library assets (feature 002). */
     public readonly assetDrop: AssetDropController;
+    /** Status hint of the active snap candidate ("Hang on Truss 1"), null if there is none (T084). */
+    public readonly snapHint: Ref<string | null> = ref(null);
 
     private readonly transform: TransformControls;
     private readonly endpointTransform: TransformControls;
@@ -89,6 +115,8 @@ export class EditorOverlay {
     private readonly disposables: Array<{ dispose(): void }> = [];
     private readonly stopHandles: WatchStopHandle[] = [];
     private readonly unsubscribers: Array<() => void> = [];
+    private readonly snapResolver: SnapResolver;
+    private readonly snapHighlight: SnapHighlightView;
 
     private animation: CameraAnimation | null = null;
     private drag: DragState | null = null;
@@ -131,7 +159,7 @@ export class EditorOverlay {
         this.view.scene.add(this.pivot);
 
         this.transform.addEventListener("dragging-changed", (event) => this.onDraggingChanged(event.value as boolean, false));
-        this.transform.addEventListener("objectChange", () => this.schedulePreview());
+        this.transform.addEventListener("objectChange", () => this.onTransformObjectChange());
         this.endpointTransform.addEventListener("dragging-changed", (event) => this.onDraggingChanged(event.value as boolean, true));
         this.endpointTransform.addEventListener("objectChange", () => this.previewEndpoint());
 
@@ -181,10 +209,17 @@ export class EditorOverlay {
         );
         this.onSelectionChanged();
 
+        this.snapResolver = new SnapResolver(
+            () => toRaw(store.scene),
+            () => store.historyVersion
+        );
+        this.snapHighlight = new SnapHighlightView(view.scene);
         this.assetDrop = new AssetDropController(view, store, canvas, (ndc) => {
             this.raycaster.setFromCamera(ndc, this.view.camera);
             return { placement: this.raycastSurface(), ray: this.raycaster.ray.clone() };
         });
+        this.assetDrop.resolveSnap = (assetId, point, ray, event) => this.resolveLibrarySnap(assetId, point, ray, event);
+        this.assetDrop.onSnapChange = (snap) => this.showSnap(snap);
     }
 
     // -----------------------------------------------------------------------------------------------------------
@@ -313,6 +348,7 @@ export class EditorOverlay {
             this.cancelling = false;
             this.drag = null;
             this.controls.enabled = true;
+            this.showSnap(null);
         }
         this.refreshAttachment();
         return true;
@@ -325,6 +361,7 @@ export class EditorOverlay {
         this.disposed = true;
         clearTimeout(this.persistTimeout);
         this.assetDrop.dispose();
+        this.snapHighlight.dispose();
         const canvas = this.view.canvas;
         canvas.removeEventListener("pointerdown", this.onPointerDown);
         canvas.removeEventListener("pointerup", this.onPointerUp);
@@ -763,6 +800,10 @@ export class EditorOverlay {
             if (held !== this.ctrlHeld) {
                 this.ctrlHeld = held;
                 this.applySnapping();
+                // Ctrl toggles mount/connection snapping of a running gizmo drag immediately (T083)
+                if (this.drag?.snap && !this.cancelling) {
+                    this.applyPreview(this.drag);
+                }
             }
         }
     };
@@ -882,7 +923,30 @@ export class EditorOverlay {
         } else {
             const id = this.store.activeId;
             this.drag = { kind: "objects", before: this.store.captureBeforeStates(id ? [id] : []), label };
+            const snapKind = id && mode === "translate" ? this.snapKindOf(id) : null;
+            if (id && snapKind) {
+                const obj = this.store.scene.objects[id];
+                this.drag.snap = {
+                    kind: snapKind,
+                    id,
+                    start: { position: [...obj.position], rotation: [...obj.rotation], scale: [...obj.scale] },
+                    raw: null,
+                    result: null,
+                };
+            }
         }
+    }
+
+    /** Objects snapped while moved with the gizmo: fixture visualizations with a model and truss elements. */
+    private snapKindOf(id: string): "fixture" | "truss" | null {
+        const obj = this.store.scene.objects[id];
+        if (!obj) {
+            return null;
+        }
+        if (isFixtureVisualization(obj)) {
+            return assetCatalog.get(obj.modelId ?? "")?.category === "fixtures" ? "fixture" : null;
+        }
+        return isLibraryAsset(obj) && isTrussAsset(obj.assetId) ? "truss" : null;
     }
 
     private endDrag() {
@@ -896,9 +960,28 @@ export class EditorOverlay {
             // flush the final state before committing
             this.applyPreview(drag);
         }
-        this.store.commitPreview(drag.before, drag.label);
+        const snap = drag.snap;
+        this.showSnap(null);
+        if (snap?.kind === "fixture" && snap.result && snap.result.kind !== "connect") {
+            // mounted: transform and reparent form one history entry
+            this.store.commitPreview(drag.before, drag.label, { reparent: { ids: [snap.id], parentId: snap.result.targetId } });
+        } else {
+            this.store.commitPreview(drag.before, drag.label);
+        }
         // the pivot of a multi-selection moves with the objects
         this.refreshAttachment();
+    }
+
+    private onTransformObjectChange() {
+        const snap = this.drag?.snap;
+        if (snap && !this.cancelling) {
+            // remember the gizmo's own position before the preview replaces it with the snapped one
+            const o3d = this.view.getObject3D(snap.id);
+            if (o3d) {
+                snap.raw = o3d.position.clone();
+            }
+        }
+        this.schedulePreview();
     }
 
     private schedulePreview() {
@@ -929,6 +1012,10 @@ export class EditorOverlay {
             this.store.previewTransforms(transforms);
             return;
         }
+        if (drag.snap) {
+            this.applySnapPreview(drag.snap);
+            return;
+        }
         const id = this.store.activeId;
         const o3d = id ? this.view.getObject3D(id) : undefined;
         if (!id || !o3d) {
@@ -939,6 +1026,86 @@ export class EditorOverlay {
         // negative or tiny scale is not possible: keep the handle in sync with the clamped value
         o3d.scale.set(...transform.scale);
         this.store.previewTransforms({ [id]: transform });
+    }
+
+    // -----------------------------------------------------------------------------------------------------------
+    // mount and connection snapping (feature 002, US5)
+
+    private showSnap(snap: SnapResult | null) {
+        this.snapHighlight.show(snap?.highlight ?? null);
+        this.snapHint.value = snap?.label ?? null;
+    }
+
+    /** Library drag: fixtures mount, truss elements connect; Ctrl disables both (FR-043). */
+    private resolveLibrarySnap(assetId: string, point: THREE.Vector3, ray: THREE.Ray, event: DragEvent): SnapResult | null {
+        if (event.ctrlKey || event.metaKey) {
+            return null;
+        }
+        const definition = assetCatalog.get(assetId);
+        if (!definition) {
+            return null;
+        }
+        if (definition.category === "fixtures") {
+            // the ghost stands upright at the pointer with the model's base point there
+            return this.snapResolver.resolveFixture(definition, 1, point, { ray });
+        }
+        if (isTrussAsset(definition.id)) {
+            const world = new THREE.Matrix4().makeTranslation(point.x, point.y, point.z);
+            return this.snapResolver.resolveTruss(definition, completeParams(definition, {}), world, { ray });
+        }
+        return null;
+    }
+
+    /** Gizmo translate drag of one fixture or truss element: preview the snapped transform if there is a candidate. */
+    private applySnapPreview(snap: GizmoSnap) {
+        const scene = this.store.scene;
+        const obj = scene.objects[snap.id];
+        const o3d = this.view.getObject3D(snap.id);
+        if (!obj || !o3d) {
+            return;
+        }
+        const raw = snap.raw ?? o3d.position.clone();
+        const unsnapped: LocalTransform = { position: [raw.x, raw.y, raw.z], rotation: snap.start.rotation, scale: snap.start.scale };
+        snap.result = this.ctrlHeld ? null : this.resolveGizmoSnap(snap, obj, unsnapped);
+        this.showSnap(snap.result);
+
+        let transform = unsnapped;
+        if (snap.result) {
+            const world = getParentWorldMatrix(scene, obj.parentId).multiply(toMatrix(unsnapped));
+            const worldScale = new THREE.Vector3();
+            world.decompose(new THREE.Vector3(), new THREE.Quaternion(), worldScale);
+            const snapped = toMatrix({ position: snap.result.position, rotation: snap.result.rotation, scale: [worldScale.x, worldScale.y, worldScale.z] });
+            transform = { ...worldToLocal(scene, obj.parentId, snapped), scale: snap.start.scale };
+        }
+        this.store.previewTransforms({ [snap.id]: transform });
+    }
+
+    private resolveGizmoSnap(snap: GizmoSnap, obj: SceneObject, local: LocalTransform): SnapResult | null {
+        const scene = this.store.scene;
+        const world = getParentWorldMatrix(scene, obj.parentId).multiply(toMatrix(local));
+        const exclude = [snap.id, ...getDescendantIds(scene, snap.id)];
+        if (snap.kind === "fixture" && isFixtureVisualization(obj)) {
+            const definition = assetCatalog.get(obj.modelId ?? "");
+            if (definition?.category !== "fixtures") {
+                return null;
+            }
+            const position = new THREE.Vector3();
+            const quaternion = new THREE.Quaternion();
+            const scale = new THREE.Vector3();
+            world.decompose(position, quaternion, scale);
+            const modelScale = obj.modelScale ?? 1;
+            const mount = definition.fixture.mountingPoints[0];
+            const mountPoint = mount ? new THREE.Vector3(...mount.position).multiplyScalar(modelScale).applyMatrix4(world) : position;
+            return this.snapResolver.resolveFixture(definition, modelScale * Math.max(scale.x, scale.y, scale.z), mountPoint, {
+                exclude,
+                currentQuaternion: quaternion,
+            });
+        }
+        if (snap.kind === "truss" && isLibraryAsset(obj)) {
+            const definition = assetCatalog.get(obj.assetId);
+            return definition ? this.snapResolver.resolveTruss(definition, completeParams(definition, obj.params), world, { exclude }) : null;
+        }
+        return null;
     }
 
     // -----------------------------------------------------------------------------------------------------------

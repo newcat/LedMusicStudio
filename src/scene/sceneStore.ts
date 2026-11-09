@@ -31,6 +31,8 @@ import {
     isEffectivelyVisible,
     MIN_SCALE,
     reparentKeepingWorld,
+    toMatrix,
+    worldToLocal,
     wouldCreateCycle,
     type Axis,
     type LocalTransform,
@@ -90,6 +92,12 @@ function clampPatch(patch: Partial<SceneObject>): Partial<SceneObject> {
         }
     }
     return result as Partial<SceneObject>;
+}
+
+/** Options of the library add commands (snapping, T082): parent and world transform of the new object. */
+export interface AddAssetOptions {
+    parentId?: string | null;
+    worldTransform?: { position: Vec3; rotation: Vec3; scale?: Vec3 };
 }
 
 export const useScene = defineStore("scene", () => {
@@ -317,33 +325,36 @@ export const useScene = defineStore("scene", () => {
         if (roots.length === 0 || (newParentId && !scene.value.objects[newParentId])) {
             return;
         }
+        runCommand("Reparent", [...roots, ...parentsOf(roots), ...(newParentId ? [newParentId] : [])], () => moveToParent(roots, newParentId, index));
+    }
+
+    /** Moves `roots` (validated) under `newParentId`, keeping their world transforms. No history entry. */
+    function moveToParent(roots: string[], newParentId: string | null, index?: number) {
         // transforms are computed on the unchanged scene
         const transforms = new Map<string, LocalTransform>(roots.map((id) => [id, reparentKeepingWorld(rawScene(), id, newParentId)]));
-        runCommand("Reparent", [...roots, ...parentsOf(roots), ...(newParentId ? [newParentId] : [])], () => {
-            const siblings = siblingsOf(newParentId);
-            let insertAt = index ?? siblings.length;
-            for (const id of roots) {
-                const obj = scene.value.objects[id];
-                const oldSiblings = siblingsOf(obj.parentId);
-                const oldIndex = oldSiblings.indexOf(id);
-                if (oldIndex !== -1) {
-                    oldSiblings.splice(oldIndex, 1);
-                    if (oldSiblings === siblings && oldIndex < insertAt) {
-                        insertAt--;
-                    }
+        const siblings = siblingsOf(newParentId);
+        let insertAt = index ?? siblings.length;
+        for (const id of roots) {
+            const obj = scene.value.objects[id];
+            const oldSiblings = siblingsOf(obj.parentId);
+            const oldIndex = oldSiblings.indexOf(id);
+            if (oldIndex !== -1) {
+                oldSiblings.splice(oldIndex, 1);
+                if (oldSiblings === siblings && oldIndex < insertAt) {
+                    insertAt--;
                 }
             }
-            for (const id of roots) {
-                const obj = scene.value.objects[id];
-                const t = transforms.get(id)!;
-                obj.parentId = newParentId;
-                obj.position = t.position;
-                obj.rotation = t.rotation;
-                obj.scale = t.scale;
-                siblings.splice(Math.min(insertAt, siblings.length), 0, id);
-                insertAt++;
-            }
-        });
+        }
+        for (const id of roots) {
+            const obj = scene.value.objects[id];
+            const t = transforms.get(id)!;
+            obj.parentId = newParentId;
+            obj.position = t.position;
+            obj.rotation = t.rotation;
+            obj.scale = t.scale;
+            siblings.splice(Math.min(insertAt, siblings.length), 0, id);
+            insertAt++;
+        }
     }
 
     function setVisible(ids: string[], visible: boolean) {
@@ -497,7 +508,36 @@ export const useScene = defineStore("scene", () => {
         return captureStates(ids);
     }
 
-    function commitPreview(before: ObjectStates, label: string) {
+    /**
+     * Records a finished preview drag as one history entry. With `reparent`, the objects are also moved under
+     * `reparent.parentId` (world transform kept) in the same entry, e.g. a fixture mounted by gizmo snapping (T083).
+     */
+    function commitPreview(before: ObjectStates, label: string, options?: { reparent?: { ids: string[]; parentId: string | null } }) {
+        const move = options?.reparent;
+        if (move) {
+            const newParentId = move.parentId;
+            const roots = getSelectionRoots(rawScene(), move.ids).filter(
+                (id) => rawObject(id) && rawObject(id)!.parentId !== newParentId && !wouldCreateCycle(rawScene(), id, newParentId)
+            );
+            if (roots.length > 0 && (!newParentId || rawObject(newParentId))) {
+                // parents are not changed by the preview: their current state is their state before the drag
+                const parents = unique([...parentsOf(roots), ...(newParentId ? [newParentId] : [])]).filter((id) => !(id in before));
+                const fullBefore: ObjectStates = { ...captureStates(parents), ...cloneStates(before) };
+                const rootOrderBefore = [...rawScene().rootOrder];
+                moveToParent(roots, newParentId);
+                const ids = unique([...Object.keys(fullBefore), ...roots]);
+                history.push({
+                    label,
+                    before: fullBefore,
+                    after: captureStates(ids),
+                    rootOrderBefore,
+                    rootOrderAfter: [...rawScene().rootOrder],
+                });
+                bumpHistory();
+                notifyStates(ids);
+                return;
+            }
+        }
         const ids = Object.keys(before);
         const after = captureStates(ids);
         // skip no-op drags
@@ -784,17 +824,19 @@ export const useScene = defineStore("scene", () => {
      * Adds a library item (stage element or decoration) and selects it. Fixture models become fixture visualizations
      * and basic shapes become shape objects, so neither is added here (research R4).
      */
-    function addLibraryAsset(assetId: string, placement?: Placement, transform?: Partial<LocalTransform>, parentId?: string | null): string | null {
+    function addLibraryAsset(assetId: string, placement?: Placement, options?: AddAssetOptions): string | null {
         const definition = assetCatalog.get(assetId);
         if (!definition || definition.category === "fixtures" || definition.source.type === "shape") {
             return null;
         }
         const obj = createLibraryAssetObject(definition, { name: nextObjectName(scene.value, definition.name) });
         obj.position = placementPosition(placement);
-        if (transform?.position) obj.position = [...transform.position];
-        if (transform?.rotation) obj.rotation = [...transform.rotation];
-        if (transform?.scale) obj.scale = transform.scale.map((v) => Math.max(MIN_SCALE, v)) as Vec3;
-        addObjects([obj], parentId ?? null, `Add ${definition.name}`);
+        const parentId = applyWorldTransform(obj, options);
+        if (definition.source.type === "parametric") {
+            // parametric elements are never scaled (T078)
+            obj.scale = [1, 1, 1];
+        }
+        addObjects([obj], parentId, `Add ${definition.name}`);
         select([obj.id]);
         return obj.id;
     }
@@ -803,7 +845,7 @@ export const useScene = defineStore("scene", () => {
      * A fixture model from the library becomes an unlinked fixture visualization of the model's first type
      * (contracts/library-ui.md → Placement, item 4). Selects it.
      */
-    function addFixtureModel(modelId: string, placement?: Placement): string | null {
+    function addFixtureModel(modelId: string, placement?: Placement, options?: AddAssetOptions): string | null {
         const definition = assetCatalog.get(modelId);
         if (definition?.category !== "fixtures" || definition.fixture.visualizationTypes.length === 0) {
             return null;
@@ -815,9 +857,26 @@ export const useScene = defineStore("scene", () => {
             modelScale: 1,
         });
         obj.position = placementPosition(placement);
-        addObjects([obj], null, `Add ${definition.name}`);
+        const parentId = applyWorldTransform(obj, options);
+        addObjects([obj], parentId, `Add ${definition.name}`);
         select([obj.id]);
         return obj.id;
+    }
+
+    /**
+     * Sets the transform of a new object from `options.worldTransform`, relative to `options.parentId` (snapping,
+     * T082). Returns the parent to add the object under (null = scene root).
+     */
+    function applyWorldTransform(obj: SceneObject, options?: AddAssetOptions): string | null {
+        const parentId = options?.parentId && scene.value.objects[options.parentId] ? options.parentId : null;
+        const world = options?.worldTransform;
+        if (world) {
+            const local = worldToLocal(rawScene(), parentId, toMatrix({ position: world.position, rotation: world.rotation, scale: world.scale ?? [1, 1, 1] }));
+            obj.position = local.position;
+            obj.rotation = local.rotation;
+            obj.scale = local.scale.map((v) => Math.max(MIN_SCALE, v)) as Vec3;
+        }
+        return parentId;
     }
 
     function libraryAssetOf(id: string) {
@@ -988,6 +1047,7 @@ export const useScene = defineStore("scene", () => {
         canUndo,
         canRedo,
         history,
+        historyVersion,
         // commands
         addObjects,
         updateObjects,
