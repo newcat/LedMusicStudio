@@ -1,7 +1,7 @@
 /**
  * Parameter completion and size computation for parametric assets (feature 002, data-model invariant 3).
  */
-import type { AssetDefinition, ParamSpec, ParamValues, Vec3 } from "./types";
+import type { AssetDefinition, ConnectionPoint, MountingArea, ParamSpec, ParamValues, Vec3 } from "./types";
 
 const MIN_SIZE = 0.01;
 
@@ -56,4 +56,16 @@ export function choiceParam<T extends string>(p: ParamValues, key: string, optio
 export function sizeOf(definition: AssetDefinition, params: Partial<ParamValues> | null | undefined): Vec3 {
     const size = definition.source.type === "parametric" ? definition.source.size(completeParams(definition, params)) : definition.defaultSize;
     return [Math.max(MIN_SIZE, size[0]), Math.max(MIN_SIZE, size[1]), Math.max(MIN_SIZE, size[2])];
+}
+
+/** Mounting areas and connection points in the asset's local frame (static `mounting` or the parametric functions). */
+export function mountingOf(definition: AssetDefinition, params: Partial<ParamValues> | null | undefined): { areas: MountingArea[]; connections: ConnectionPoint[] } {
+    let areas = definition.mounting?.areas ?? [];
+    let connections = definition.mounting?.connections ?? [];
+    if (definition.source.type === "parametric") {
+        const complete = completeParams(definition, params);
+        areas = definition.source.mountingAreas?.(complete) ?? areas;
+        connections = definition.source.connections?.(complete) ?? connections;
+    }
+    return { areas, connections };
 }
