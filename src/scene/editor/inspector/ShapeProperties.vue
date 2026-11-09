@@ -17,9 +17,7 @@
                 />
             </LabelledFormField>
         </div>
-        <LabelledFormField label="Color">
-            <ColorPicker :model-value="object.color.slice(1)" format="hex" @update:model-value="setColor" />
-        </LabelledFormField>
+        <MaterialField :material="object.material" :color="object.color" @update:material="setMaterial" @update:color="setColor" />
         <div class="world-size">World size: {{ worldSize }} m</div>
     </div>
 </template>
@@ -28,9 +26,10 @@
 import { computed } from "vue";
 import InputText from "primevue/inputtext";
 import InputNumber from "primevue/inputnumber";
-import ColorPicker from "primevue/colorpicker";
 
 import LabelledFormField from "@/components/LabelledFormField.vue";
+import MaterialField from "./MaterialField.vue";
+import type { MaterialPresetId } from "@/assetLibrary/types";
 import { useScene } from "../../sceneStore";
 import type { ShapeObject } from "../../model/types";
 
@@ -58,11 +57,12 @@ function setDimension(key: string, value: number | null) {
     store.updateObjects({ [props.object.id]: { dimensions } as Partial<ShapeObject> }, "Edit dimensions", `dimension:${props.object.id}:${key}`);
 }
 
-function setColor(value: unknown) {
-    if (typeof value !== "string" || !/^[0-9a-fA-F]{6}$/.test(value)) {
-        return;
-    }
-    store.updateObjects({ [props.object.id]: { color: `#${value.toLowerCase()}` } as Partial<ShapeObject> }, "Edit color", `color:${props.object.id}`);
+function setColor(color: string) {
+    store.updateObjects({ [props.object.id]: { color } as Partial<ShapeObject> }, "Edit color", `color:${props.object.id}`);
+}
+
+function setMaterial(material: MaterialPresetId | null) {
+    store.setShapeMaterial(props.object.id, material);
 }
 
 /** dimensions x scale */

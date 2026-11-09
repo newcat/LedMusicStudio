@@ -27,7 +27,14 @@
                 @update:model-value="setVariant"
             />
         </LabelledFormField>
-        <LabelledFormField v-if="showColor" label="Color">
+        <MaterialField
+            v-if="showMaterial"
+            :material="object.material"
+            :color="effectiveColor"
+            @update:material="setMaterial"
+            @update:color="setColorValue"
+        />
+        <LabelledFormField v-else-if="showColor" label="Color">
             <div class="color-row">
                 <ColorPicker :model-value="effectiveColor.slice(1)" format="hex" aria-label="Color" @update:model-value="setColor" />
                 <span class="color-value">{{ object.color ?? "Asset default" }}</span>
@@ -53,6 +60,8 @@ import { useScene } from "../../sceneStore";
 import type { LibraryAssetObject } from "../../model/types";
 import AssetPicker from "../library/AssetPicker.vue";
 import ParameterFields from "./ParameterFields.vue";
+import MaterialField from "./MaterialField.vue";
+import type { MaterialPresetId } from "@/assetLibrary/types";
 
 const props = defineProps<{
     object: LibraryAssetObject;
@@ -122,6 +131,19 @@ const effectiveColor = computed(() => {
 function setColor(value: unknown) {
     if (typeof value !== "string" || !/^[0-9a-fA-F]{6}$/.test(value)) return;
     const color = `#${value.toLowerCase()}`;
+    if (color !== props.object.color) {
+        store.setAssetColor(props.object.id, color);
+    }
+}
+
+/** US7: assets that accept a material preset get the material select with the color picker. */
+const showMaterial = computed(() => Boolean(definition.value?.supportsMaterial));
+
+function setMaterial(material: MaterialPresetId | null) {
+    store.setAssetMaterial(props.object.id, material);
+}
+
+function setColorValue(color: string) {
     if (color !== props.object.color) {
         store.setAssetColor(props.object.id, color);
     }

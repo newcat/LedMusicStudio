@@ -8,7 +8,7 @@
                         <Outliner ref="outliner" @contextmenu="showContextMenu" />
                     </pane>
                     <pane size="50" min-size="15">
-                        <AssetLibraryPanel @add="addAssetAtCenter" />
+                        <AssetLibraryPanel @add="addAssetAtCenter" @show-credits="showCredits = true" />
                     </pane>
                 </splitpanes>
             </pane>
@@ -20,6 +20,7 @@
             </pane>
         </splitpanes>
         <ContextMenu ref="contextMenu" :model="contextMenuItems" />
+        <AssetCreditsDialog v-model:visible="showCredits" />
         <AddFixtureVisualizationDialog v-model:visible="showAddFixtureDialog" @confirm="addFixtureVisualization" />
     </div>
 </template>
@@ -43,6 +44,7 @@ import Viewport from "./Viewport.vue";
 import Inspector from "./Inspector.vue";
 import AddFixtureVisualizationDialog from "./AddFixtureVisualizationDialog.vue";
 import AssetLibraryPanel from "./library/AssetLibraryPanel.vue";
+import AssetCreditsDialog from "./library/AssetCreditsDialog.vue";
 import { addAssetById } from "./assetDrop";
 import { importModelFile } from "./modelImport";
 import { useEditorShortcuts } from "./useEditorShortcuts";
@@ -55,6 +57,7 @@ const viewport = ref<InstanceType<typeof Viewport>>();
 const outliner = ref<InstanceType<typeof Outliner>>();
 const contextMenu = ref<InstanceType<typeof ContextMenu>>();
 const showAddFixtureDialog = ref(false);
+const showCredits = ref(false);
 
 const overlay = computed(() => viewport.value?.overlay ?? null);
 const { focused } = useFocusWithin(root);
