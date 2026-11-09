@@ -182,17 +182,19 @@ Default sizes are W × H × D in meters. "P" = procedural, "G" = GLB file, "Par"
 | `decoration.monitor-wedge` | Stage monitor (wedge) | P | 0.55 × 0.35 × 0.45 | black |
 | `decoration.dj-booth` | DJ booth | P | 2.0 × 1.1 × 0.8 | black, white |
 | `decoration.dj-table` | DJ table with decks | P | 1.2 × 0.95 × 0.6 | black |
-| `decoration.drum-kit` | Drum kit | G or P | 2.0 × 1.3 × 1.6 | black, red |
+| `decoration.drum-kit` | Drum kit | P | 2.0 × 1.3 × 1.6 | black, red |
 | `decoration.amp` | Guitar/bass amplifier | P | 0.75 × 1.3 × 0.4 | black |
 | `decoration.keyboard-stand` | Keyboard on stand | P | 1.3 × 0.95 × 0.45 | — |
 | `decoration.mic-stand` | Microphone stand | P | 0.5 × 1.6 × 0.5 | — |
 | `decoration.table` | Table | P | 1.2 × 0.75 × 0.8 | wood, black |
 | `decoration.chair` | Chair | P | 0.45 × 0.85 × 0.5 | wood, black |
 | `decoration.bar-counter` | Bar counter | P | 3.0 × 1.1 × 0.7 | wood, black |
-| `decoration.figure-standing` | Human figure (standing) | G or P | 0.5 × 1.78 × 0.3 | grey |
-| `decoration.figure-arms-up` | Human figure (arms raised) | G or P | 0.6 × 2.15 × 0.3 | grey |
+| `decoration.figure-standing` | Human figure (standing) | P | 0.5 × 1.78 × 0.3 | grey |
+| `decoration.figure-arms-up` | Human figure (arms raised) | P | 0.6 × 2.15 × 0.3 | grey |
 
 **Basic shapes** (FR-006): `shape.box`, `shape.cylinder`, `shape.plane`, `shape.sphere` (source `shape`, they call `addShape`).
+
+Checked against the catalog during verification (T104): 19 fixtures, 8 stage elements, 14 decoration assets and 4 shapes, all ids present. The drum kit and both figures are procedural (no third-party GLB was needed). Built sizes match the table within the validator's tolerance.
 
 ---
 

@@ -45,6 +45,14 @@ const WORKBENCH_USER = "workbench";
 const PREVIEW_SIZE = 256;
 const PREVIEW_FOV = 30;
 const PREVIEW_DIRECTION = new THREE.Vector3(1, 0.8, 1.4).normalize();
+/** Assets whose interesting side is not the front: the stairs are climbed towards +Z, so the steps face -Z. */
+const PREVIEW_DIRECTION_OVERRIDES: Record<string, THREE.Vector3> = {
+    "stage.stairs": new THREE.Vector3(1.1, 0.9, -1.3).normalize(),
+};
+
+function previewDirection(def: AssetDefinition): THREE.Vector3 {
+    return PREVIEW_DIRECTION_OVERRIDES[def.id] ?? PREVIEW_DIRECTION;
+}
 const SWEEP_PERIOD_MS = 5000;
 
 const definitions = assetCatalog.all();
@@ -334,7 +342,7 @@ async function showSelected(frameCamera: boolean) {
         const sphere = boundsOf(instance).getBoundingSphere(new THREE.Sphere());
         const radius = Math.max(sphere.radius, 0.1);
         controls.target.copy(sphere.center);
-        camera.position.copy(sphere.center).addScaledVector(PREVIEW_DIRECTION, radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)));
+        camera.position.copy(sphere.center).addScaledVector(previewDirection(def), radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)));
         controls.update();
     }
 }
@@ -410,7 +418,7 @@ async function renderPreviews() {
             const sphere = boundsOf(instance).getBoundingSphere(new THREE.Sphere());
             const radius = Math.max(sphere.radius, 0.05);
             const distance = radius / Math.sin(THREE.MathUtils.degToRad(PREVIEW_FOV / 2));
-            previewCamera.position.copy(sphere.center).addScaledVector(PREVIEW_DIRECTION, distance);
+            previewCamera.position.copy(sphere.center).addScaledVector(previewDirection(def), distance);
             previewCamera.near = Math.max(0.001, distance - radius * 2);
             previewCamera.far = distance + radius * 2;
             previewCamera.lookAt(sphere.center);

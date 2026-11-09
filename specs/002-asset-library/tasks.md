@@ -424,8 +424,8 @@ All builders go into `src/assetLibrary/builders/decoration/`, all definitions in
 
 **Purpose**: Previews, validation, performance, size, documentation and the final manual verification.
 
-- [ ] T103 Run the asset workbench over the whole catalog and fix everything until the summary reads "<N> assets, 0 errors". Re-render all previews in one go so they look consistent, and replace the files in `public/asset-library/previews/`
-- [ ] T104 Check the asset inventory against the spec: every id from data-model.md → Library inventory exists (19 fixtures, 8 stage, 14 decoration, 4 shapes; SC-001). Update data-model.md where sizes were corrected during implementation (T053–T056, T069, T074)
+- [X] T103 Run the asset workbench over the whole catalog and fix everything until the summary reads "<N> assets, 0 errors". Re-render all previews in one go so they look consistent, and replace the files in `public/asset-library/previews/`
+- [X] T104 Check the asset inventory against the spec: every id from data-model.md → Library inventory exists (19 fixtures, 8 stage, 14 decoration, 4 shapes; SC-001). Update data-model.md where sizes were corrected during implementation (T053–T056, T069, T074)
 - [ ] T105 Build the SC-004 scene (300 objects, 60 fixture visualizations including 20 LED panels or pixel bars, 100 chairs) and measure orbiting and playback in both targets on the reference machine (001 R15). If it is not smooth: first lower builder segment counts, then add the instancing path for static assets used more than 20 times as described in research R6 (in `src/visualization/sceneView.ts`). Record the fps in the commit message
 - [ ] T106 [P] Compare `dist/` size before (on the commit before this feature) and after `pnpm build`; growth must be ≤ 25 MB (SC-007)
 - [ ] T107 [P] Check for leaks over repeated open/close of the show window and repeated project loads with many library assets (DevTools memory snapshot, `renderer.info.memory` geometries/textures counts back to baseline), as in 001 FR-062. Fix missing `release()` calls in `AssetCache` users

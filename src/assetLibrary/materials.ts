@@ -27,6 +27,8 @@ export const DEFAULT_SLOT_STYLE: Record<string, { color: string; roughness: numb
     body: { color: "#1c1c1c", roughness: 0.7, metalness: 0 },
     accent: { color: "#3a3a3a", roughness: 0.5, metalness: 0 },
     metal: { color: "#9a9ea4", roughness: 0.4, metalness: 1 },
+    // cymbals: half metallic, so flat discs keep their color without an environment map
+    brass: { color: "#b08d3c", roughness: 0.35, metalness: 0.5 },
     fabric: { color: "#111111", roughness: 1, metalness: 0 },
     glass: { color: "#202830", roughness: 0.1, metalness: 0 },
     screen: { color: "#05070a", roughness: 0.3, metalness: 0 },

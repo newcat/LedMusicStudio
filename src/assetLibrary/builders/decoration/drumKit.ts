@@ -2,7 +2,7 @@
  * decoration.drum-kit: a five-piece drum kit, about 2.0 × 1.3 × 1.6 m (feature 002). Bass drum with its front head
  * towards +Z, snare, two rack toms, floor tom, hi-hat, crash and ride cymbals on stands, and a stool at the back (−Z),
  * where the drummer sits facing +Z.
- * Slots: `body` (shells, stool seat), `accent` (drum heads), `metal` (stands, cymbals, hardware).
+ * Slots: `body` (shells, stool seat), `accent` (drum heads), `metal` (stands, hardware), `brass` (cymbals).
  */
 import type * as THREE from "three";
 import type { BuilderKit, Vec3 } from "../../types";
@@ -38,7 +38,7 @@ function cymbal(kit: BuilderKit, center: Vec3, radius: number, tilt = 0): THREE.
             [radius * 0.12, 0.028],
             [0, 0.028],
         ],
-        "metal",
+        "brass",
         CYMBAL_SEGMENTS,
     );
     mesh.position.set(...center);

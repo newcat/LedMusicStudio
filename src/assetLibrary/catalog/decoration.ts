@@ -131,7 +131,7 @@ export const DECORATION_ASSETS: DecorationAssetDefinition[] = [
         preview: "asset-library/previews/decoration.drum-kit.webp",
         credits: PROJECT_CREDITS,
         source: { type: "procedural", build: buildDrumKit },
-        materialSlots: ["body", "accent", "metal"],
+        materialSlots: ["body", "accent", "metal", "brass"],
         defaultColors: { body: "#1f3a66", accent: "#e8e4d8" },
         variants: [
             { id: "black", name: "Black", slots: { body: "#141414" } },

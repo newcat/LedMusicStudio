@@ -23,7 +23,7 @@ These are the rules for adding an asset to the built-in library. If an asset fol
 ## 3. Procedural builders (default)
 
 - File: `src/assetLibrary/builders/<category>/<name>.ts`, exporting a `build(kit)` (or `build(params, kit)` for parametric elements).
-- Use only `BuilderKit` primitives and Three.js geometry. No textures. Give every mesh a **slot** (`body`, `accent`, `metal`, `fabric`, `glass`, `screen`).
+- Use only `BuilderKit` primitives and Three.js geometry. No textures. Give every mesh a **slot** (`body`, `accent`, `metal`, `brass`, `fabric`, `glass`, `screen`).
 - Finish with `kit.mergeBySlot(root, [names of moving-part nodes])`, so static parts become at most one mesh per slot (performance, research R6).
 - Poly budget: decoration ≤ 3 000 triangles, fixtures ≤ 5 000, and parametric elements ≤ 20 000 at their maximum parameters. Cylinders use 12–24 segments.
 - Deterministic: the same parameters always give the same geometry (no randomness).
