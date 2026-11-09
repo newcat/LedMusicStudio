@@ -340,7 +340,8 @@ async function showSelected(frameCamera: boolean) {
 }
 
 watch(selectedId, () => void showSelected(true));
-watch(paramMode, () => void showSelected(false));
+// min and max builds can differ a lot in size (e.g. a 0.25 m and a 30 m truss), so frame them again
+watch(paramMode, () => void showSelected(true));
 
 function applySweep(time: number) {
     const body = fixtureBody;

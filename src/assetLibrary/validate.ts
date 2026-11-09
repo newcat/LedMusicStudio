@@ -14,6 +14,7 @@ import {
     type BeamDescription,
     type FixtureAssetDefinition,
     type ParamValues,
+    type ParametricSource,
     type ValidationIssue,
     type Vec3,
 } from "./types";
@@ -321,46 +322,68 @@ function disposeBuilt(root: THREE.Object3D) {
     });
 }
 
+/** Parameter sets checked for a parametric source: min/default/max of each number, every choice, all min, all max. */
+function parametricCases(source: ParametricSource): Array<{ label: string; raw: ParamValues }> {
+    const cases: Array<{ label: string; raw: ParamValues }> = [];
+    const allMin: ParamValues = {};
+    const allMax: ParamValues = {};
+    for (const spec of source.params) {
+        if (spec.type === "number") {
+            allMin[spec.key] = spec.min;
+            allMax[spec.key] = spec.max;
+            for (const [label, value] of [
+                ["min", spec.min],
+                ["default", spec.default],
+                ["max", spec.max],
+            ] as const) {
+                cases.push({ label: `${spec.key} = ${value} (${label})`, raw: { [spec.key]: value } });
+            }
+        } else {
+            for (const option of spec.options) {
+                cases.push({ label: `${spec.key} = ${option.value}`, raw: { [spec.key]: option.value } });
+            }
+        }
+    }
+    if (Object.keys(allMin).length > 1) {
+        cases.push({ label: "all numbers at min", raw: allMin }, { label: "all numbers at max", raw: allMax });
+    }
+    return cases;
+}
+
 function checkParametric(def: AssetDefinition, buildAt: BuildAt, issues: Issues) {
     if (def.source.type !== "parametric") {
         return;
     }
     const source = def.source;
     const budget = triangleBudget(def);
-    for (const spec of source.params) {
-        if (spec.type !== "number") {
+    for (const { label, raw } of parametricCases(source)) {
+        const params = completeParams(def, raw);
+        let built: THREE.Object3D;
+        try {
+            built = buildAt(params);
+        } catch (err) {
+            issues.error(`Build failed at ${label}: ${String(err)}`);
             continue;
         }
-        for (const [label, value] of [
-            ["min", spec.min],
-            ["default", spec.default],
-            ["max", spec.max],
-        ] as const) {
-            const params = completeParams(def, { [spec.key]: value });
-            let built: THREE.Object3D;
-            try {
-                built = buildAt(params);
-            } catch (err) {
-                issues.error(`Build failed at ${spec.key} = ${value} (${label}): ${String(err)}`);
-                continue;
+        const box = boundsOf(built);
+        const size = box.getSize(new THREE.Vector3());
+        const expected = source.size(params);
+        const actual = [size.x, size.y, size.z];
+        for (let i = 0; i < 3; i++) {
+            const tolerance = Math.max(expected[i] * PARAMETRIC_TOLERANCE, PARAMETRIC_TOLERANCE_MIN);
+            if (box.isEmpty() || Math.abs(actual[i] - expected[i]) > tolerance) {
+                issues.error(`At ${label}: built size ${fmt(size)} m does not match size() ${fmt(expected)} m`);
+                break;
             }
-            const box = boundsOf(built);
-            const size = box.getSize(new THREE.Vector3());
-            const expected = source.size(params);
-            const actual = [size.x, size.y, size.z];
-            for (let i = 0; i < 3; i++) {
-                const tolerance = Math.max(expected[i] * PARAMETRIC_TOLERANCE, PARAMETRIC_TOLERANCE_MIN);
-                if (box.isEmpty() || Math.abs(actual[i] - expected[i]) > tolerance) {
-                    issues.error(`At ${spec.key} = ${value} (${label}): built size ${fmt(size)} m does not match size() ${fmt(expected)} m`);
-                    break;
-                }
-            }
-            const triangles = triangleCount(built);
-            if (triangles > budget) {
-                issues.error(`At ${spec.key} = ${value} (${label}): ${triangles} triangles exceed the budget of ${budget}`);
-            }
-            disposeBuilt(built);
         }
+        if (!box.isEmpty() && Math.abs(box.min.y) > BASE_TOLERANCE) {
+            issues.error(`At ${label}: lowest point is at y = ${box.min.y.toFixed(3)} m, expected 0 ± ${BASE_TOLERANCE} m`);
+        }
+        const triangles = triangleCount(built);
+        if (triangles > budget) {
+            issues.error(`At ${label}: ${triangles} triangles exceed the budget of ${budget}`);
+        }
+        disposeBuilt(built);
     }
 }
 

@@ -1,7 +1,7 @@
 /**
  * Parameter completion and size computation for parametric assets (feature 002, data-model invariant 3).
  */
-import type { AssetDefinition, ParamValues, Vec3 } from "./types";
+import type { AssetDefinition, ParamSpec, ParamValues, Vec3 } from "./types";
 
 const MIN_SIZE = 0.01;
 
@@ -33,6 +33,23 @@ export function completeParams(definition: AssetDefinition, raw: Partial<ParamVa
         }
     }
     return result;
+}
+
+/** The default value of every ParamSpec. */
+export function defaultParams(specs: readonly ParamSpec[]): ParamValues {
+    return Object.fromEntries(specs.map((spec) => [spec.key, spec.default]));
+}
+
+/** A number parameter for builders and `size()`; `fallback` if missing or not a finite number. */
+export function numberParam(p: ParamValues, key: string, fallback: number): number {
+    const value = p[key];
+    return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+/** A choice parameter for builders and `size()`; `fallback` unless the value is one of `options`. */
+export function choiceParam<T extends string>(p: ParamValues, key: string, options: readonly T[], fallback: T): T {
+    const value = p[key];
+    return typeof value === "string" && (options as readonly string[]).includes(value) ? (value as T) : fallback;
 }
 
 /** Bounding box size W×H×D; each component ≥ 0.01. */
