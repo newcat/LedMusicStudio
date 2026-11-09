@@ -27,6 +27,7 @@ There are two kinds of data:
 | `source` | `GlbSource \| ProceduralSource \| ParametricSource \| ShapeSource` | How the asset is built. |
 | `fixture` | `FixtureModelDescription?` | Required if and only if `category === "fixtures"`. |
 | `materialSlots` | `MaterialSlot[]?` | Names of the recolorable parts (`body`, `accent`, …). |
+| `defaultColors` | `Partial<Record<MaterialSlot, "#rrggbb">>?` | Slot colors of the default look (variant `null`), e.g. wood for the table; applied before the variant. Slots without an entry use the global slot style. |
 | `variants` | `ColorVariant[]?` | Optional color variants (FR-033). |
 | `supportsMaterial` | boolean? | true for parametric stage elements (and shapes), which take a material preset (FR-050). |
 | `mounting` | `{ areas, connections }?` | Static mounting areas and connection points (FR-040); parametric elements provide functions instead. |

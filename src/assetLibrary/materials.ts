@@ -41,10 +41,18 @@ export interface SlotStyleOptions {
     variant?: string | null;
 }
 
-/** Default slot style → variant color → material preset (body only) → color override (body only). */
+/**
+ * Default slot style → the asset's default colors → variant color → material preset (body only) → color override
+ * (body only).
+ */
 export function resolveSlotStyle(definition: AssetDefinition, slot: MaterialSlot, options: SlotStyleOptions = {}): SlotStyle {
     const base = DEFAULT_SLOT_STYLE[slot] ?? DEFAULT_SLOT_STYLE.body;
     const style: SlotStyle = { ...base };
+
+    const defaultColor = definition.defaultColors?.[slot];
+    if (defaultColor) {
+        style.color = defaultColor;
+    }
 
     if (options.variant) {
         const variant = definition.variants?.find((v) => v.id === options.variant);

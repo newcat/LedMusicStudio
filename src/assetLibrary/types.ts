@@ -72,6 +72,8 @@ interface AssetDefinitionBase<C extends AssetCategory, S extends AssetSource> {
     credits: Credits;
     source: S;
     materialSlots?: MaterialSlot[];
+    /** "#rrggbb" per slot for the default look (variant `null`); slots without an entry use the global slot style. */
+    defaultColors?: Partial<Record<MaterialSlot, string>>;
     variants?: ColorVariant[];
     /** Parametric stage elements and shapes: accepts a material preset (FR-050). */
     supportsMaterial?: boolean;
