@@ -44,6 +44,7 @@
                 v-if="controller || !needsFixture"
                 :config="object.config"
                 :controller="controller"
+                :model-id="object.modelId"
                 @update:config="onConfigChanged"
             />
             <div v-else class="hint">Link a fixture to map its DMX channels.</div>

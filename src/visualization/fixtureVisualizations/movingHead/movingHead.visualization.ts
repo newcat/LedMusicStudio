@@ -4,7 +4,7 @@ import { FixtureVisualization, VisualizationType } from "../../fixtureVisualizat
 import { emptyMapping } from "../../capabilities/types";
 import { defaultMovement, type BeamVisualizationConfig } from "../beam/types";
 import { defaultBeamAngleFor } from "../modelDefaults";
-import MovingHeadVisualizationSettings from "./MovingHeadVisualizationSettings.vue";
+import BeamVisualizationSettings from "../beam/BeamVisualizationSettings.vue";
 
 export const MovingHeadVisualization: FixtureVisualization<DmxFixture, BeamVisualizationConfig, number[]> = {
     type: VisualizationType.MOVING_HEAD,
@@ -17,7 +17,7 @@ export const MovingHeadVisualization: FixtureVisualization<DmxFixture, BeamVisua
         softness: 0.25,
         prismSpread: 6,
     }),
-    settingsComponent: markRaw(MovingHeadVisualizationSettings),
+    settingsComponent: markRaw(BeamVisualizationSettings),
     onFixtureValueUpdate: (value) => {
         return {
             value: value,

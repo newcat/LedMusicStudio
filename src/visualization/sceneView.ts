@@ -11,8 +11,7 @@ import { isEffectivelyVisible } from "@/scene/model/transformMath";
 import { VisualizationType } from "./fixtureVisualization";
 import type { BaseRenderer, FrameContext, RendererInputs } from "./fixtureVisualizations/base.renderer";
 import { LedStripRenderer } from "./fixtureVisualizations/ledStrip/ledStrip.renderer";
-import { SpotRenderer } from "./fixtureVisualizations/spot/spot.renderer";
-import { MovingHeadRenderer } from "./fixtureVisualizations/movingHead/movingHead.renderer";
+import { BeamRenderer } from "./fixtureVisualizations/beam/beam.renderer";
 import { GenericRenderer } from "./fixtureVisualizations/generic/generic.renderer";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { UnrealBloomPass } from "./bloom";
@@ -46,8 +45,8 @@ type RendererConstructor = new (inputs: RendererInputs) => BaseRenderer;
 
 const RENDERER_TYPES: Record<VisualizationType, RendererConstructor> = {
     [VisualizationType.LED_STRIP]: LedStripRenderer,
-    [VisualizationType.SPOT]: SpotRenderer,
-    [VisualizationType.MOVING_HEAD]: MovingHeadRenderer,
+    [VisualizationType.SPOT]: BeamRenderer,
+    [VisualizationType.MOVING_HEAD]: BeamRenderer,
     [VisualizationType.GENERIC]: GenericRenderer,
     // Placeholders until the effect renderers exist (feature 003, US5).
     [VisualizationType.LASER]: GenericRenderer,

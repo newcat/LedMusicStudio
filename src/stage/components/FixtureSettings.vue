@@ -31,6 +31,7 @@
                 v-if="visController.visualization.settingsComponent"
                 :config="visObject.config"
                 :controller="visController"
+                :model-id="visObject.modelId"
                 @update:config="updateConfig"
             />
         </template>

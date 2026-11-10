@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 import { QUALITY_PROFILES, type QualityProfile } from "../quality";
+import { CanvasGoboAtlas } from "./goboAtlas";
 
 /**
  * All light that fixtures throw onto surfaces, one instance per view (feature 003, research R7/R10). Lights and
@@ -49,13 +50,7 @@ export interface StripSegmentsSource {
     readonly visible: boolean;
 }
 
-/** research R9; the real atlas comes with T026 (`goboAtlas.ts`). */
-export interface GoboAtlas {
-    readonly texture: THREE.Texture;
-    /** SVG markup or "generic:<n>"; resolves to a tile index; images that fail to load use a generic pattern. */
-    acquire(image: string): number;
-    release(tile: number): void;
-}
+export type { GoboAtlas } from "./goboAtlas";
 
 /** Texels per light / per segment in the data textures. */
 const LIGHT_TEXELS = 4;
@@ -78,22 +73,6 @@ function createPlaceholderTexture(): THREE.DataTexture {
     const texture = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, THREE.RGBAFormat);
     texture.needsUpdate = true;
     return texture;
-}
-
-/** Placeholder until the gobo atlas exists: no tiles, every gobo renders open. */
-class PlaceholderGoboAtlas implements GoboAtlas {
-    public readonly texture = createPlaceholderTexture();
-
-    public acquire(): number {
-        return -1;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    public release(): void {}
-
-    public dispose() {
-        this.texture.dispose();
-    }
 }
 
 /** Normal (−1..1 per axis) quantized to 8 bit per axis and packed into one float (exact up to 2^24). */
@@ -130,9 +109,8 @@ export class SurfaceLighting {
     };
     /** Compile-time sizes of the light loops; they change only with the quality level. */
     public readonly defines: { MAX_LIGHTS: number; MAX_SEGMENTS: number };
-    public readonly gobos: GoboAtlas;
+    public readonly gobos: CanvasGoboAtlas;
 
-    private readonly placeholderGobos: PlaceholderGoboAtlas;
     private readonly shadowPlaceholder = createPlaceholderTexture();
     private readonly lights = new Map<number, LightRecord>();
     private readonly strips = new Map<number, StripRecord>();
@@ -149,8 +127,7 @@ export class SurfaceLighting {
         this.defines = { MAX_LIGHTS: quality.fullLights + quality.simpleLights, MAX_SEGMENTS: quality.stripSegments };
         this.lightTexture = createDataTexture(LIGHT_TEXELS, this.defines.MAX_LIGHTS);
         this.segmentTexture = createDataTexture(SEGMENT_TEXELS, this.defines.MAX_SEGMENTS);
-        this.placeholderGobos = new PlaceholderGoboAtlas();
-        this.gobos = this.placeholderGobos;
+        this.gobos = new CanvasGoboAtlas();
         this.uniforms = {
             uLightCount: { value: 0 },
             uLightData: { value: this.lightTexture },
@@ -277,7 +254,7 @@ export class SurfaceLighting {
         this.materials.clear();
         this.lightTexture.dispose();
         this.segmentTexture.dispose();
-        this.placeholderGobos.dispose();
+        this.gobos.dispose();
         this.shadowPlaceholder.dispose();
     }
 

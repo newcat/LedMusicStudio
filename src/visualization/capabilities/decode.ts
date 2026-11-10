@@ -80,6 +80,11 @@ function segmentT(segment: CapabilitySegment, raw: number, sixteenBit: boolean):
     return Math.min(1, Math.max(0, (raw - span.from) / (span.to - span.from)));
 }
 
+/** Position of `raw` (from `readDmx`) inside `segment` of `entry`, 0…1, with the 16-bit scaling applied. */
+export function segmentPosition(entry: CapabilityChannel, segment: CapabilitySegment, raw: number): number {
+    return segmentT(segment, raw, is16Bit(entry));
+}
+
 /**
  * Decoded scalar of a linear, angle or rotation key.
  * - `entry` undefined → `fallback`.

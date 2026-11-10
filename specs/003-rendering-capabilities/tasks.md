@@ -253,7 +253,7 @@ After this phase the app works as before (beams, strips, generic), but on the ne
 
 **Independent Test**: map a moving head's channels with the mapping editor, then step through dimmer, strobe, each color mode, color wheel slots, zoom, gobo and prism values, and confirm the preview reacts to each (quickstart Q4–Q8, with manual mapping).
 
-- [ ] T029 [P] [US1] Create `src/visualization/capabilities/strobe.ts`. `class ShutterGate { update(segment: ShutterSegment | null, raw: number, frame: FrameContext): number }` returns the gate 0..1 (research R5):
+- [X] T029 [P] [US1] Create `src/visualization/capabilities/strobe.ts`. `class ShutterGate { update(segment: ShutterSegment | null, raw: number, frame: FrameContext): number }` returns the gate 0..1 (research R5):
   - `open` → 1, `closed` → 0.
   - `strobe`: duty 30 % with "at least one frame on".
   - `pulse`: sawtooth; `rampUp`/`rampDown`/`rampUpDown`: sawtooth and triangle shapes; `random`: a seeded hash per period.
@@ -261,14 +261,14 @@ After this phase the app works as before (beams, strips, generic), but on the ne
   - Effective rate = `min(rate, frame.flashLimit ?? Infinity)`.
   - If the effective rate is above `frame.fps / 2`, the gate alternates 1/0 every frame instead of being sampled.
   - The phase is accumulated from `frame.dt`, not from absolute time, so rate changes don't jump.
-- [ ] T030 [P] [US1] Create `src/visualization/capabilities/movement.ts`. `class AxisFollower { constructor(maxSpeed, accel = 2000); setTarget(x); setMaxSpeed(v); snap(x); update(dt): number }` implements research R6:
+- [X] T030 [P] [US1] Create `src/visualization/capabilities/movement.ts`. `class AxisFollower { constructor(maxSpeed, accel = 2000); setTarget(x); setMaxSpeed(v); snap(x); update(dt): number }` implements research R6:
   - `desiredV = sign(err)·min(vMax, √(2·a·|err|))`
   - `v ← clamp(v + clamp(desiredV − v, ±a·dt), ±vMax)`
   - `x ← x + v·dt`
   - Snaps to the target when `|err| < 0.01` and `|v|` is small.
   - Retargeting keeps `v`, so the move redirects smoothly.
   - Also export `WheelFollower`, which moves a wheel position in slot units at 4 slots/s (≈ 0.25 s per slot) and wraps for continuous rotation.
-- [ ] T031 [US1] Create `src/visualization/capabilities/beamState.ts`. `class BeamDecoder { constructor(); decode(mapping, values: Uint8Array, frame, config: BeamVisualizationConfig): BeamState }` (contracts/renderer-api.ts `BeamState`). It implements the color pipeline of research R4 in this order:
+- [X] T031 [US1] Create `src/visualization/capabilities/beamState.ts`. `class BeamDecoder { constructor(); decode(mapping, values: Uint8Array, frame, config: BeamVisualizationConfig): BeamState }` (contracts/renderer-api.ts `BeamState`). It implements the color pipeline of research R4 in this order:
   1. **Additive mix**: R, G, B plus white/amber/uv/lime/indigo/warmWhite/coldWhite with the constants from `colorMath.ts`. When no color key at all is mapped, the mix is white (FR-003).
   2. **CMY multiply**: `(1 − C, 1 − M, 1 − Y)`.
   3. **Color wheel**: the position comes from the `wheelSlot` segment, or rotation (`rotation` segments advance the position by `rps × slots × dt`) through `WheelFollower`. The two neighbouring slot colors are blended by fraction. A split slot sets `splitColor` (the surface uses a 50/50 average). Temperature-only slots multiply by `kelvinToRgb`. `closed` slots → intensity 0. Frost raises softness by 0.5, and iris scales the beam angle.
@@ -282,22 +282,22 @@ After this phase the app works as before (beams, strips, generic), but on the ne
   - Prism: from the `prism` key, either a wheel slot with `facets` or a linear/none segment ("0 (out)"). A non-zero `prism` value without wheel facets uses 3.
   - Pan/tilt targets come from `decodeScalar` (16-bit when fine is mapped).
   - Raws that match no segment keep the previous value.
-- [ ] T032 [P] [US1] Create `src/visualization/lighting/goboAtlas.ts` implementing `GoboAtlas` (contracts/renderer-api.ts, research R9):
+- [X] T032 [P] [US1] Create `src/visualization/lighting/goboAtlas.ts` implementing `GoboAtlas` (contracts/renderer-api.ts, research R9):
   - A 2048² RGBA `CanvasTexture`, as an 8×8 grid of 256² tiles.
   - `acquire(image)`: hash → tile, with reference counting.
   - `"generic:<n>"` draws one of 12 procedural patterns with 2D canvas code: 0 dots ring, 1 star, 2 bars, 3 ring, 4 triangles, 5 cross, 6 spiral arms, 7 grid, 8 flower, 9 half moon, 10 scattered dots, 11 breakup noise. White = light passes.
   - SVG markup is rasterized through `new Image()` with an SVG data URL onto the tile, converted to luminance. While it loads, the tile shows the generic pattern for the slot index. On error, it keeps the generic pattern and logs a console warning.
   - `release(tile)` frees the tile at reference count 0.
   - Wire it into `SurfaceLighting` (`gobos` property, `uGoboAtlas`) in `src/visualization/lighting/surfaceLighting.ts`.
-- [ ] T033 [US1] Implement the `// GOBO` hook in `src/visualization/lighting/shaders/surfaceLighting.frag`:
+- [X] T033 [US1] Implement the `// GOBO` hook in `src/visualization/lighting/shaders/surfaceLighting.frag`:
   - Build a light-space basis from the light direction (the up vector picked to avoid degeneracy).
   - Project the fragment to `uv = (tangent-plane offset / (distance · tan(outer half-angle))) · 0.5 + 0.5`, rotated by `goboRotation`, and sample the atlas tile `goboTile` (skip when < 0).
   - Prism: when `prismFacets ≥ 3`, sum the cone and cookie for each facet `k` with the direction rotated outward by `prismSpread` degrees around an axis at angle `prismRotation + k·2π/facets`, divided by `facets`, so the total energy is unchanged.
-- [ ] T034 [US1] Extend the beam shaders and move them to `src/visualization/fixtureVisualizations/beam/beam.vertex.glsl` and `src/visualization/fixtureVisualizations/beam/beam.fragment.glsl` (from `movingHead/`):
+- [X] T034 [US1] Extend the beam shaders and move them to `src/visualization/fixtureVisualizations/beam/beam.vertex.glsl` and `src/visualization/fixtureVisualizations/beam/beam.fragment.glsl` (from `movingHead/`):
   - An `InstancedBufferGeometry` with an instance attribute `aFacet` (facet index). The vertex shader tilts each instance outward by `uPrismSpread` around an axis at `uPrismRotation + aFacet·2π/uFacets` (no tilt when `uFacets < 3`).
   - New uniforms: `uHaze` (alpha `mix(0.03, 1.0, pow(haze, 0.7))`, and noise turbulence scales with haze), `uHazeOctaves` (loop bound for the `fogging()` octaves), `uGoboAtlas`, `uGoboTile`, `uGoboRotation` (the fragment derives the cross-section coordinate and samples the gobo at low mip), `uSplitColor` + `uHasSplit` (half-plane color selection), `uLength` (beam length clamp, the fragment fades out over the last 5 %), `uIntensity`.
   - Keep `#include <clipping_planes_*>`. Delete the old files in `movingHead/`.
-- [ ] T035 [US1] Create `src/visualization/fixtureVisualizations/beam/beam.renderer.ts`. `BeamRenderer extends BaseRenderer<BeamVisualizationConfig, Uint8Array>` replaces `SpotRenderer` and `MovingHeadRenderer`:
+- [X] T035 [US1] Create `src/visualization/fixtureVisualizations/beam/beam.renderer.ts`. `BeamRenderer extends BaseRenderer<BeamVisualizationConfig, Uint8Array>` replaces `SpotRenderer` and `MovingHeadRenderer`:
   - **Body**: loads the body on `onModelUpdate` like today (`loadBody`, `setModelScale`). The beam mesh and the lens cap hang on `body.beamAnchor`, as the current moving head does.
   - **Light**: registers one spot light in `inputs.lighting` (`addLight`) and removes it in `dispose`.
   - **Per frame** (`update(frame)`):
@@ -311,8 +311,8 @@ After this phase the app works as before (beams, strips, generic), but on the ne
   - **Gobo tiles**: acquired from `inputs.lighting.gobos` when the slot image changes and released on change or dispose.
   - **Beam radial segments**: `frame.quality.beamRadialSegments`; the geometry is rebuilt when the quality changes.
   - Beam meshes are excluded from raycasts and bounds, as today (`raycast = () => undefined`, `userData.excludeFromBounds`).
-- [ ] T036 [US1] Switch to the new renderer: register `BeamRenderer` for `VisualizationType.SPOT` and `VisualizationType.MOVING_HEAD` in `RENDERER_TYPES` in `src/visualization/sceneView.ts`. Delete `src/visualization/fixtureVisualizations/spot/spot.renderer.ts`, `src/visualization/fixtureVisualizations/spot/test.html` and `src/visualization/fixtureVisualizations/movingHead/movingHead.renderer.ts`. Check that `createEditorProxy` behavior is unchanged: there is no proxy, because the body is pickable.
-- [ ] T037 [US1] Create `src/visualization/fixtureVisualizations/beam/BeamVisualizationSettings.vue`, used by both the spot and moving head settings components (`MovingHeadVisualizationSettings.vue` and `SpotVisualizationSettings.vue` become thin wrappers or are replaced in their visualization definitions). It contains:
+- [X] T036 [US1] Switch to the new renderer: register `BeamRenderer` for `VisualizationType.SPOT` and `VisualizationType.MOVING_HEAD` in `RENDERER_TYPES` in `src/visualization/sceneView.ts`. Delete `src/visualization/fixtureVisualizations/spot/spot.renderer.ts`, `src/visualization/fixtureVisualizations/spot/test.html` and `src/visualization/fixtureVisualizations/movingHead/movingHead.renderer.ts`. Check that `createEditorProxy` behavior is unchanged: there is no proxy, because the body is pickable.
+- [X] T037 [US1] Create `src/visualization/fixtureVisualizations/beam/BeamVisualizationSettings.vue`, used by both the spot and moving head settings components (`MovingHeadVisualizationSettings.vue` and `SpotVisualizationSettings.vue` become thin wrappers or are replaced in their visualization definitions). It contains:
   - **Movement**: "Realistic" / "Instant", plus pan and tilt speed `InputNumber`s (30…1500 °/s), shown only for Realistic and only if the model has moving parts.
   - **Default beam angle**: 1…120, shown when zoom is unmapped.
   - **Edge softness**: a `Slider` (0…1).

@@ -5,7 +5,7 @@ import { FixtureVisualization, VisualizationType } from "../../fixtureVisualizat
 import { emptyMapping } from "../../capabilities/types";
 import { defaultMovement, type BeamVisualizationConfig } from "../beam/types";
 import { defaultBeamAngleFor } from "../modelDefaults";
-import SpotVisualizationSettings from "./SpotVisualizationSettings.vue";
+import BeamVisualizationSettings from "../beam/BeamVisualizationSettings.vue";
 
 export const SpotVisualization: FixtureVisualization<DmxFixture, BeamVisualizationConfig, number[]> = {
     type: VisualizationType.SPOT,
@@ -18,7 +18,7 @@ export const SpotVisualization: FixtureVisualization<DmxFixture, BeamVisualizati
         softness: 0.25,
         prismSpread: 6,
     }),
-    settingsComponent: markRaw(SpotVisualizationSettings),
+    settingsComponent: markRaw(BeamVisualizationSettings),
     onFixtureValueUpdate: (value) => {
         return {
             value: value,
