@@ -1,6 +1,6 @@
 <template>
-    <Fieldset legend="Channel Mapping" toggleable>
-        <InterimCapabilityMapping v-model:mapping="config.mapping" :fixture="controller.fixture" :keys="KEYS" />
+    <Fieldset legend="Capability Mapping" toggleable>
+        <CapabilityMappingEditor v-model:mapping="config.mapping" :type="controller.type" :controller="controller" />
     </Fieldset>
 </template>
 
@@ -10,13 +10,10 @@ import Fieldset from "primevue/fieldset";
 import { DmxFixture } from "@/stage";
 import { useLiveConfig } from "../useLiveConfig";
 import { FixtureVisualizationController } from "@/visualization/fixtureVisualizationController";
-import type { CapabilityKey } from "@/visualization/capabilities/types";
 import type { BeamVisualizationConfig } from "../beam/types";
-import InterimCapabilityMapping from "../InterimCapabilityMapping.vue";
+import CapabilityMappingEditor from "../CapabilityMappingEditor.vue";
 
 defineOptions({ inheritAttrs: false });
-
-const KEYS: CapabilityKey[] = ["pan", "tilt", "zoom", "dimmer", "red", "green", "blue", "white"];
 
 const rawConfig = defineModel<BeamVisualizationConfig>("config", { required: true });
 

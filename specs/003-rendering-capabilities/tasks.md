@@ -217,7 +217,7 @@ After this phase the app works as before (beams, strips, generic), but on the ne
 
 ### Manual capability mapping editor (contracts/rendering-ui.md)
 
-- [ ] T027 Create `src/visualization/fixtureVisualizations/CapabilityMappingEditor.vue`, with props `mapping: CapabilityMapping`, `type: VisualizationType` and `controller` (DmxFixture controller), and emit `update:mapping`:
+- [X] T027 Create `src/visualization/fixtureVisualizations/CapabilityMappingEditor.vue`, with props `mapping: CapabilityMapping`, `type: VisualizationType` and `controller` (DmxFixture controller), and emit `update:mapping`:
   - Groups from `KEY_GROUPS`, filtered by `KEYS_BY_TYPE[type]`.
   - Per key:
     - A channel `Select` with "— not mapped —" plus all channels of `resolveModeChannels(definition, mode)` labelled `<index+1>: <key>`.
@@ -230,7 +230,7 @@ After this phase the app works as before (beams, strips, generic), but on the ne
   - "Unmapped channels" lists channels that no key or cell references. Add `unmappedChannels()` to `src/visualization/capabilities/decode.ts`.
   - If the fixture has no definition or mode, show inline "Select a fixture and mode in the fixture settings to map channels."
   - Emits a new mapping object (no in-place mutation of the prop).
-- [ ] T028 Wire the editor into the settings components:
+- [X] T028 Wire the editor into the settings components:
   - `src/visualization/fixtureVisualizations/movingHead/MovingHeadVisualizationSettings.vue` and `src/visualization/fixtureVisualizations/spot/SpotVisualizationSettings.vue` render `CapabilityMappingEditor` bound to `config.mapping` through `useLiveConfig`. The old Auto-Assign button and `ChannelMapping` grid are removed (Auto-Assign returns in US2).
   - Same for `src/visualization/fixtureVisualizations/generic/GenericVisualizationSettings.vue`, plus a "Light surfaces" checkbox and a light angle `InputNumber` (10…170).
   - Delete `src/visualization/fixtureVisualizations/ChannelMapping.vue` and `src/visualization/fixtureVisualizations/channelValue.ts` once nothing imports them.
