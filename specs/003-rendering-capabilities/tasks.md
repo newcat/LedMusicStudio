@@ -72,12 +72,12 @@ After this phase the app works as before (beams, strips, generic), but on the ne
 
 ### Frame loop and value plumbing (research R15, contracts/show-window-protocol-v3.md)
 
-- [ ] T006 Change `src/visualization/fixtureVisualizations/base.renderer.ts`:
+- [X] T006 Change `src/visualization/fixtureVisualizations/base.renderer.ts`:
   - `RendererInputs` becomes `{ camera, assets, lighting: SurfaceLighting, environment: EnvironmentState, raycastTargets: () => readonly THREE.Object3D[] }` (contracts/renderer-api.ts). Import the `SurfaceLighting` and `EnvironmentState` types from the files created in T011/T013; add type stubs first if they don't exist yet.
   - `onFixtureValueUpdate(v: Uint8Array)` for all renderers.
   - Replace `updateWorld()` by `update(frame: FrameContext): void` (empty default) and export `FrameContext` from here.
   - Remove `getSurfaceLight()`.
-- [ ] T007 Change `src/visualization/sceneView.ts` for activity and per-frame values:
+- [X] T007 Change `src/visualization/sceneView.ts` for activity and per-frame values:
   - `SceneViewOptions` gets `kind: "editor" | "show"`.
   - Add `setActive(active)` / `get active`. While inactive, the `requestAnimationFrame` loop is not scheduled.
   - `setFixtureValue(id, value: Uint8Array)` and `setFixtureConfig` only store the value and add the id to a `dirty` set.
@@ -91,12 +91,12 @@ After this phase the app works as before (beams, strips, generic), but on the ne
   - Add `onFrameStats(cb)` (fps, frameMs) and `onNotice(cb)`.
   - Remove `MAX_REAL_SPOTLIGHTS`, `updateLightBudget()` and every `getSurfaceLight` use.
   - Pass `raycastTargets` to renderers: all `Mesh` objects under entries whose scene object is a shape, a library asset or an imported model. The list is cached and rebuilt on `applyObjects` / `removeObjects`.
-- [ ] T008 Change the protocol in `src/visualization/protocol.ts` to v3 (contracts/show-window-protocol-v3.md):
+- [X] T008 Change the protocol in `src/visualization/protocol.ts` to v3 (contracts/show-window-protocol-v3.md):
   - `PROTOCOL_VERSION = 3`.
   - Add `HeartbeatMessage { windowId, visible: boolean }`, `ByeMessage { windowId }` and `EnvironmentChangedMessage { environment: SceneEnvironment }`.
   - `FixtureValuesMessage.values: Record<string, Uint8Array>`; `FixtureSnapshot.value: Uint8Array`.
   - Update the union types and the header comment to point to the v3 contract.
-- [ ] T009 Change `src/scene/sceneSink.ts`:
+- [X] T009 Change `src/scene/sceneSink.ts`:
   - `SceneSink` gets `readonly active: boolean`, `onActivated(cb): () => void`, `environmentChanged(env)` and `fixtureValues(values: Record<string, Uint8Array>)` (contracts/renderer-api.ts `SceneSinkDelta`).
   - `LocalSceneSink` mirrors `view.active` and fires `onActivated` when the view turns active. It forwards `environmentChanged` to `view.setEnvironment`.
   - `BroadcastSceneSink`:
@@ -105,17 +105,17 @@ After this phase the app works as before (beams, strips, generic), but on the ne
     - `fixtureValues` is dropped while inactive.
     - Batches `environmentChanged` per frame like objects.
     - `dispose()` clears the interval.
-- [ ] T010 Change `src/visualization/showWindowClient.ts` and `src/visualization/StageView.vue`:
+- [X] T010 Change `src/visualization/showWindowClient.ts` and `src/visualization/StageView.vue`:
   - The client posts `heartbeat { windowId, visible: document.visibilityState === "visible" }` every 2 s and immediately on `visibilitychange`, and posts `bye` on `pagehide` (before disposing).
   - It handles `environmentChanged` → `view.setEnvironment`, and `fixtureValues` with `Uint8Array` values.
   - `StageView.vue` creates the view with `kind: "show"` and calls `view.setActive(document.visibilityState === "visible")` on `visibilitychange`.
-- [ ] T011 Change `src/visualization/visualizationServer.ts`:
+- [X] T011 Change `src/visualization/visualizationServer.ts`:
   - Convert controller values once before fan-out into `Uint8Array`: DMX `number[]` → `Uint8Array.from(values)`; LED strip `Color[]` → flat `[r0, g0, b0, r1, …]` of length `3 × numLeds`. Add the helper `toWireValue(type, value)`.
   - Send values only to sinks with `active === true`.
   - Subscribe to `sink.onActivated` for every registered sink and call `sendStateTo(sink)` when it fires.
   - `getConfigsAndValues()` returns `Uint8Array` values.
   - `src/scene/sceneStore.ts` must expose `forEachActiveSink(fn)` and an `onSinkRegistered` hook for this (add both in `src/scene/sceneStore.ts` next to `registerSink`).
-- [ ] T012 Change `src/scene/editor/Viewport.vue`: create the view with `kind: "editor"`. Compute active = `container.clientWidth > 0 && container.clientHeight > 0 && intersecting && document.visibilityState === "visible"`, where `intersecting` comes from an `IntersectionObserver` on the container, and update it on observer, resize and `visibilitychange` events. Call `view.setActive(active)`. This covers the Programming tab, which hides the editor with `v-show`.
+- [X] T012 Change `src/scene/editor/Viewport.vue`: create the view with `kind: "editor"`. Compute active = `container.clientWidth > 0 && container.clientHeight > 0 && intersecting && document.visibilityState === "visible"`, where `intersecting` comes from an `IntersectionObserver` on the container, and update it on observer, resize and `visibilitychange` events. Call `view.setActive(active)`. This covers the Programming tab, which hides the editor with `v-show`.
 
 ### Surface lighting replacing SpotLights and LedStripLighting (research R7, R10)
 

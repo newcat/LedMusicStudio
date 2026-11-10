@@ -7,12 +7,32 @@ import type { FixtureAssetDefinition } from "@/assetLibrary/types";
 import { validateAsset } from "@/assetLibrary/validate";
 import { VisualizationType } from "../fixtureVisualization";
 import type { SurfaceLighting } from "../lighting/surfaceLighting";
+import type { EnvironmentState } from "../environment";
+import type { QualityProfile } from "../quality";
 
 export interface RendererInputs {
     camera: THREE.Camera;
-    lighting: SurfaceLighting;
     /** Asset templates of the view (feature 002). */
     assets: AssetCache;
+    lighting: SurfaceLighting;
+    environment: EnvironmentState;
+    /** Static meshes for beam-length and laser raycasts (research R11). */
+    raycastTargets: () => readonly THREE.Object3D[];
+}
+
+/** Per-frame data handed to `BaseRenderer.update` (contracts/renderer-api.ts). */
+export interface FrameContext {
+    /** Seconds since view start (monotonic). */
+    time: number;
+    /** Seconds since the previous frame, clamped to 0.1. */
+    dt: number;
+    /** Measured display frame rate (research R5). */
+    fps: number;
+    /** Effective haze 0..1 incl. hazer coupling (research R13). */
+    haze: number;
+    /** Max flash rate in Hz, null = unlimited. */
+    flashLimit: number | null;
+    quality: QualityProfile;
 }
 
 /** Fixture models that already passed (true) or failed (false) the runtime safety net (research R10, point 3). */
@@ -41,7 +61,7 @@ function bodyKey(modelId: string): string {
  * Renderer of one fixture visualization. It draws at the local origin of its parent: placement comes from the
  * scene object's transform, never from the config.
  */
-export abstract class BaseRenderer<C = unknown, V = unknown> extends THREE.Group {
+export abstract class BaseRenderer<C = unknown> extends THREE.Group {
     /** The current fixture body, once its template is loaded. */
     protected body: FixtureBody | null = null;
     /** Template key of `body`. */
@@ -55,7 +75,8 @@ export abstract class BaseRenderer<C = unknown, V = unknown> extends THREE.Group
         super();
     }
     public abstract onConfigUpdate(c: C): void;
-    public abstract onFixtureValueUpdate(v: V): void;
+    /** Called at most once per frame with the latest raw value (research R1, FR-054). */
+    public abstract onFixtureValueUpdate(v: Uint8Array): void;
 
     /**
      * Called by the view after the renderer is created and whenever `modelId` or `modelScale` of the object changes.
@@ -148,19 +169,11 @@ export abstract class BaseRenderer<C = unknown, V = unknown> extends THREE.Group
     }
 
     /**
-     * Called once per frame after the scene graph's world matrices are up to date.
+     * Called every frame while the view is active, after the scene graph's world matrices are up to date.
      * @virtual
      */
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    public updateWorld(): void {}
-
-    /**
-     * Renderers with a real SpotLight return it, so the view can cap the number of real lights (research R15).
-     * @virtual
-     */
-    public getSurfaceLight(): THREE.Light | null {
-        return null;
-    }
+    // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars
+    public update(_frame: FrameContext): void {}
 
     /**
      * Subclasses that override this must call `super.dispose()`, which releases the body template.

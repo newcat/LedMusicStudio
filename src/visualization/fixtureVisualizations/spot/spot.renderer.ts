@@ -26,14 +26,15 @@ function createConeGeometry(lensRadius: number): THREE.CylinderGeometry {
  * Spot (feature 002, FR-021): the model body (par can by default) emits along the model's beam direction.
  * Cone and SpotLight hang on the body's beam anchor. The body itself is pickable, so there is no editor proxy.
  */
-export class SpotRenderer extends BaseRenderer<SpotVisualizationConfig, number[]> {
+export class SpotRenderer extends BaseRenderer<SpotVisualizationConfig> {
     private volumeGeometry: THREE.CylinderGeometry;
     private volumeMesh: THREE.Mesh;
     private volumeMaterial: THREE.ShaderMaterial;
+    /** Interim real light until the beam rewrite moves it into SurfaceLighting (T035). */
     private spotlight: THREE.SpotLight;
     private spotlightTarget: THREE.Object3D;
     private config: SpotVisualizationConfig = { colorChannels: [-1, -1, -1, -1] };
-    private values: number[] = [];
+    private values: Uint8Array = new Uint8Array(0);
     private modelScale = 1;
     private readonly worldPosition = new THREE.Vector3();
 
@@ -101,16 +102,12 @@ export class SpotRenderer extends BaseRenderer<SpotVisualizationConfig, number[]
         this.applyValues();
     }
 
-    public override onFixtureValueUpdate(data: number[]): void {
-        this.values = data ?? [];
+    public override onFixtureValueUpdate(data: Uint8Array): void {
+        this.values = data ?? new Uint8Array(0);
         this.applyValues();
     }
 
-    public override getSurfaceLight(): THREE.Light {
-        return this.spotlight;
-    }
-
-    public override updateWorld(): void {
+    public override update(): void {
         this.volumeMesh.getWorldPosition(this.worldPosition);
         (this.volumeMaterial.uniforms.spotPosition.value as THREE.Vector3).copy(this.worldPosition);
     }

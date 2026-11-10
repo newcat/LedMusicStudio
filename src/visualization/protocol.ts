@@ -1,12 +1,13 @@
-/** Show window protocol v2, see specs/001-scene-editor/contracts/show-window-protocol.md */
-import type { CameraPosition, SceneObject, SceneSnapshot } from "@/scene/model/types";
+/** Show window protocol v3, see specs/003-rendering-capabilities/contracts/show-window-protocol-v3.md */
+import type { CameraPosition, SceneEnvironment, SceneObject, SceneSnapshot } from "@/scene/model/types";
 
 export const CHANNEL_NAME = "lms-visualization";
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 export interface FixtureSnapshot {
     config: unknown;
-    value: unknown;
+    /** DMX channel values, or flat RGB bytes for LED strips (contract → Value encoding). */
+    value: Uint8Array;
 }
 
 interface MessageBase<T extends string> {
@@ -18,6 +19,19 @@ interface MessageBase<T extends string> {
 export interface HelloMessage extends MessageBase<"hello"> {
     windowId: string;
 }
+
+/** Show -> main, every 2 s and on `visibilitychange`. */
+export interface HeartbeatMessage extends MessageBase<"heartbeat"> {
+    windowId: string;
+    visible: boolean;
+}
+
+/** Show -> main, on `pagehide`. */
+export interface ByeMessage extends MessageBase<"bye"> {
+    windowId: string;
+}
+
+export type ShowToMainMessage = HelloMessage | HeartbeatMessage | ByeMessage;
 
 /** Main -> show */
 export interface SnapshotMessage extends MessageBase<"snapshot"> {
@@ -46,12 +60,17 @@ export interface CamerasChangedMessage extends MessageBase<"camerasChanged"> {
     cameras: CameraPosition[];
 }
 
+export interface EnvironmentChangedMessage extends MessageBase<"environmentChanged"> {
+    environment: SceneEnvironment;
+}
+
 export interface FixtureConfigsMessage extends MessageBase<"fixtureConfigs"> {
     configs: Record<string, unknown>;
 }
 
+/** Only sent while the sink is active (at least one visible show window). */
 export interface FixtureValuesMessage extends MessageBase<"fixtureValues"> {
-    values: Record<string, unknown>;
+    values: Record<string, Uint8Array>;
 }
 
 export type ResetMessage = MessageBase<"reset">;
@@ -62,11 +81,12 @@ export type MainToShowMessage =
     | ObjectsChangedMessage
     | ObjectsRemovedMessage
     | CamerasChangedMessage
+    | EnvironmentChangedMessage
     | FixtureConfigsMessage
     | FixtureValuesMessage
     | ResetMessage;
 
-export type ShowWindowMessage = HelloMessage | MainToShowMessage;
+export type ShowWindowMessage = ShowToMainMessage | MainToShowMessage;
 
 export function isProtocolMessage(data: unknown): data is { protocol: number; type: string } {
     return typeof data === "object" && data !== null && "protocol" in data && "type" in data;

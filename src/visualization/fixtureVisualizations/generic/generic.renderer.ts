@@ -10,11 +10,11 @@ const EMITTER_GAIN = 4;
  * Generic Fixture (feature 002, FR-022, FR-023): the model body plus emitters lit with RGB(W) × intensity.
  * White when no color channel is mapped, full output when no intensity channel is mapped.
  */
-export class GenericRenderer extends BaseRenderer<GenericVisualizationConfig, number[]> {
+export class GenericRenderer extends BaseRenderer<GenericVisualizationConfig> {
     private config: GenericVisualizationConfig = {
         channelMapping: { intensity: { channel: -1, defaultValue: 1, min: 0, max: 1 }, red: -1, green: -1, blue: -1, white: -1 },
     };
-    private values: number[] = [];
+    private values: Uint8Array = new Uint8Array(0);
     private modelScale = 1;
 
     public override onModelUpdate(modelId: string, modelScale: number): void {
@@ -28,8 +28,8 @@ export class GenericRenderer extends BaseRenderer<GenericVisualizationConfig, nu
         this.applyValues();
     }
 
-    public onFixtureValueUpdate(values: number[]): void {
-        this.values = values ?? [];
+    public onFixtureValueUpdate(values: Uint8Array): void {
+        this.values = values ?? new Uint8Array(0);
         this.applyValues();
     }
 

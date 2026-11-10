@@ -3,7 +3,6 @@ import * as THREE from "three";
 import { assetCatalog } from "@/assetLibrary/catalog";
 import { instantiate, templateKey } from "@/assetLibrary/assetCache";
 import type { FixtureAssetDefinition, ParamValues } from "@/assetLibrary/types";
-import type { Color } from "@/graph/colors";
 import { VisualizationType } from "../../fixtureVisualization";
 import type { StripHandle } from "../../lighting/surfaceLighting";
 import { BaseRenderer, RendererInputs } from "../base.renderer";
@@ -26,21 +25,12 @@ function isInVisibleHierarchy(obj: THREE.Object3D | null): boolean {
     return true;
 }
 
-/** Pixel colors as flat 0..255 RGB bytes; accepts `Color[]` and already flat values. */
-function toPixelBytes(data: Color[] | Uint8Array | null | undefined): Uint8Array {
+/** Flat 0..255 RGB pixel bytes (protocol v3), cut to whole pixels. */
+function toPixelBytes(data: Uint8Array | null | undefined): Uint8Array {
     if (!data) {
         return new Uint8Array(0);
     }
-    if (data instanceof Uint8Array) {
-        return data.length % 3 === 0 ? data : data.subarray(0, data.length - (data.length % 3));
-    }
-    const bytes = new Uint8Array(data.length * 3);
-    data.forEach((c, i) => {
-        bytes[i * 3] = c?.[0] ?? 0;
-        bytes[i * 3 + 1] = c?.[1] ?? 0;
-        bytes[i * 3 + 2] = c?.[2] ?? 0;
-    });
-    return bytes;
+    return data.length % 3 === 0 ? data : data.subarray(0, data.length - (data.length % 3));
 }
 
 /**
@@ -48,10 +38,10 @@ function toPixelBytes(data: Color[] | Uint8Array | null | undefined): Uint8Array
  * the emission direction (the object's local +Y). The body is pickable; the editor proxy only shows the direction.
  * Its pixels light surfaces through the view's `SurfaceLighting` (one pixel per LED, evenly along the strip).
  */
-export class LedStripRenderer extends BaseRenderer<LedStripVisualizationConfig, Color[] | Uint8Array> {
+export class LedStripRenderer extends BaseRenderer<LedStripVisualizationConfig> {
     private readonly start = new THREE.Vector3(-0.5, 0, 0);
     private readonly end = new THREE.Vector3(0.5, 0, 0);
-    /** Read by SurfaceLighting every frame; positions and normals are refreshed in `updateWorld`. */
+    /** Read by SurfaceLighting every frame; positions and normals are refreshed in `update`. */
     private readonly segmentSource = {
         worldPositions: new Float32Array(0),
         worldNormals: new Float32Array(0),
@@ -108,7 +98,7 @@ export class LedStripRenderer extends BaseRenderer<LedStripVisualizationConfig, 
         this.updateProfile();
     }
 
-    public override onFixtureValueUpdate(data: Color[] | Uint8Array): void {
+    public override onFixtureValueUpdate(data: Uint8Array): void {
         const colors = toPixelBytes(data);
         const source = this.segmentSource;
         source.colors = colors;
@@ -119,7 +109,7 @@ export class LedStripRenderer extends BaseRenderer<LedStripVisualizationConfig, 
     }
 
     /** Pixel positions (evenly between start and end) and the emission direction (local +Y) in world space. */
-    public override updateWorld(): void {
+    public override update(): void {
         const source = this.segmentSource;
         source.visible = isInVisibleHierarchy(this);
         const pixels = source.colors.length / 3;

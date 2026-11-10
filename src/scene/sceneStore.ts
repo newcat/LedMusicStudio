@@ -108,6 +108,10 @@ export const useScene = defineStore("scene", () => {
     const history = markRaw(new SceneHistory());
     const historyVersion = ref(0);
     const sinks = markRaw(new Set<SceneSink>());
+    /** Hooks called for every registered sink; they may return a cleanup that runs when the sink is unregistered. */
+    type SinkHook = (sink: SceneSink) => (() => void) | undefined;
+    const sinkHooks = markRaw(new Set<SinkHook>());
+    const sinkCleanups = markRaw(new Map<SceneSink, Array<() => void>>());
 
     const canUndo = computed(() => (historyVersion.value, history.canUndo));
     const canRedo = computed(() => (historyVersion.value, history.canRedo));
@@ -986,16 +990,44 @@ export const useScene = defineStore("scene", () => {
     function registerSink(sink: SceneSink, pushFixtureState = true): () => void {
         sinks.add(sink);
         sink.reset(rawScene());
+        for (const hook of sinkHooks) runSinkHook(hook, sink);
         if (pushFixtureState) {
             useStage().visualization.sendStateTo(sink);
         }
         return () => {
             sinks.delete(sink);
+            for (const cleanup of sinkCleanups.get(sink) ?? []) cleanup();
+            sinkCleanups.delete(sink);
+        };
+    }
+
+    function runSinkHook(hook: SinkHook, sink: SceneSink) {
+        const cleanup = hook(sink);
+        if (cleanup) {
+            const list = sinkCleanups.get(sink) ?? [];
+            list.push(cleanup);
+            sinkCleanups.set(sink, list);
+        }
+    }
+
+    /** Calls `hook` for every registered sink, now and in the future (research R15: VisualizationServer → onActivated). */
+    function onSinkRegistered(hook: SinkHook): () => void {
+        sinkHooks.add(hook);
+        for (const sink of sinks) runSinkHook(hook, sink);
+        return () => {
+            sinkHooks.delete(hook);
         };
     }
 
     function forEachSink(fn: (sink: SceneSink) => void) {
         for (const sink of sinks) fn(sink);
+    }
+
+    /** Only sinks with at least one visible consumer (FR-053); fixture values go only to these. */
+    function forEachActiveSink(fn: (sink: SceneSink) => void) {
+        for (const sink of sinks) {
+            if (sink.active) fn(sink);
+        }
     }
 
     // non-history state --------------------------------------------------------------------------------------
@@ -1105,7 +1137,9 @@ export const useScene = defineStore("scene", () => {
         selectAll,
         // sinks
         registerSink,
+        onSinkRegistered,
         forEachSink,
+        forEachActiveSink,
         // other state
         setEditorCamera,
         updateSettings,

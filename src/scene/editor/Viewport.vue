@@ -39,9 +39,15 @@ const snapHint = computed(() => overlay.value?.snapHint.value ?? null);
 
 let view: SceneView | undefined;
 let unregisterSink: (() => void) | undefined;
+let intersectionObserver: IntersectionObserver | undefined;
+/** Last IntersectionObserver result for the container. */
+let intersecting = false;
 
 const throttledResize = useThrottleFn(() => onResize(), 100, true);
-useResizeObserver(container, () => void throttledResize());
+useResizeObserver(container, () => {
+    updateActive();
+    void throttledResize();
+});
 
 function onResize() {
     if (!container.value) {
@@ -50,16 +56,38 @@ function onResize() {
     overlay.value?.resize(container.value.clientWidth, container.value.clientHeight);
 }
 
+/**
+ * FR-053: the view only renders while it can be seen. This also covers the Programming tab, which hides the editor
+ * with `v-show`.
+ */
+function updateActive() {
+    const el = container.value;
+    if (!view || !el) {
+        return;
+    }
+    view.setActive(el.clientWidth > 0 && el.clientHeight > 0 && intersecting && document.visibilityState === "visible");
+}
+
 onMounted(() => {
     if (!canvas.value || !container.value) {
         return;
     }
-    view = new SceneView(canvas.value, { showEditorProxies: true });
+    view = new SceneView(canvas.value, { showEditorProxies: true, kind: "editor" });
+    intersectionObserver = new IntersectionObserver((records) => {
+        const record = records[records.length - 1];
+        if (record) {
+            intersecting = record.isIntersecting;
+            updateActive();
+        }
+    });
+    intersectionObserver.observe(container.value);
+    document.addEventListener("visibilitychange", updateActive);
     unregisterSink = store.registerSink(new LocalSceneSink(view));
     const editorOverlay = new EditorOverlay(view, container.value, store);
     editorOverlay.onContextMenu = (event) => emit("contextmenu", event);
     overlay.value = editorOverlay;
     onResize();
+    updateActive();
 });
 
 // feature 002: drag & drop of library assets
@@ -83,6 +111,9 @@ function onDrop(event: DragEvent) {
 
 // FR-062: everything is released when the tab is left or the project is replaced
 onBeforeUnmount(() => {
+    intersectionObserver?.disconnect();
+    intersectionObserver = undefined;
+    document.removeEventListener("visibilitychange", updateActive);
     unregisterSink?.();
     overlay.value?.dispose();
     overlay.value = null;

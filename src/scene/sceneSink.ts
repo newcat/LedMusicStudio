@@ -7,25 +7,55 @@ import {
     type MainToShowMessage,
     type ShowWindowMessage,
 } from "@/visualization/protocol";
-import type { CameraPosition, SceneAsset, SceneObject, SceneState } from "./model/types";
+import type { CameraPosition, SceneAsset, SceneEnvironment, SceneObject, SceneState } from "./model/types";
 
 /**
  * Receives every change of the scene. The embedded editor's view and the show windows are sinks.
  * Objects handed to a sink are plain (non-reactive) data and must not be modified by the sink.
  */
 export interface SceneSink {
+    /** False while no consumer is visible; the VisualizationServer sends no values to inactive sinks (FR-053). */
+    readonly active: boolean;
+    /** Fired when `active` turns true; the server then sends the full fixture state. */
+    onActivated(cb: () => void): () => void;
     reset(scene: SceneState): void;
     objectsChanged(objects: SceneObject[], rootOrder: string[]): void;
     objectsRemoved(ids: string[]): void;
     asset(id: string, mimeType: string, data: Uint8Array): void;
     camerasChanged(cameras: CameraPosition[]): void;
+    environmentChanged(environment: SceneEnvironment): void;
     fixtureConfigs(configs: Record<string, unknown>): void;
-    fixtureValues(values: Record<string, unknown>): void;
+    fixtureValues(values: Record<string, Uint8Array>): void;
 }
 
 /** Forwards to a `SceneView` in the same window. */
 export class LocalSceneSink implements SceneSink {
-    public constructor(private readonly view: SceneView) {}
+    private readonly activatedCallbacks = new Set<() => void>();
+
+    public constructor(private readonly view: SceneView) {
+        view.onActiveChange((active) => {
+            if (active) {
+                for (const cb of this.activatedCallbacks) {
+                    cb();
+                }
+            }
+        });
+    }
+
+    public get active() {
+        return this.view.active;
+    }
+
+    public onActivated(cb: () => void) {
+        this.activatedCallbacks.add(cb);
+        return () => {
+            this.activatedCallbacks.delete(cb);
+        };
+    }
+
+    public environmentChanged(environment: SceneEnvironment) {
+        this.view.setEnvironment(environment);
+    }
 
     public reset(scene: SceneState) {
         for (const asset of Object.values(scene.assets)) {
@@ -56,7 +86,7 @@ export class LocalSceneSink implements SceneSink {
         }
     }
 
-    public fixtureValues(values: Record<string, unknown>) {
+    public fixtureValues(values: Record<string, Uint8Array>) {
         for (const [id, value] of Object.entries(values)) {
             this.view.setFixtureValue(id, value);
         }
@@ -72,42 +102,65 @@ function toArrayBuffer(data: Uint8Array): ArrayBuffer {
     return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
 }
 
-/** Main-window side of the show window protocol (contracts/show-window-protocol.md). */
+/** A show window is gone after this long without a heartbeat (research R15). */
+const WINDOW_TIMEOUT_MS = 6000;
+const WINDOW_CHECK_INTERVAL_MS = 1000;
+
+interface ShowWindowState {
+    lastSeen: number;
+    visible: boolean;
+}
+
+/** Main-window side of the show window protocol (contracts/show-window-protocol-v3.md). */
 export class BroadcastSceneSink implements SceneSink {
     private readonly channel = new BroadcastChannel(CHANNEL_NAME);
-    private readonly knownWindows = new Set<string>();
+    /** Alive show windows by window id. */
+    private readonly windows = new Map<string, ShowWindowState>();
+    private readonly activatedCallbacks = new Set<() => void>();
+    private readonly checkInterval: ReturnType<typeof setInterval>;
+    private isActive = false;
 
     private pendingObjects = new Map<string, SceneObject>();
     private pendingRootOrder: string[] | null = null;
     private pendingRemoved = new Set<string>();
+    private pendingEnvironment: SceneEnvironment | null = null;
     private pendingConfigs: Record<string, unknown> = {};
-    private pendingValues: Record<string, unknown> = {};
+    private pendingValues: Record<string, Uint8Array> = {};
     private frameHandle: number | null = null;
     private timeoutHandle: ReturnType<typeof setTimeout> | null = null;
 
     public constructor(private readonly provider: BroadcastSceneSinkProvider) {
-        this.channel.addEventListener("message", (ev: MessageEvent<unknown>) => {
-            const data = ev.data as ShowWindowMessage;
-            if (!isProtocolMessage(data) || data.protocol !== PROTOCOL_VERSION) {
-                return;
-            }
-            if (data.type === "hello") {
-                this.knownWindows.add(data.windowId);
-                this.sendSnapshot(data.windowId);
-            }
-        });
+        this.channel.addEventListener("message", (ev: MessageEvent<unknown>) => this.onMessage(ev.data));
+        this.checkInterval = setInterval(() => this.removeTimedOutWindows(), WINDOW_CHECK_INTERVAL_MS);
+    }
+
+    /** At least one alive show window whose last reported visibility was `visible`. */
+    public get active() {
+        return this.isActive;
     }
 
     public get windowCount() {
-        return this.knownWindows.size;
+        return this.windows.size;
+    }
+
+    public onActivated(cb: () => void) {
+        this.activatedCallbacks.add(cb);
+        return () => {
+            this.activatedCallbacks.delete(cb);
+        };
     }
 
     public reset() {
         this.discardPending();
         this.post({ protocol: PROTOCOL_VERSION, type: "reset" });
-        for (const windowId of this.knownWindows) {
+        for (const windowId of this.windows.keys()) {
             this.sendSnapshot(windowId);
         }
+    }
+
+    public environmentChanged(environment: SceneEnvironment) {
+        this.pendingEnvironment = environment;
+        this.schedule();
     }
 
     public objectsChanged(objects: SceneObject[], rootOrder: string[]) {
@@ -142,14 +195,84 @@ export class BroadcastSceneSink implements SceneSink {
         this.schedule();
     }
 
-    public fixtureValues(values: Record<string, unknown>) {
+    /** Dropped while no show window is visible (FR-053, SC-006). */
+    public fixtureValues(values: Record<string, Uint8Array>) {
+        if (!this.isActive) {
+            return;
+        }
         Object.assign(this.pendingValues, values);
         this.schedule();
     }
 
     public dispose() {
+        clearInterval(this.checkInterval);
         this.discardPending();
+        this.activatedCallbacks.clear();
+        this.windows.clear();
         this.channel.close();
+    }
+
+    private onMessage(raw: unknown) {
+        if (!isProtocolMessage(raw) || raw.protocol !== PROTOCOL_VERSION) {
+            return;
+        }
+        const data = raw as ShowWindowMessage;
+        switch (data.type) {
+            case "hello":
+                this.windows.set(data.windowId, { lastSeen: performance.now(), visible: true });
+                this.sendSnapshot(data.windowId);
+                break;
+            case "heartbeat": {
+                const known = this.windows.get(data.windowId);
+                this.windows.set(data.windowId, { lastSeen: performance.now(), visible: data.visible });
+                if (!known) {
+                    // a window that said hello to an earlier main window (e.g. before a reload) needs the scene
+                    this.sendSnapshot(data.windowId);
+                }
+                break;
+            }
+            case "bye":
+                this.windows.delete(data.windowId);
+                break;
+            default:
+                return;
+        }
+        this.updateActive();
+    }
+
+    private removeTimedOutWindows() {
+        const now = performance.now();
+        let changed = false;
+        for (const [windowId, state] of this.windows) {
+            if (now - state.lastSeen > WINDOW_TIMEOUT_MS) {
+                this.windows.delete(windowId);
+                changed = true;
+            }
+        }
+        if (changed) {
+            this.updateActive();
+        }
+    }
+
+    private updateActive() {
+        let active = false;
+        for (const state of this.windows.values()) {
+            if (state.visible) {
+                active = true;
+                break;
+            }
+        }
+        if (active === this.isActive) {
+            return;
+        }
+        this.isActive = active;
+        if (!active) {
+            this.pendingValues = {};
+            return;
+        }
+        for (const cb of this.activatedCallbacks) {
+            cb();
+        }
     }
 
     private sendSnapshot(windowId: string) {
@@ -208,6 +331,10 @@ export class BroadcastSceneSink implements SceneSink {
             this.pendingObjects.clear();
             this.pendingRootOrder = null;
         }
+        if (this.pendingEnvironment) {
+            this.post({ protocol: PROTOCOL_VERSION, type: "environmentChanged", environment: this.pendingEnvironment });
+            this.pendingEnvironment = null;
+        }
         if (Object.keys(this.pendingConfigs).length > 0) {
             this.post({ protocol: PROTOCOL_VERSION, type: "fixtureConfigs", configs: this.pendingConfigs });
             this.pendingConfigs = {};
@@ -230,6 +357,7 @@ export class BroadcastSceneSink implements SceneSink {
         this.pendingObjects.clear();
         this.pendingRemoved.clear();
         this.pendingRootOrder = null;
+        this.pendingEnvironment = null;
         this.pendingConfigs = {};
         this.pendingValues = {};
     }

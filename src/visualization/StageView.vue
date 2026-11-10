@@ -47,7 +47,8 @@ function initialize() {
         return;
     }
 
-    view = new SceneView(canvas.value, { showEditorProxies: false });
+    view = new SceneView(canvas.value, { showEditorProxies: false, kind: "show" });
+    view.setActive(document.visibilityState === "visible");
     controls = new OrbitControls(view.camera, canvas.value);
     controls.enableDamping = false;
     controls.zoomToCursor = true;
@@ -66,6 +67,11 @@ function onResize() {
     }
 
     view.resize(stageViewEl.value.clientWidth, stageViewEl.value.clientHeight);
+}
+
+/** FR-053: a hidden show window stops rendering and only keeps the latest values. */
+function onVisibilityChange() {
+    view?.setActive(document.visibilityState === "visible");
 }
 
 /** The camera menu hides itself after 3 s without mouse movement. */
@@ -87,11 +93,13 @@ function cleanup() {
 
 onMounted(() => {
     window.addEventListener("pagehide", cleanup);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     initialize();
 });
 
 onBeforeUnmount(() => {
     window.removeEventListener("pagehide", cleanup);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
     cleanup();
 });
 </script>

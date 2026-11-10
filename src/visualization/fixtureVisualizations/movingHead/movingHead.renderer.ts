@@ -40,17 +40,18 @@ function createBeamGeometry(lensRadius: number): THREE.CylinderGeometry {
  * Moving head on top of the fixture model contract (feature 002, research R7): the body comes from the model,
  * pan and tilt drive its pan/tilt nodes, and beam, cap and SpotLight hang on its beam anchor (local +Z = beam).
  */
-export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConfig, number[]> {
+export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConfig> {
     private readonly beam;
     private readonly cap;
     private readonly target = new THREE.Object3D();
     private readonly worldPos = new THREE.Vector3();
     private readonly worldTarget = new THREE.Vector3();
+    /** Interim real light until the beam rewrite moves it into SurfaceLighting (T035). */
     private readonly spotlight: THREE.SpotLight;
     private beamMaterial!: THREE.ShaderMaterial;
 
     private config?: MovingHeadVisualizationConfig;
-    private previousValues?: number[];
+    private previousValues?: Uint8Array;
     private modelScale = 1;
 
     public constructor(inputs: RendererInputs) {
@@ -89,16 +90,16 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
         this.cap.scale.setScalar(lensRadius / DEFAULT_LENS_RADIUS);
         body.beamAnchor.add(this.beam, this.cap, this.spotlight, this.target);
         this.add(body);
-        this.onFixtureValueUpdate(this.previousValues ?? []);
+        this.onFixtureValueUpdate(this.previousValues ?? new Uint8Array(0));
     }
 
     public onConfigUpdate(c: MovingHeadVisualizationConfig): void {
         this.config = c;
         // if the default values have changed, they will only be applied in onFixtureValueUpdate
-        this.onFixtureValueUpdate(this.previousValues ?? []);
+        this.onFixtureValueUpdate(this.previousValues ?? new Uint8Array(0));
     }
 
-    public onFixtureValueUpdate(v: number[]): void {
+    public onFixtureValueUpdate(v: Uint8Array): void {
         this.previousValues = v;
         if (!this.config) {
             return;
@@ -125,11 +126,7 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
         }
     }
 
-    public override getSurfaceLight(): THREE.Light {
-        return this.spotlight;
-    }
-
-    public override updateWorld(): void {
+    public override update(): void {
         const material = this.beamMaterial;
         this.inputs.camera.getWorldPosition(material.uniforms.cameraPos.value as THREE.Vector3);
         this.inputs.camera.getWorldDirection(material.uniforms.cameraDir.value as THREE.Vector3);
