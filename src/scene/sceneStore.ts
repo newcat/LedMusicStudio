@@ -46,17 +46,20 @@ import type {
     PersistedSceneState,
     SceneAsset,
     SceneEditorSettings,
+    SceneEnvironment,
     SceneObject,
     SceneState,
     ShapeType,
     Vec3,
 } from "./model/types";
+import { sanitizeEnvironment } from "./model/sanitize";
 import { emitSceneToast } from "./toastBus";
 import { isFixtureVisualization, isLibraryAsset, isShape } from "./model/types";
 
 export type TransformMode = "translate" | "rotate" | "scale";
 export type SelectMode = "replace" | "toggle" | "add";
 export type ObjectStates = Record<string, SceneObject | null>;
+export type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
 
 interface Clipboard {
     /** states of the copied subtrees, parent links inside the copy are kept */
@@ -180,7 +183,11 @@ export const useScene = defineStore("scene", () => {
         const affectedIds = unique(affected).filter((id) => rawObject(id));
         const before = captureStates(affectedIds);
         const rootOrderBefore = [...rawScene().rootOrder];
+        const environmentBefore = rawScene().environment;
         const result = mutate();
+        // commands replace the environment object instead of mutating it, so a reference check finds changes
+        const environmentChanged = rawScene().environment !== environmentBefore;
+        const environmentAfter = rawScene().environment;
         const created = Array.isArray(result) ? (result as string[]) : [];
         for (const id of created) {
             if (!(id in before)) {
@@ -199,6 +206,10 @@ export const useScene = defineStore("scene", () => {
                 }
                 top.after = { ...top.after, ...captureStates(allIds) };
                 top.rootOrderAfter = [...rawScene().rootOrder];
+                if (environmentChanged) {
+                    top.environmentBefore ??= structuredClone(environmentBefore);
+                    top.environmentAfter = structuredClone(environmentAfter);
+                }
                 top.time = now;
             } else {
                 history.push({
@@ -207,6 +218,9 @@ export const useScene = defineStore("scene", () => {
                     after: captureStates(allIds),
                     rootOrderBefore,
                     rootOrderAfter: [...rawScene().rootOrder],
+                    ...(environmentChanged
+                        ? { environmentBefore: structuredClone(environmentBefore), environmentAfter: structuredClone(environmentAfter) }
+                        : {}),
                     mergeKey,
                     time: now,
                 });
@@ -214,7 +228,45 @@ export const useScene = defineStore("scene", () => {
             bumpHistory();
         }
         notifyStates(allIds);
+        if (environmentChanged) {
+            notifyEnvironment();
+        }
         pruneSelection();
+    }
+
+    function notifyEnvironment() {
+        const environment = rawScene().environment;
+        for (const sink of sinks) sink.environmentChanged(environment);
+    }
+
+    /**
+     * Changes haze, hazer coupling or ambient light (feature 003, data-model §4). Undoable; repeated changes with the
+     * same `coalesceKey` (e.g. a slider drag) become one history entry.
+     */
+    function setEnvironment(patch: DeepPartial<SceneEnvironment>, coalesceKey?: string) {
+        const current = rawScene().environment;
+        const next = sanitizeEnvironment({
+            ...current,
+            ...patch,
+            ambient: {
+                editor: { ...current.ambient.editor, ...patch.ambient?.editor },
+                show: { ...current.ambient.show, ...patch.ambient?.show },
+            },
+        });
+        if (JSON.stringify(next) === JSON.stringify(current)) {
+            return;
+        }
+        const keys = Object.keys(patch);
+        const label = keys.length === 1 && keys[0] === "haze" ? "Set haze" : "Change environment";
+        runCommand(
+            label,
+            [],
+            () => {
+                scene.value.environment = next;
+            },
+            true,
+            coalesceKey
+        );
     }
 
     function parentsOf(ids: Iterable<string>): string[] {
@@ -590,10 +642,18 @@ export const useScene = defineStore("scene", () => {
         pruneSelection();
     }
 
+    function applyHistoryEnvironment(environment: SceneEnvironment | undefined) {
+        if (environment) {
+            scene.value.environment = structuredClone(environment);
+            notifyEnvironment();
+        }
+    }
+
     function undo() {
         const entry = history.undo();
         if (entry) {
             applyHistoryStates(entry.before, entry.rootOrderBefore);
+            applyHistoryEnvironment(entry.environmentBefore);
             bumpHistory();
         }
         return entry?.label;
@@ -603,6 +663,7 @@ export const useScene = defineStore("scene", () => {
         const entry = history.redo();
         if (entry) {
             applyHistoryStates(entry.after, entry.rootOrderAfter);
+            applyHistoryEnvironment(entry.environmentAfter);
             bumpHistory();
         }
         return entry?.label;
@@ -1049,6 +1110,7 @@ export const useScene = defineStore("scene", () => {
         selection.value = [];
         clipboard.value = null;
         for (const sink of sinks) sink.reset(rawScene());
+        notifyEnvironment();
     }
 
     function reset() {
@@ -1065,6 +1127,7 @@ export const useScene = defineStore("scene", () => {
             cameras: structuredClone(s.cameras),
             editorCamera: structuredClone(s.editorCamera),
             settings: structuredClone(s.settings),
+            environment: structuredClone(s.environment),
             assets: serializeAssets(s.assets, referenced),
         };
     }
@@ -1143,6 +1206,7 @@ export const useScene = defineStore("scene", () => {
         // other state
         setEditorCamera,
         updateSettings,
+        setEnvironment,
         load,
         reset,
         save,

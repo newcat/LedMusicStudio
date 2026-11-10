@@ -1,36 +1,21 @@
 import { markRaw } from "vue";
 import { DmxFixture, FixtureType } from "@/stage/fixtures";
 import { FixtureVisualization, VisualizationType } from "../../fixtureVisualization";
-import { MovingHeadVisualizationConfig } from "./movingHead.visualizationConfig";
+import { emptyMapping } from "../../capabilities/types";
+import { defaultMovement, type BeamVisualizationConfig } from "../beam/types";
+import { defaultBeamAngleFor } from "../modelDefaults";
 import MovingHeadVisualizationSettings from "./MovingHeadVisualizationSettings.vue";
 
-export const MovingHeadVisualization: FixtureVisualization<DmxFixture, MovingHeadVisualizationConfig, number[]> = {
+export const MovingHeadVisualization: FixtureVisualization<DmxFixture, BeamVisualizationConfig, number[]> = {
     type: VisualizationType.MOVING_HEAD,
     compatibleFixtures: [FixtureType.DMX],
-    defaultConfig: () => ({
-        channelMapping: {
-            pan: {
-                channel: -1,
-                defaultValue: 0,
-                min: -180,
-                max: 180,
-            },
-            tilt: {
-                channel: -1,
-                defaultValue: 0,
-                min: -120,
-                max: 120,
-            },
-            beamAngle: {
-                channel: -1,
-                defaultValue: 10,
-                min: 1,
-                max: 45,
-            },
-            red: -1,
-            green: -1,
-            blue: -1,
-        },
+    // softness and the pan/tilt ranges depend on the model and are set by `withModelRanges` (scene/fixtureModels.ts)
+    defaultConfig: (fixture) => ({
+        mapping: emptyMapping(),
+        movement: defaultMovement(),
+        defaultBeamAngle: defaultBeamAngleFor(fixture?.config.definition, fixture?.config.mode),
+        softness: 0.25,
+        prismSpread: 6,
     }),
     settingsComponent: markRaw(MovingHeadVisualizationSettings),
     onFixtureValueUpdate: (value) => {

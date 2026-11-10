@@ -34,8 +34,9 @@ function toPixelBytes(data: Uint8Array | null | undefined): Uint8Array {
 }
 
 /**
- * LED strip (feature 002, research R7): a parametric profile body between `start` and `end`, whose diffuser faces
- * the emission direction (the object's local +Y). The body is pickable; the editor proxy only shows the direction.
+ * LED strip (feature 002, research R7): a parametric profile body between the first and last path point (straight
+ * until US4), whose diffuser faces the emission direction (the object's local +Y). The body is pickable; the editor
+ * proxy only shows the direction.
  * Its pixels light surfaces through the view's `SurfaceLighting` (one pixel per LED, evenly along the strip).
  */
 export class LedStripRenderer extends BaseRenderer<LedStripVisualizationConfig> {
@@ -92,8 +93,14 @@ export class LedStripRenderer extends BaseRenderer<LedStripVisualizationConfig> 
     }
 
     public override onConfigUpdate(config: LedStripVisualizationConfig): void {
-        this.start.set(...config.start);
-        this.end.set(...config.end);
+        // straight strip from the first to the last path point; full path support comes in US4
+        const points = config.path?.points ?? [];
+        const first = points[0]?.position;
+        const last = points[points.length - 1]?.position;
+        if (first && last) {
+            this.start.set(first[0], first[1], first[2]);
+            this.end.set(last[0], last[1], last[2]);
+        }
         this.updateProxy();
         this.updateProfile();
     }

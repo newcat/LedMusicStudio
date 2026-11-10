@@ -1,19 +1,22 @@
+import * as THREE from "three";
+
 import type { FixtureBody } from "@/assetLibrary/fixtureBody";
+import { emptyMapping } from "../../capabilities/types";
 import { BaseRenderer } from "../base.renderer";
-import { getChannelValue } from "../channelValue";
+import { decodeSimpleColor } from "../interimColor";
 import { GenericVisualizationConfig } from "./types";
 
 /** Output factor, so full output blooms. */
 const EMITTER_GAIN = 4;
 
 /**
- * Generic Fixture (feature 002, FR-022, FR-023): the model body plus emitters lit with RGB(W) × intensity.
- * White when no color channel is mapped, full output when no intensity channel is mapped.
+ * Generic Fixture (feature 002, FR-022, FR-023): the model body plus emitters lit with RGB(W) × dimmer, read from
+ * `mapping.channels` through `decodeScalar`. White when no color channel is mapped, full output when no dimmer is
+ * mapped. Cells and the surface light follow in later phases.
  */
 export class GenericRenderer extends BaseRenderer<GenericVisualizationConfig> {
-    private config: GenericVisualizationConfig = {
-        channelMapping: { intensity: { channel: -1, defaultValue: 1, min: 0, max: 1 }, red: -1, green: -1, blue: -1, white: -1 },
-    };
+    private config: GenericVisualizationConfig = { mapping: emptyMapping(), surfaceLight: false, lightAngle: 90 };
+    private readonly color = new THREE.Color();
     private values: Uint8Array = new Uint8Array(0);
     private modelScale = 1;
 
@@ -44,19 +47,8 @@ export class GenericRenderer extends BaseRenderer<GenericVisualizationConfig> {
         if (!body) {
             return;
         }
-        const mapping = this.config.channelMapping;
-        const v = this.values;
-        const intensity = getChannelValue(mapping.intensity, v);
-        let r = 1;
-        let g = 1;
-        let b = 1;
-        if (mapping.red >= 0 || mapping.green >= 0 || mapping.blue >= 0 || mapping.white >= 0) {
-            const white = getChannelValue(mapping.white, v) / 255;
-            r = getChannelValue(mapping.red, v) / 255 + white;
-            g = getChannelValue(mapping.green, v) / 255 + white;
-            b = getChannelValue(mapping.blue, v) / 255 + white;
-        }
-        const k = intensity * EMITTER_GAIN;
-        body.setEmitterColor("all", r * k, g * k, b * k);
+        const c = decodeSimpleColor(this.config.mapping ?? emptyMapping(), this.values, this.color);
+        const k = EMITTER_GAIN;
+        body.setEmitterColor("all", c.r * k, c.g * k, c.b * k);
     }
 }

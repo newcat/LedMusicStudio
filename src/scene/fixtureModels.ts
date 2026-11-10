@@ -7,6 +7,10 @@ import { defaultChannelRanges, modelScaleFor, plausibleDimensions, preselectForF
 import type { FixtureAssetDefinition, FixturePreselection } from "@/assetLibrary/types";
 import { FixtureType, type BaseFixture, type DmxFixture } from "@/stage/fixtures";
 import { VisualizationType } from "@/visualization/fixtureVisualization";
+import type { LinearSegment } from "@/visualization/capabilities/types";
+import type { BeamVisualizationConfig } from "@/visualization/fixtureVisualizations/beam/types";
+import type { GenericVisualizationConfig } from "@/visualization/fixtureVisualizations/generic/types";
+import { beamSoftnessFor, genericLightAngleFor, genericSurfaceLightFor } from "@/visualization/fixtureVisualizations/modelDefaults";
 import type { FixtureVisualizationModelFields } from "./model/types";
 
 type OflDefinition = DmxFixture["config"]["definition"];
@@ -61,23 +65,36 @@ export function modelForType(fixture: BaseFixture | undefined | null, type: Visu
     return { modelId: assetCatalog.defaultModelFor(type).id, modelScale: 1 };
 }
 
-/** New Moving Head configs take their pan/tilt ranges from the model's physical limits (research R13). */
+/**
+ * Model-dependent defaults of a new config (research R13, feature 003 data-model §2):
+ * - Moving Head: pan/tilt ranges from the model's physical limits, as linear segments 0…255 → min…max of
+ *   `mapping.channels.pan/tilt` (the entry is created unmapped if it does not exist yet).
+ * - Spot / Moving Head: `softness` by model.
+ * - Generic Fixture: `surfaceLight` and `lightAngle` by model.
+ */
 export function withModelRanges<C>(type: VisualizationType, config: C, modelId: string): C {
     const model = fixtureModel(modelId);
-    if (type !== VisualizationType.MOVING_HEAD || !model) {
-        return config;
-    }
-    const ranges = defaultChannelRanges(model);
-    const mapping = (config as { channelMapping?: Record<string, unknown> }).channelMapping;
-    if (!mapping) {
-        return config;
-    }
-    for (const role of ["pan", "tilt"] as const) {
-        const range = ranges[role];
-        const channel = mapping[role];
-        if (range && channel && typeof channel === "object") {
-            mapping[role] = { ...channel, min: range.min, max: range.max };
+    if (type === VisualizationType.MOVING_HEAD || type === VisualizationType.SPOT) {
+        const beam = config as unknown as BeamVisualizationConfig;
+        beam.softness = beamSoftnessFor(modelId);
+        if (type === VisualizationType.MOVING_HEAD && model && beam.mapping) {
+            const ranges = defaultChannelRanges(model);
+            for (const role of ["pan", "tilt"] as const) {
+                const range = ranges[role];
+                if (!range) {
+                    continue;
+                }
+                const existing = beam.mapping.channels[role];
+                const segment: LinearSegment = { kind: "linear", from: 0, to: 255, start: range.min, end: range.max };
+                beam.mapping.channels[role] = existing
+                    ? { ...existing, segments: [segment] }
+                    : { channel: -1, fine: -1, segments: [segment], defaultValue: 0, source: "auto" };
+            }
         }
+    } else if (type === VisualizationType.GENERIC) {
+        const generic = config as unknown as GenericVisualizationConfig;
+        generic.surfaceLight = genericSurfaceLightFor(modelId);
+        generic.lightAngle = genericLightAngleFor(modelId);
     }
     return config;
 }

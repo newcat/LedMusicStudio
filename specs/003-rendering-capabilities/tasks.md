@@ -157,12 +157,12 @@ After this phase the app works as before (beams, strips, generic), but on the ne
   - `hexToLinear(hex: string, out?)`.
   - Constant additive primaries per research R4: W = (1, 1, 1), A = (1, 0.75, 0), UV = (0.25, 0, 0.6), lime = (0.6, 1, 0), indigo = (0.3, 0, 1), warm white = kelvinToRgb(3000), cold white = kelvinToRgb(6500).
   - `luminance(c)`.
-- [ ] T018 Add the environment to the scene model:
+- [X] T018 Add the environment to the scene model:
   - In `src/scene/model/types.ts`: add the types `AmbientPreset`, `AmbientSetting` and `SceneEnvironment` (copied from contracts/scene-state-delta.ts), and the field `environment: SceneEnvironment` on `SceneStateBase`.
   - In `src/scene/model/defaults.ts`: `createDefaultScene()` sets `environment: structuredClone(DEFAULT_ENVIRONMENT)` (import from `@/visualization/environment`).
   - In `src/scene/model/sanitize.ts`: add `sanitizeEnvironment(raw)` (load rule 1). A missing environment gets the defaults. `haze` is clamped "0…1", `brightness` "0…2", and an invalid `preset` falls back to the default of its view. `hazerCoupling` must be a boolean, else false.
   - `src/scene/sceneStore.ts` `save()` writes `environment`.
-- [ ] T019 Add the command `setEnvironment(patch: DeepPartial<SceneEnvironment>, coalesceKey?: string)` to `src/scene/sceneStore.ts`. It is undoable through `runCommand`, uses the label "Set haze" for haze-only patches and "Change environment" otherwise, and coalesces with the key. After every change and in `load`/`reset`, call `sink.environmentChanged(rawScene().environment)` for all sinks. `LocalSceneSink.reset` and the broadcast `snapshot` already carry the environment inside the scene. `SceneView.setScene` must call `setEnvironment(state.environment ?? DEFAULT_ENVIRONMENT)`.
+- [X] T019 Add the command `setEnvironment(patch: DeepPartial<SceneEnvironment>, coalesceKey?: string)` to `src/scene/sceneStore.ts`. It is undoable through `runCommand`, uses the label "Set haze" for haze-only patches and "Change environment" otherwise, and coalesces with the key. After every change and in `load`/`reset`, call `sink.environmentChanged(rawScene().environment)` for all sinks. `LocalSceneSink.reset` and the broadcast `snapshot` already carry the environment inside the scene. `SceneView.setScene` must call `setEnvironment(state.environment ?? DEFAULT_ENVIRONMENT)`.
 
 ### Capability decoding core (research R1, R2, R3)
 
@@ -189,14 +189,14 @@ After this phase the app works as before (beams, strips, generic), but on the ne
 
 ### Config shapes and load rules (data-model §2, §8)
 
-- [ ] T024 Replace the config types:
+- [X] T024 Replace the config types:
   - `src/visualization/fixtureVisualizations/beam/types.ts`: create `MovementSettings` and `BeamVisualizationConfig` from contracts/scene-state-delta.ts. Export `defaultMovement(): MovementSettings` = `{ mode: "realistic", panSpeed: 600, tiltSpeed: 400 }`.
   - `src/visualization/fixtureVisualizations/generic/types.ts`: `GenericVisualizationConfig { mapping, surfaceLight, lightAngle }`.
   - `src/visualization/fixtureVisualizations/ledStrip/types.ts`: `StripPathPoint`, `StripPath`, `LedStripVisualizationConfig { intensity, path, pixelSize }`.
   - `src/visualization/fixtureVisualizations/effects/types.ts`: `EffectVisualizationConfig` and the five option types.
   - Delete `src/visualization/fixtureVisualizations/movingHead/movingHead.visualizationConfig.ts` and `src/visualization/fixtureVisualizations/spot/types.ts`.
   - Update the `FixtureVisualizationObject` union in `src/scene/model/types.ts` to `FixtureVisualizationConfigByType` (contracts/scene-state-delta.ts) and fix every import, including `src/scene/model/legacy.ts` and `src/scene/sceneStore.ts` `withModelRanges` (pan/tilt ranges now go into `config.mapping.channels.pan/tilt` linear segments).
-- [ ] T025 Write the load rules in `src/scene/model/sanitize.ts` (and a new `src/visualization/capabilities/sanitizeMapping.ts` for rule 6), following data-model §8 rules 2–6:
+- [X] T025 Write the load rules in `src/scene/model/sanitize.ts` (and a new `src/visualization/capabilities/sanitizeMapping.ts` for rule 6), following data-model §8 rules 2–6:
   - **Old Moving Head** `channelMapping.pan/tilt/beamAngle {channel, defaultValue, min, max}` + `red/green/blue`: linear entries with segment `0…255 → min…max`. `beamAngle` → `zoom`, and its `defaultValue` → `defaultBeamAngle`. RGB become linear 0…1 entries. All entries `source: "manual"`, `mappedMode: null`, default movement, `softness` by model id (profile 0.1, spot / moving-head-spot 0.25, par 0.4, wash/fresnel 0.7), `prismSpread 6`.
   - **Old Spot** `colorChannels [r, g, b, w]`: the same, with white.
   - **Old Generic** `channelMapping.intensity/red/green/blue/white`: intensity → `dimmer`. `surfaceLight` defaults to true for `fixture.strobe`, `fixture.blinder`, `fixture.led-bar`, `fixture.pixel-bar` and `fixture.led-panel`, false otherwise. `lightAngle`: blinder 90, strobe 120, bars/panels 60, else 90.
@@ -204,7 +204,7 @@ After this phase the app works as before (beams, strips, generic), but on the ne
   - **`sanitizeMapping(mapping, type)`**: drop keys not in `KEYS_BY_TYPE[type]`; sort segments, clip them to `0…255` and remove overlaps; remove `wheel` references to missing wheels; clamp `movement.panSpeed/tiltSpeed` to "30…1500", `defaultBeamAngle` "1…120", `softness` "0…1", `prismSpread` "1…30", `lightAngle` "10…170", `pixelSize` "0.2…1".
   - **Path**: "fewer than 2 distinct points → the default path". Normals are normalized, zero → (0, 1, 0).
   - Push a `problems` entry for each repaired object (not for plain format conversion).
-- [ ] T026 Update every `defaultConfig` to the new shapes, using `emptyMapping()` (auto-mapping comes in US2):
+- [X] T026 Update every `defaultConfig` to the new shapes, using `emptyMapping()` (auto-mapping comes in US2):
   - Moving head: `src/visualization/fixtureVisualizations/movingHead/movingHead.visualization.ts`.
   - Spot: `src/visualization/fixtureVisualizations/spot/spot.visualization.ts`.
   - Generic: `src/visualization/fixtureVisualizations/generic/generic.visualization.ts`.

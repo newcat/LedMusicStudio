@@ -1168,13 +1168,17 @@ export class EditorOverlay {
         if (!obj || !isFixtureVisualization(obj) || obj.visualizationType !== VisualizationType.LED_STRIP) {
             return;
         }
-        const config = obj.config;
+        const points = obj.config.path.points;
         for (const handle of this.endpointHandles) {
             // never fight the user while a handle is dragged
             if (handle === this.attachedEndpoint && this.drag) {
                 continue;
             }
-            handle.position.set(...(handle.userData.endpoint === "start" ? config.start : config.end));
+            // first and last path point (full path editing comes with the strip drawing tool, US4)
+            const point = handle.userData.endpoint === "start" ? points[0] : points[points.length - 1];
+            if (point) {
+                handle.position.set(...point.position);
+            }
         }
     }
 
@@ -1197,8 +1201,13 @@ export class EditorOverlay {
         if (this.cancelling || !handle || !id || !obj || !isFixtureVisualization(obj) || obj.visualizationType !== VisualizationType.LED_STRIP) {
             return;
         }
-        const key = handle.userData.endpoint as "start" | "end";
-        const config = { ...JSON.parse(JSON.stringify(obj.config)), [key]: toVec3(handle.position) };
+        const config = JSON.parse(JSON.stringify(obj.config)) as typeof obj.config;
+        const points = config.path.points;
+        const index = handle.userData.endpoint === "start" ? 0 : points.length - 1;
+        if (!points[index]) {
+            return;
+        }
+        points[index] = { ...points[index], position: toVec3(handle.position) };
         this.store.previewPatches({ [id]: { config } as Partial<SceneObject> });
     }
 

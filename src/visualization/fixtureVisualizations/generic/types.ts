@@ -1,12 +1,11 @@
-/** Config of the Generic Fixture visualization (feature 002, contracts/scene-state-delta.ts). */
+/** Config of the Generic Fixture visualization (feature 003, contracts/scene-state-delta.ts). */
+import type { CapabilityMapping } from "@/visualization/capabilities/types";
+
+/** GENERIC: emitters, pixel/multi-cell fixtures, strobes, blinders. */
 export interface GenericVisualizationConfig {
-    channelMapping: {
-        /** 0..1 after mapping; unmapped = full (defaultValue 1). */
-        intensity: { channel: number; defaultValue: number; min: number; max: number };
-        /** DMX channel indices, -1 = not mapped; no color mapped = white. */
-        red: number;
-        green: number;
-        blue: number;
-        white: number;
-    };
+    mapping: CapabilityMapping;
+    /** Contribute a wide light to surfaces (strobes, blinders, bars); default true for those models. */
+    surfaceLight: boolean;
+    /** Light cone angle in degrees for the surface light, default 90 (blinders) / 120 (strobes). */
+    lightAngle: number;
 }

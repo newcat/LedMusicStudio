@@ -4,15 +4,15 @@ import { FixtureType, LedStripFixture } from "@/stage/fixtures";
 import { Color } from "@/graph/colors";
 import { FixtureVisualization, VisualizationType } from "../../fixtureVisualization";
 import LedStripVisualizationSettings from "./LedStripVisualizationSettings.vue";
-import { LedStripVisualizationConfig } from "./types";
+import { defaultStripPath, LedStripVisualizationConfig } from "./types";
 
 export const LedStripVisualization: FixtureVisualization<LedStripFixture, LedStripVisualizationConfig, Color[]> = {
     type: VisualizationType.LED_STRIP,
     compatibleFixtures: [FixtureType.LED_STRIP],
     defaultConfig: () => ({
-        intensity: 0.001,
-        start: [-0.5, 0, 0],
-        end: [0.5, 0, 0],
+        intensity: 1,
+        path: defaultStripPath(),
+        pixelSize: 0.6,
     }),
     settingsComponent: markRaw(LedStripVisualizationSettings),
     onFixtureValueUpdate: (value) => {

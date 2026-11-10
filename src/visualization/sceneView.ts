@@ -18,7 +18,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { UnrealBloomPass } from "./bloom";
 import { convertToLedLit } from "./ledLitMaterial";
 import { SurfaceLighting } from "./lighting/surfaceLighting";
-import { EnvironmentState } from "./environment";
+import { DEFAULT_ENVIRONMENT, EnvironmentState } from "./environment";
 import { QUALITY_PROFILES, type FallbackNotice, type QualityLevel, type QualityProfile, type ViewKind } from "./quality";
 import { buildObject3D, createPlaceholder, disposeObject3D, SCENE_OBJECT_ID, updateObject3D } from "./objectBuilders";
 
@@ -249,6 +249,8 @@ export class SceneView {
 
     /** Full rebuild. */
     public setScene(state: SceneSnapshot) {
+        // snapshots of older main windows may lack the environment
+        this.setEnvironment(state.environment ?? DEFAULT_ENVIRONMENT);
         this.clear();
         this.applyObjects(Object.values(state.objects));
     }

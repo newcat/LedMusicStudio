@@ -4,6 +4,7 @@ import { VisualizationType } from "@/visualization/fixtureVisualization";
 import { createDefaultScene, createFixtureVisualizationObject } from "./defaults";
 import type { FixtureVisualizationObject, LegacyStageVisualization, SceneState, Vec3 } from "./types";
 import { fromMatrix } from "./transformMath";
+import { sanitizeVisualizationConfig } from "./sanitize";
 
 type Rec = Record<string, unknown>;
 
@@ -17,13 +18,18 @@ function rotationFromTo(from: Vector3, to: Vector3): Vec3 {
     return [MathUtils.radToDeg(e.x), MathUtils.radToDeg(e.y), MathUtils.radToDeg(e.z)];
 }
 
+/** A new object of `type` whose config is converted from the old shape by the load rules (data-model §8). */
+function createConvertedObject(type: VisualizationType, oldConfig: Rec): FixtureVisualizationObject {
+    const obj = createFixtureVisualizationObject(null, type, {} as FixtureVisualizationObject["config"]);
+    (obj as { config: unknown }).config = sanitizeVisualizationConfig(type, oldConfig, obj.modelId).config;
+    return obj;
+}
+
 function convertMovingHead(config: Rec): FixtureVisualizationObject | null {
     if (!isVec3(config.position) || !isVec3(config.rotation) || typeof config.channelMapping !== "object" || !config.channelMapping) {
         return null;
     }
-    const obj = createFixtureVisualizationObject(null, VisualizationType.MOVING_HEAD, {
-        channelMapping: config.channelMapping as never,
-    });
+    const obj = createConvertedObject(VisualizationType.MOVING_HEAD, { channelMapping: config.channelMapping });
     obj.position = [...config.position];
     obj.rotation = [...config.rotation];
     return obj;
@@ -35,9 +41,7 @@ function convertSpot(config: Rec): FixtureVisualizationObject | null {
     }
     const position = new Vector3(...config.position);
     const dir = new Vector3(...config.target).sub(position);
-    const obj = createFixtureVisualizationObject(null, VisualizationType.SPOT, {
-        colorChannels: config.colorChannels as [number, number, number, number],
-    });
+    const obj = createConvertedObject(VisualizationType.SPOT, { colorChannels: config.colorChannels });
     obj.position = [...config.position];
     if (dir.lengthSq() > 1e-12) {
         // feature 002 (research R3): spot models emit along local +Y, which has to point from position to target.
@@ -76,7 +80,7 @@ function convertLedStrip(config: Rec): FixtureVisualizationObject | null {
     const rotationQuat = new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), emit.clone().normalize());
     const localEnd = stripWorld.clone().applyQuaternion(rotationQuat.clone().invert());
 
-    const obj = createFixtureVisualizationObject(null, VisualizationType.LED_STRIP, {
+    const obj = createConvertedObject(VisualizationType.LED_STRIP, {
         intensity,
         start: [0, 0, 0],
         end: [localEnd.x, localEnd.y, localEnd.z],

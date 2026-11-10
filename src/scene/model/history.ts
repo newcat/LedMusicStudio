@@ -1,4 +1,4 @@
-import type { SceneObject, SceneState } from "./types";
+import type { SceneEnvironment, SceneObject, SceneState } from "./types";
 
 export interface HistoryEntry {
     label: string;
@@ -6,6 +6,9 @@ export interface HistoryEntry {
     after: Record<string, SceneObject | null>;
     rootOrderBefore: string[];
     rootOrderAfter: string[];
+    /** Set only when the command changed the scene environment (feature 003). */
+    environmentBefore?: SceneEnvironment;
+    environmentAfter?: SceneEnvironment;
     /** Consecutive entries with the same key within `MERGE_WINDOW_MS` are merged into one (live field edits). */
     mergeKey?: string;
     time?: number;

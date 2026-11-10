@@ -4,6 +4,7 @@ import type { VisualizationType } from "@/visualization/fixtureVisualization";
 import { assetCatalog } from "@/assetLibrary/catalog";
 import { completeParams, sizeOf } from "@/assetLibrary/params";
 import type { AssetDefinition } from "@/assetLibrary/types";
+import { DEFAULT_ENVIRONMENT } from "@/visualization/environment";
 import type {
     CameraPose,
     FixtureVisualizationModelFields,
@@ -161,6 +162,7 @@ export function createDefaultScene(): SceneState {
         cameras: [{ id: uuidv4(), name: "Default", ...pose, isShowDefault: true }],
         editorCamera: createDefaultCameraPose(),
         settings: createDefaultSettings(),
+        environment: structuredClone(DEFAULT_ENVIRONMENT),
         assets: {},
     };
 }

@@ -1,17 +1,19 @@
 import * as THREE from "three";
 
 import type { FixtureBody } from "@/assetLibrary/fixtureBody";
+import { decodeScalar, readDmx } from "../../capabilities/decode";
+import type { LightHandle } from "../../lighting/surfaceLighting";
 import { BaseRenderer, RendererInputs } from "../base.renderer";
-import { MovingHeadVisualizationConfig } from "./movingHead.visualizationConfig";
+import type { BeamVisualizationConfig } from "../beam/types";
+import { decodeSimpleColor, isInVisibleHierarchy } from "../interimColor";
 
 import VOLUMETRIC_BEAM_VERTEX_SHADER from "./beam.vertex.glsl?raw";
 import VOLUMETRIC_BEAM_FRAGMENT_SHADER from "./beam.fragment.glsl?raw";
-import { getChannelValue } from "../channelValue";
 
-const SPOTLIGHT_PHYSICALLY_CORRECT_DISTANCE = 0;
-const SPOTLIGHT_PHYSICALLY_CORRECT_INTENSITY = 100.0;
-const SPOTLIGHT_PHYSICALLY_CORRECT_DECAY = 1.0;
-const SPOTLIGHT_PHYSICALLY_CORRECT_PENUMBRA = 1.2;
+/** Surface light output factor of the interim spot light (until the beam rewrite, US1). */
+const LIGHT_GAIN = 20;
+/** Reach of the interim surface light, meters. */
+const LIGHT_RANGE = 30;
 
 const BEAM_RESOLUTION = 100;
 const BEAM_SEGMENTS = 1;
@@ -20,10 +22,6 @@ const BEAM_LENGTH = 100;
 const DEFAULT_LENS_RADIUS = 0.06;
 /** Emitter output factor, so a full color blooms. */
 const EMITTER_GAIN = 4;
-
-function degToRad(degAngle: number) {
-    return degAngle * (Math.PI / 180);
-}
 
 /** Open cylinder whose bottom ring (geometry −Y) has the lens radius; the shader widens the +Y ring. */
 function createBeamGeometry(lensRadius: number): THREE.CylinderGeometry {
@@ -38,36 +36,34 @@ function createBeamGeometry(lensRadius: number): THREE.CylinderGeometry {
 
 /**
  * Moving head on top of the fixture model contract (feature 002, research R7): the body comes from the model,
- * pan and tilt drive its pan/tilt nodes, and beam, cap and SpotLight hang on its beam anchor (local +Z = beam).
+ * pan and tilt drive its pan/tilt nodes, and beam and cap hang on its beam anchor (local +Z = beam). Pan, tilt, zoom,
+ * dimmer and RGB(W) come from `mapping.channels` through `decodeScalar`; one interim spot light in the view's
+ * `SurfaceLighting` lights the surfaces until the beam rewrite (US1).
  */
-export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConfig> {
+export class MovingHeadRenderer extends BaseRenderer<BeamVisualizationConfig> {
     private readonly beam;
     private readonly cap;
     private readonly target = new THREE.Object3D();
     private readonly worldPos = new THREE.Vector3();
     private readonly worldTarget = new THREE.Vector3();
-    /** Interim real light until the beam rewrite moves it into SurfaceLighting (T035). */
-    private readonly spotlight: THREE.SpotLight;
+    private readonly lightHandle: LightHandle;
+    private readonly lightColor = new THREE.Color();
+    private readonly color = new THREE.Color();
     private beamMaterial!: THREE.ShaderMaterial;
 
-    private config?: MovingHeadVisualizationConfig;
+    private config?: BeamVisualizationConfig;
     private previousValues?: Uint8Array;
     private modelScale = 1;
+    private pan = 0;
+    private tilt = 0;
+    private beamAngle = 15;
 
     public constructor(inputs: RendererInputs) {
         super(inputs);
 
-        this.spotlight = new THREE.SpotLight(
-            0xffffff,
-            SPOTLIGHT_PHYSICALLY_CORRECT_INTENSITY,
-            SPOTLIGHT_PHYSICALLY_CORRECT_DISTANCE,
-            degToRad(15),
-            SPOTLIGHT_PHYSICALLY_CORRECT_PENUMBRA,
-            SPOTLIGHT_PHYSICALLY_CORRECT_DECAY
-        );
         // along the anchor's +Z
         this.target.position.set(0, 0, 10);
-        this.spotlight.target = this.target;
+        this.lightHandle = inputs.lighting.addLight();
 
         this.beam = this.getBeam();
         this.cap = this.getCap();
@@ -88,12 +84,12 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
             this.beam.geometry = createBeamGeometry(lensRadius);
         }
         this.cap.scale.setScalar(lensRadius / DEFAULT_LENS_RADIUS);
-        body.beamAnchor.add(this.beam, this.cap, this.spotlight, this.target);
+        body.beamAnchor.add(this.beam, this.cap, this.target);
         this.add(body);
         this.onFixtureValueUpdate(this.previousValues ?? new Uint8Array(0));
     }
 
-    public onConfigUpdate(c: MovingHeadVisualizationConfig): void {
+    public onConfigUpdate(c: BeamVisualizationConfig): void {
         this.config = c;
         // if the default values have changed, they will only be applied in onFixtureValueUpdate
         this.onFixtureValueUpdate(this.previousValues ?? new Uint8Array(0));
@@ -104,24 +100,23 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
         if (!this.config) {
             return;
         }
-        const pan = getChannelValue(this.config.channelMapping.pan, v);
-        const tilt = getChannelValue(this.config.channelMapping.tilt, v);
-        const beamAngle = getChannelValue(this.config.channelMapping.beamAngle, v);
-        const red = getChannelValue(this.config.channelMapping.red, v) / 255;
-        const green = getChannelValue(this.config.channelMapping.green, v) / 255;
-        const blue = getChannelValue(this.config.channelMapping.blue, v) / 255;
+        const channels = this.config.mapping.channels;
+        // values outside every segment keep the previous value (OFL "hold")
+        this.pan = decodeScalar(channels.pan, v, this.pan, "pan");
+        this.tilt = decodeScalar(channels.tilt, v, this.tilt, "tilt");
+        const zoom = channels.zoom;
+        this.beamAngle = zoom && readDmx(zoom, v) !== null ? decodeScalar(zoom, v, this.beamAngle, "zoom") : this.config.defaultBeamAngle;
+        const { r: red, g: green, b: blue } = decodeSimpleColor(this.config.mapping, v, this.color);
 
-        this.spotlight.color.setRGB(red, green, blue);
         (this.beamMaterial.uniforms.color.value as THREE.Color).setRGB(red, green, blue);
         this.cap.material.color.setRGB(red, green, blue);
         this.cap.material.emissive.setRGB(red, green, blue);
 
-        this.spotlight.angle = degToRad(beamAngle);
-        this.beamMaterial.uniforms.angle.value = new THREE.Vector3(beamAngle, 0, 0);
+        this.beamMaterial.uniforms.angle.value = new THREE.Vector3(this.beamAngle, 0, 0);
 
         // until the body is ready the values are only stored; onBodyReady applies them
         if (this.body) {
-            this.body.setPanTilt(pan, tilt);
+            this.body.setPanTilt(this.pan, this.tilt);
             this.body.setEmitterColor("all", red * EMITTER_GAIN, green * EMITTER_GAIN, blue * EMITTER_GAIN);
         }
     }
@@ -130,22 +125,38 @@ export class MovingHeadRenderer extends BaseRenderer<MovingHeadVisualizationConf
         const material = this.beamMaterial;
         this.inputs.camera.getWorldPosition(material.uniforms.cameraPos.value as THREE.Vector3);
         this.inputs.camera.getWorldDirection(material.uniforms.cameraDir.value as THREE.Vector3);
-        this.spotlight.getWorldPosition(this.worldPos);
+        this.cap.getWorldPosition(this.worldPos);
         this.target.getWorldPosition(this.worldTarget);
         (material.uniforms.wpos.value as THREE.Vector3).copy(this.worldPos);
-        (material.uniforms.direction.value as THREE.Vector3).copy(this.worldTarget).sub(this.worldPos).normalize();
+        const direction = (material.uniforms.direction.value as THREE.Vector3).copy(this.worldTarget).sub(this.worldPos).normalize();
+
+        const on = !!this.body && isInVisibleHierarchy(this);
+        this.lightColor.copy(this.color).multiplyScalar(on ? LIGHT_GAIN : 0);
+        this.inputs.lighting.setLight(this.lightHandle, {
+            type: "spot",
+            position: this.worldPos,
+            direction,
+            color: this.lightColor,
+            angle: this.beamAngle,
+            softness: this.config?.softness ?? 0.25,
+            range: LIGHT_RANGE,
+            goboTile: -1,
+            goboRotation: 0,
+            prismFacets: 0,
+            prismRotation: 0,
+            prismSpread: this.config?.prismSpread ?? 6,
+        });
     }
 
     public override dispose(): void {
         this.beam.removeFromParent();
         this.cap.removeFromParent();
-        this.spotlight.removeFromParent();
+        this.inputs.lighting.removeLight(this.lightHandle);
         this.target.removeFromParent();
         this.beam.geometry.dispose();
         this.beamMaterial.dispose();
         this.cap.geometry.dispose();
         this.cap.material.dispose();
-        this.spotlight.dispose();
         super.dispose();
     }
 

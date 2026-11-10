@@ -16,7 +16,31 @@ import {
     MODEL_SCALE_MIN,
 } from "./defaults";
 import { composeLocalRotation, fromMatrix, MIN_SCALE, toMatrix } from "./transformMath";
-import type { CameraPose, CameraPosition, SceneEditorSettings, SceneObject, SceneState, ShapeType, Vec3 } from "./types";
+import { DEFAULT_ENVIRONMENT } from "@/visualization/environment";
+import { emptyMapping, type CapabilityChannel, type CapabilityKey, type CapabilityMapping } from "@/visualization/capabilities/types";
+import { sanitizeMapping } from "@/visualization/capabilities/sanitizeMapping";
+import { defaultMovement } from "@/visualization/fixtureVisualizations/beam/types";
+import { defaultStripPath } from "@/visualization/fixtureVisualizations/ledStrip/types";
+import { beamSoftnessFor, genericLightAngleFor, genericSurfaceLightFor } from "@/visualization/fixtureVisualizations/modelDefaults";
+import type {
+    AmbientPreset,
+    AmbientSetting,
+    BeamVisualizationConfig,
+    FixtureVisualizationObject,
+    GenericVisualizationConfig,
+    LedStripVisualizationConfig,
+    MovementSettings,
+    StripPath,
+    StripPathPoint,
+    CameraPose,
+    CameraPosition,
+    SceneEditorSettings,
+    SceneEnvironment,
+    SceneObject,
+    SceneState,
+    ShapeType,
+    Vec3,
+} from "./types";
 
 type Rec = Record<string, unknown>;
 
@@ -92,6 +116,35 @@ function sanitizeSettings(raw: unknown): SceneEditorSettings {
     };
 }
 
+function clamp(v: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, v));
+}
+
+const AMBIENT_PRESETS: readonly AmbientPreset[] = ["dark", "house", "daylight"];
+
+function sanitizeAmbient(raw: unknown, fallback: AmbientSetting): AmbientSetting {
+    const r = isRec(raw) ? raw : {};
+    return {
+        preset: AMBIENT_PRESETS.includes(r.preset as AmbientPreset) ? (r.preset as AmbientPreset) : fallback.preset,
+        brightness: clamp(num(r.brightness, fallback.brightness), 0, 2),
+    };
+}
+
+/** Load rule 1 (feature 003 data-model §8): a missing environment gets the defaults; values are clamped. */
+export function sanitizeEnvironment(raw: unknown): SceneEnvironment {
+    const d = DEFAULT_ENVIRONMENT;
+    const r = isRec(raw) ? raw : {};
+    const ambient = isRec(r.ambient) ? r.ambient : {};
+    return {
+        haze: clamp(num(r.haze, d.haze), 0, 1),
+        hazerCoupling: typeof r.hazerCoupling === "boolean" ? r.hazerCoupling : false,
+        ambient: {
+            editor: sanitizeAmbient(ambient.editor, d.ambient.editor),
+            show: sanitizeAmbient(ambient.show, d.ambient.show),
+        },
+    };
+}
+
 function clampDim(v: unknown, fallback: number): number {
     return Math.max(0.01, num(v, fallback));
 }
@@ -162,6 +215,261 @@ function sanitizeFixtureModel(obj: Rec, raw: Rec, ctx: SanitizeContext) {
     }
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// Fixture visualization configs (feature 003, data-model §2 and §8 rules 2–6)
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Tracks whether a stored value had to be replaced or clamped. */
+class RepairTracker {
+    public repaired = false;
+
+    /** A finite number clamped to min…max; missing or invalid values get `fallback`. */
+    public clamp(value: unknown, fallback: number, min: number, max: number): number {
+        const n = typeof value === "number" && Number.isFinite(value) ? value : fallback;
+        const result = clamp(n, min, max);
+        if (result !== value) {
+            this.repaired = true;
+        }
+        return result;
+    }
+
+    public flag(repaired: boolean) {
+        this.repaired ||= repaired;
+    }
+}
+
+function channelIndex(v: unknown): number {
+    return Number.isInteger(v) && (v as number) >= 0 ? (v as number) : -1;
+}
+
+function linearEntry(channel: number, start: number, end: number, defaultValue: number): CapabilityChannel {
+    return { channel, fine: -1, segments: [{ kind: "linear", from: 0, to: 255, start, end }], defaultValue, source: "manual" };
+}
+
+/** Old `{ channel, defaultValue, min, max }` (rules 2 and 4): linear 0…255 → min…max. */
+function convertOldRange(raw: unknown, fallback: { min: number; max: number; defaultValue: number }): CapabilityChannel {
+    const r = isRec(raw) ? raw : {};
+    return linearEntry(channelIndex(r.channel), num(r.min, fallback.min), num(r.max, fallback.max), num(r.defaultValue, fallback.defaultValue));
+}
+
+/**
+ * Old color channel: a DMX index (raw value / 255) or, as written by the old settings UI, a range object whose
+ * min…max was divided by 255 too. Unmapped colors get no entry, so "no color mapped" still means white (FR-003).
+ */
+function convertOldColor(raw: unknown): CapabilityChannel | null {
+    if (isRec(raw)) {
+        const channel = channelIndex(raw.channel);
+        return channel >= 0 ? linearEntry(channel, num(raw.min, 0) / 255, num(raw.max, 255) / 255, num(raw.defaultValue, 0) / 255) : null;
+    }
+    const channel = channelIndex(raw);
+    return channel >= 0 ? linearEntry(channel, 0, 1, 0) : null;
+}
+
+function addColors(mapping: CapabilityMapping, colors: Partial<Record<CapabilityKey, unknown>>) {
+    for (const [key, raw] of Object.entries(colors) as Array<[CapabilityKey, unknown]>) {
+        const entry = convertOldColor(raw);
+        if (entry) {
+            mapping.channels[key] = entry;
+        }
+    }
+}
+
+/** Rule 2: old Moving Head `channelMapping` (pan/tilt/beamAngle ranges, red/green/blue). */
+function convertOldMovingHead(channelMapping: Rec): { mapping: CapabilityMapping; defaultBeamAngle: number } {
+    const mapping = emptyMapping();
+    mapping.channels.pan = convertOldRange(channelMapping.pan, { min: -180, max: 180, defaultValue: 0 });
+    mapping.channels.tilt = convertOldRange(channelMapping.tilt, { min: -120, max: 120, defaultValue: 0 });
+    const zoom = convertOldRange(channelMapping.beamAngle, { min: 1, max: 45, defaultValue: 10 });
+    mapping.channels.zoom = zoom;
+    addColors(mapping, { red: channelMapping.red, green: channelMapping.green, blue: channelMapping.blue });
+    return { mapping, defaultBeamAngle: zoom.defaultValue };
+}
+
+/** Rule 3: old Spot `colorChannels: [r, g, b, w]`. */
+function convertOldSpot(colorChannels: unknown[]): CapabilityMapping {
+    const mapping = emptyMapping();
+    addColors(mapping, { red: colorChannels[0], green: colorChannels[1], blue: colorChannels[2], white: colorChannels[3] });
+    return mapping;
+}
+
+function sanitizeMovement(raw: unknown, fix: RepairTracker): MovementSettings {
+    const d = defaultMovement();
+    if (!isRec(raw)) {
+        fix.flag(true);
+        return d;
+    }
+    if (raw.mode !== "realistic" && raw.mode !== "instant") {
+        fix.flag(true);
+    }
+    return {
+        mode: raw.mode === "instant" ? "instant" : d.mode,
+        panSpeed: fix.clamp(raw.panSpeed, d.panSpeed, 30, 1500),
+        tiltSpeed: fix.clamp(raw.tiltSpeed, d.tiltSpeed, 30, 1500),
+    };
+}
+
+/** Spot / Moving Head (rules 2, 3 and 6). */
+function sanitizeBeamConfig(type: VisualizationType, c: Rec, modelId: string, fix: RepairTracker): BeamVisualizationConfig {
+    let converted: { mapping: CapabilityMapping; defaultBeamAngle: number } | null = null;
+    if (!isRec(c.mapping)) {
+        if (isRec(c.channelMapping)) {
+            converted = convertOldMovingHead(c.channelMapping);
+        } else if (Array.isArray(c.colorChannels)) {
+            converted = { mapping: convertOldSpot(c.colorChannels), defaultBeamAngle: 15 };
+        }
+    }
+    if (converted) {
+        // format conversion; only keys the type can't use are reported (e.g. pan/tilt of a moving head config on a spot)
+        const result = sanitizeMapping(converted.mapping, type);
+        fix.flag(result.repaired);
+        return {
+            mapping: result.mapping,
+            movement: defaultMovement(),
+            defaultBeamAngle: clamp(converted.defaultBeamAngle, 1, 120),
+            softness: beamSoftnessFor(modelId),
+            prismSpread: 6,
+        };
+    }
+    const result = sanitizeMapping(c.mapping, type);
+    fix.flag(result.repaired);
+    return {
+        mapping: result.mapping,
+        movement: sanitizeMovement(c.movement, fix),
+        defaultBeamAngle: fix.clamp(c.defaultBeamAngle, 15, 1, 120),
+        softness: fix.clamp(c.softness, beamSoftnessFor(modelId), 0, 1),
+        prismSpread: fix.clamp(c.prismSpread, 6, 1, 30),
+    };
+}
+
+/** Generic Fixture (rules 4 and 6). */
+function sanitizeGenericConfig(c: Rec, modelId: string, fix: RepairTracker): GenericVisualizationConfig {
+    if (!isRec(c.mapping) && isRec(c.channelMapping)) {
+        const old = c.channelMapping;
+        const mapping = emptyMapping();
+        mapping.channels.dimmer = convertOldRange(old.intensity, { min: 0, max: 1, defaultValue: 1 });
+        addColors(mapping, { red: old.red, green: old.green, blue: old.blue, white: old.white });
+        return { mapping, surfaceLight: genericSurfaceLightFor(modelId), lightAngle: genericLightAngleFor(modelId) };
+    }
+    const result = sanitizeMapping(c.mapping, VisualizationType.GENERIC);
+    fix.flag(result.repaired);
+    if (typeof c.surfaceLight !== "boolean") {
+        fix.flag(true);
+    }
+    return {
+        mapping: result.mapping,
+        surfaceLight: typeof c.surfaceLight === "boolean" ? c.surfaceLight : genericSurfaceLightFor(modelId),
+        lightAngle: fix.clamp(c.lightAngle, genericLightAngleFor(modelId), 10, 170),
+    };
+}
+
+function isFiniteVec3(v: unknown): v is Vec3 {
+    return Array.isArray(v) && v.length >= 3 && v.slice(0, 3).every((n) => typeof n === "number" && Number.isFinite(n));
+}
+
+/** Path rule: finite points, normalized normals (zero → +Y), at least 2 distinct points or the default path. */
+function sanitizeStripPath(raw: unknown, fix: RepairTracker): StripPath {
+    if (!isRec(raw) || !Array.isArray(raw.points)) {
+        fix.flag(true);
+        return defaultStripPath();
+    }
+    const points: StripPathPoint[] = [];
+    for (const p of raw.points) {
+        if (!isRec(p) || !isFiniteVec3(p.position)) {
+            fix.flag(true);
+            continue;
+        }
+        let normal: Vec3 = [0, 1, 0];
+        const len = isFiniteVec3(p.normal) ? Math.hypot(p.normal[0], p.normal[1], p.normal[2]) : 0;
+        if (isFiniteVec3(p.normal) && len > 1e-9) {
+            normal = [p.normal[0] / len, p.normal[1] / len, p.normal[2] / len];
+            if (Math.abs(len - 1) > 1e-3) {
+                fix.flag(true);
+            }
+        } else {
+            fix.flag(true);
+        }
+        points.push({ position: [p.position[0], p.position[1], p.position[2]], normal });
+    }
+    const first = points[0]?.position;
+    const distinct = !!first && points.some((p) => p.position[0] !== first[0] || p.position[1] !== first[1] || p.position[2] !== first[2]);
+    if (!distinct) {
+        fix.flag(true);
+        return defaultStripPath();
+    }
+    if (raw.interpolation !== "linear" && raw.interpolation !== "curve") {
+        fix.flag(true);
+    }
+    if (typeof raw.closed !== "boolean") {
+        fix.flag(true);
+    }
+    return { points, interpolation: raw.interpolation === "curve" ? "curve" : "linear", closed: raw.closed === true };
+}
+
+/** Old strip intensities were a light scale with 0.001 as the normal value; the new field is 0…1 with 1 as default. */
+const OLD_STRIP_INTENSITY = 0.001;
+
+/** LED strip (rules 5 and 6). */
+function sanitizeLedStripConfig(c: Rec, fix: RepairTracker): LedStripVisualizationConfig {
+    if (!isRec(c.path) && isFiniteVec3(c.start) && isFiniteVec3(c.end)) {
+        const pathFix = new RepairTracker();
+        const path = sanitizeStripPath(
+            {
+                points: [
+                    { position: c.start, normal: [0, 1, 0] },
+                    { position: c.end, normal: [0, 1, 0] },
+                ],
+                interpolation: "linear",
+                closed: false,
+            },
+            pathFix
+        );
+        // start === end has no length: that is a repair, not a plain conversion
+        fix.flag(pathFix.repaired);
+        return { intensity: clamp(num(c.intensity, OLD_STRIP_INTENSITY) / OLD_STRIP_INTENSITY, 0, 1), path, pixelSize: 0.6 };
+    }
+    return {
+        intensity: fix.clamp(c.intensity, 1, 0, 1),
+        path: sanitizeStripPath(c.path, fix),
+        pixelSize: fix.clamp(c.pixelSize, 0.6, 0.2, 1),
+    };
+}
+
+/**
+ * Converts old configs (rules 2–5) and repairs new ones (rule 6). `repaired` is set when stored data had to be
+ * dropped or fixed; plain format conversion does not set it.
+ */
+export function sanitizeVisualizationConfig(
+    type: VisualizationType,
+    raw: unknown,
+    modelId: string
+): { config: FixtureVisualizationObject["config"]; repaired: boolean } {
+    const fix = new RepairTracker();
+    const c = isRec(raw) ? raw : {};
+    if (!isRec(raw)) {
+        fix.flag(true);
+    }
+    let config: FixtureVisualizationObject["config"];
+    switch (type) {
+        case VisualizationType.MOVING_HEAD:
+        case VisualizationType.SPOT:
+            config = sanitizeBeamConfig(type, c, modelId, fix);
+            break;
+        case VisualizationType.GENERIC:
+            config = sanitizeGenericConfig(c, modelId, fix);
+            break;
+        case VisualizationType.LED_STRIP:
+            config = sanitizeLedStripConfig(c, fix);
+            break;
+        default: {
+            // effect types are drawn by the Generic renderer until their phases exist; only the mapping is checked
+            const result = sanitizeMapping(c.mapping, type);
+            fix.flag(result.repaired);
+            config = { ...c, mapping: result.mapping } as unknown as FixtureVisualizationObject["config"];
+        }
+    }
+    return { config, repaired: fix.repaired };
+}
+
 /**
  * Research R3 / T042: 001 spots emitted along local −Y, models now emit along local +Y. A spot saved by 001 is
  * turned by 180° about its local X axis so the beam keeps pointing where it did. Its children get the inverse turn
@@ -227,6 +535,11 @@ function sanitizeObject(id: string, raw: Rec, ctx: SanitizeContext): SceneObject
             delete obj.modelScale;
         } else {
             sanitizeFixtureModel(obj, raw, ctx);
+            const { config, repaired } = sanitizeVisualizationConfig(obj.visualizationType as VisualizationType, raw.config, obj.modelId as string);
+            obj.config = config;
+            if (repaired) {
+                problems.push(`Visualization "${String(obj.name)}" had invalid settings that were repaired`);
+            }
         }
     } else if (obj.kind === "libraryAsset") {
         sanitizeLibraryAsset(obj, raw, ctx);
@@ -360,6 +673,7 @@ function sanitizeSceneUnsafe(raw: unknown, ctx: SanitizeContext): SceneState {
         cameras,
         editorCamera: sanitizeCameraPose(r.editorCamera, createDefaultCameraPose()),
         settings: sanitizeSettings(r.settings),
+        environment: sanitizeEnvironment(r.environment),
         assets,
     };
     return scene;

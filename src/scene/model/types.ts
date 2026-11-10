@@ -6,16 +6,36 @@
  * This module is shared by the main window and the show window and must stay free of Pinia/Vue imports.
  */
 import { VisualizationType } from "@/visualization/fixtureVisualization";
-import type { LedStripVisualizationConfig } from "@/visualization/fixtureVisualizations/ledStrip/types";
-import type { SpotVisualizationConfig } from "@/visualization/fixtureVisualizations/spot/types";
-import type { MovingHeadVisualizationConfig } from "@/visualization/fixtureVisualizations/movingHead/movingHead.visualizationConfig";
+import type { LedStripVisualizationConfig, StripPath, StripPathPoint } from "@/visualization/fixtureVisualizations/ledStrip/types";
+import type { BeamVisualizationConfig, MovementSettings } from "@/visualization/fixtureVisualizations/beam/types";
 import type { GenericVisualizationConfig } from "@/visualization/fixtureVisualizations/generic/types";
+import type {
+    EffectVisualizationConfig,
+    FlameOptions,
+    FogOptions,
+    JetOptions,
+    LaserOptions,
+    SparkOptions,
+} from "@/visualization/fixtureVisualizations/effects/types";
 import type { MaterialPresetId, ParamValues } from "@/assetLibrary/types";
 
 export type Vec3 = [number, number, number];
 
 export { VisualizationType };
-export type { LedStripVisualizationConfig, SpotVisualizationConfig, MovingHeadVisualizationConfig, GenericVisualizationConfig };
+export type {
+    LedStripVisualizationConfig,
+    StripPath,
+    StripPathPoint,
+    BeamVisualizationConfig,
+    MovementSettings,
+    GenericVisualizationConfig,
+    EffectVisualizationConfig,
+    LaserOptions,
+    FlameOptions,
+    JetOptions,
+    SparkOptions,
+    FogOptions,
+};
 export type { MaterialPresetId, ParamValues };
 
 // ---------------------------------------------------------------------------
@@ -62,16 +82,26 @@ export interface FixtureVisualizationModelFields {
     modelScale: number;
 }
 
+/** Config by visualization type (feature 003, contracts/scene-state-delta.ts). */
+export type FixtureVisualizationConfigByType =
+    | { visualizationType: VisualizationType.MOVING_HEAD | VisualizationType.SPOT; config: BeamVisualizationConfig }
+    | { visualizationType: VisualizationType.GENERIC; config: GenericVisualizationConfig }
+    | { visualizationType: VisualizationType.LED_STRIP; config: LedStripVisualizationConfig }
+    | {
+          visualizationType:
+              | VisualizationType.LASER
+              | VisualizationType.FLAME
+              | VisualizationType.CO2_JET
+              | VisualizationType.COLD_SPARK
+              | VisualizationType.FOG;
+          config: EffectVisualizationConfig;
+      };
+
 export type FixtureVisualizationObject = SceneObjectBase<"fixtureVisualization"> & {
     /** null = not linked to a fixture (e.g. after duplicate/paste). */
     fixtureId: string | null;
 } & FixtureVisualizationModelFields &
-    (
-        | { visualizationType: VisualizationType.MOVING_HEAD; config: MovingHeadVisualizationConfig }
-        | { visualizationType: VisualizationType.SPOT; config: SpotVisualizationConfig }
-        | { visualizationType: VisualizationType.LED_STRIP; config: LedStripVisualizationConfig }
-        | { visualizationType: VisualizationType.GENERIC; config: GenericVisualizationConfig }
-    );
+    FixtureVisualizationConfigByType;
 
 /** An item of the built-in asset library (feature 002). */
 export type LibraryAssetObject = SceneObjectBase<"libraryAsset"> & {
@@ -206,6 +236,8 @@ interface SceneStateBase {
     cameras: CameraPosition[];
     editorCamera: CameraPose;
     settings: SceneEditorSettings;
+    /** Haze and ambient light (feature 003, data-model §4). */
+    environment: SceneEnvironment;
 }
 
 /** In-memory scene. */
