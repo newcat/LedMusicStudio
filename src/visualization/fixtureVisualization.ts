@@ -6,6 +6,11 @@ export enum VisualizationType {
     SPOT = "Spot",
     MOVING_HEAD = "Moving Head",
     GENERIC = "Generic Fixture",
+    LASER = "Laser",
+    FLAME = "Flame",
+    CO2_JET = "CO2 Jet",
+    COLD_SPARK = "Cold Spark",
+    FOG = "Fog / Haze",
 }
 
 export interface FixtureVisualizationContext<Fixture extends BaseFixture, Config, Value> {

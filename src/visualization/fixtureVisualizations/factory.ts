@@ -28,6 +28,11 @@ export function getVisualizationByType(type: VisualizationType) {
         case VisualizationType.MOVING_HEAD:
             return MovingHeadVisualization;
         case VisualizationType.GENERIC:
+        case VisualizationType.LASER:
+        case VisualizationType.FLAME:
+        case VisualizationType.CO2_JET:
+        case VisualizationType.COLD_SPARK:
+        case VisualizationType.FOG:
             return GenericVisualization;
         default:
             throw new Error(`No visualization for type ${type}`);

@@ -36,6 +36,12 @@ const RENDERER_TYPES: Record<VisualizationType, RendererConstructor> = {
     [VisualizationType.SPOT]: SpotRenderer,
     [VisualizationType.MOVING_HEAD]: MovingHeadRenderer,
     [VisualizationType.GENERIC]: GenericRenderer,
+    // Placeholders until the effect renderers exist (feature 003, US5).
+    [VisualizationType.LASER]: GenericRenderer,
+    [VisualizationType.FLAME]: GenericRenderer,
+    [VisualizationType.CO2_JET]: GenericRenderer,
+    [VisualizationType.COLD_SPARK]: GenericRenderer,
+    [VisualizationType.FOG]: GenericRenderer,
 };
 
 interface FixtureEntry {
