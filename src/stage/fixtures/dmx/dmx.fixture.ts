@@ -3,6 +3,9 @@ import { BaseFixture, FixtureType } from "../base.fixture";
 import { Fixture as OpenFixtureDefinition } from "./open-fixture";
 import DmxFixtureSettings from "./DmxFixtureSettings.vue";
 
+/** Name used for `null` mode channels, which occupy a DMX slot without a function. */
+export const UNUSED_CHANNEL_NAME = "(unused)";
+
 interface DmxFixtureConfiguration {
     definition: OpenFixtureDefinition | null;
     startChannel: number;
@@ -29,9 +32,12 @@ export class DmxFixture extends BaseFixture<number[], DmxFixtureConfiguration> {
 
         const channelNames: string[] = [];
         for (const channel of this.config.mode.channels) {
-            if (typeof channel === "string") {
+            if (channel === null) {
+                // A null channel still occupies a DMX slot; keep a placeholder so later indices match the layout.
+                channelNames.push(UNUSED_CHANNEL_NAME);
+            } else if (typeof channel === "string") {
                 channelNames.push(channel);
-            } else if (channel) {
+            } else {
                 let repeats: string[] = [];
                 if (channel.repeatFor === "eachPixelGroup") {
                     repeats = Object.keys(this.config.definition.matrix!.pixelGroups!);
@@ -46,7 +52,11 @@ export class DmxFixture extends BaseFixture<number[], DmxFixtureConfiguration> {
                 }
 
                 for (const repeat of repeats) {
-                    channelNames.push(...channel.templateChannels.map((c) => c!.replaceAll("$pixelKey", repeat)));
+                    channelNames.push(
+                        ...channel.templateChannels.map((c) =>
+                            c === null ? UNUSED_CHANNEL_NAME : c.replaceAll("$pixelKey", repeat)
+                        )
+                    );
                 }
             }
         }

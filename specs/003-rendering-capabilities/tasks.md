@@ -119,14 +119,14 @@ After this phase the app works as before (beams, strips, generic), but on the ne
 
 ### Surface lighting replacing SpotLights and LedStripLighting (research R7, R10)
 
-- [ ] T013 Create `src/visualization/environment.ts` implementing `EnvironmentState` (contracts/renderer-api.ts):
+- [X] T013 Create `src/visualization/environment.ts` implementing `EnvironmentState` (contracts/renderer-api.ts):
   - Holds the current `SceneEnvironment` (`setSettings(env)`).
   - `haze` = `settings.haze` (hazer coupling is added in US5).
   - `reportHazeOutput` is stored but not used yet.
   - `ambientFor(kind)` returns `settings.ambient[kind]`.
   - Export `DEFAULT_ENVIRONMENT`: `{ haze: 0.3, hazerCoupling: false, ambient: { editor: { preset: "house", brightness: 1 }, show: { preset: "dark", brightness: 1 } } }`.
   - Export `ambientLight(setting): { sky: THREE.Color; ground: THREE.Color; intensity: number }` per data-model §4: dark → intensity 0; house → sky 2700 K, ground 0.5 × sky, 0.15 × brightness; daylight → sky 6500 K, grey ground, 1.2 × brightness. Use `kelvinToRgb` from T017.
-- [ ] T014 Create `src/visualization/lighting/surfaceLighting.ts` implementing `SurfaceLighting` (contracts/renderer-api.ts):
+- [X] T014 Create `src/visualization/lighting/surfaceLighting.ts` implementing `SurfaceLighting` (contracts/renderer-api.ts):
   - `addLight` / `setLight` / `removeLight` with `SpotLightParams | OmniLightParams`.
   - `addStrip` / `removeStrip` with `StripSegmentsSource`.
   - An `RGBA32F` `DataTexture` with 4 texels per light: `[pos.xyz, range]`, `[dir.xyz, cos(outer half-angle)]`, `[color.rgb, softness]`, `[goboTile, goboRotation, prismFacets + prismSpread/100, prismRotation]`. Omni lights use direction (0, 0, 0) and cos −2.
@@ -137,14 +137,14 @@ After this phase the app works as before (beams, strips, generic), but on the ne
   - Prioritization in this task is simply "all lights up to MAX_LIGHTS, in insertion order". Tiers come in US3.
   - `update(camera, scene, renderer, quality)` uploads the textures.
   - `dispose()` frees all textures.
-- [ ] T015 Create `src/visualization/lighting/shaders/surfaceLighting.vert` (outputs `vWorldPosition`, `vWorldNormal`, like `src/visualization/shaders/modifiedStandardMaterial.vert`) and `src/visualization/lighting/shaders/surfaceLighting.frag`:
+- [X] T015 Create `src/visualization/lighting/shaders/surfaceLighting.vert` (outputs `vWorldPosition`, `vWorldNormal`, like `src/visualization/shaders/modifiedStandardMaterial.vert`) and `src/visualization/lighting/shaders/surfaceLighting.frag`:
   - Loop `for (int i = 0; i < MAX_LIGHTS; i++) { if (i >= uLightCount) break; … }` with `texelFetch` from `uLightData`.
   - Spot: smoothstep cone between cos(outer) and cos(inner), where inner is derived from the softness. Inverse-square falloff `1 / (1 + d²)` with a smooth cutoff at `range`. Lambert with `vWorldNormal`. Skip early when outside range or cone.
   - Omni: falloff and Lambert only.
   - Segments: loop to `min(uSegmentCount, MAX_SEGMENTS)`, using the closest point on the segment plus 3 taps along it at ±⅓ of its length. Use the existing strip `intensity()` falloff from `modifiedStandardMaterial.frag` (`2.0 / (1.0 + d + 5.0·d²)`, times the normal-facing term).
   - Add `uAmbientColor` × albedo-independent tint, plus `uOverflowLight`. Write the sum to `csm_Emissive`.
   - Leave a clearly marked `// GOBO` hook (the cookie sample returns 1.0) and a `// SHADOW` hook (returns 1.0) for US1/US3.
-- [ ] T016 Switch the material system to `SurfaceLighting`:
+- [X] T016 Switch the material system to `SurfaceLighting`:
   - In `src/visualization/ledLitMaterial.ts`: delete `LedStripLighting`, `LedStripSource` and the old uniforms types. `createLedLitMaterial(lighting: SurfaceLighting, params)` passes `lighting.uniforms`, the new shaders and `defines: lighting.defines`, and registers the material with the lighting so quality define changes reach it. `convertToLedLit` stays.
   - In `src/visualization/sceneView.ts`: `lighting = new SurfaceLighting()`; call `lighting.update(camera, scene, renderer, quality)` before `composer.render()`.
   - In `src/assetLibrary/assetCache.ts`: change the constructor and type references from `LedStripLighting` to `SurfaceLighting`.
@@ -152,7 +152,7 @@ After this phase the app works as before (beams, strips, generic), but on the ne
 
 ### Scene environment (data-model §4, contracts/scene-state-delta.ts)
 
-- [ ] T017 [P] Create `src/visualization/capabilities/colorMath.ts`:
+- [X] T017 [P] Create `src/visualization/capabilities/colorMath.ts`:
   - `kelvinToRgb(k: number, out?: THREE.Color): THREE.Color`, using the Tanner Helland approximation, clamped to 1000–40000 K, converted to linear and normalized so 6500 K = (1, 1, 1).
   - `hexToLinear(hex: string, out?)`.
   - Constant additive primaries per research R4: W = (1, 1, 1), A = (1, 0.75, 0), UV = (0.25, 0, 0.6), lime = (0.6, 1, 0), indigo = (0.3, 0, 1), warm white = kelvinToRgb(3000), cold white = kelvinToRgb(6500).
@@ -166,17 +166,17 @@ After this phase the app works as before (beams, strips, generic), but on the ne
 
 ### Capability decoding core (research R1, R2, R3)
 
-- [ ] T020 [P] Create `src/visualization/capabilities/keys.ts` per data-model §1:
+- [X] T020 [P] Create `src/visualization/capabilities/keys.ts` per data-model §1:
   - `KEYS_BY_TYPE: Record<VisualizationType, CapabilityKey[]>`, exactly as in the "Keys by visualization type" table (LED strip → `[]`).
   - `KEY_GROUPS` for the editor (Position, Intensity, Color, Beam, Effect).
   - `KEY_INFO: Record<CapabilityKey, { label: string; unit: "deg" | "ratio" | "K" | "rps" | "facets" | "slot" | "gate" | "pattern" | "onoff"; defaultValue: number; defaultRange: [number, number] | null; segmentKind: CapabilitySegment["kind"] | null; hasFine: boolean }>`, filled from the "Defaults when unmapped" table: dimmer default 1, shutter open, trigger off "on when > 50 % (≥ 128)", zoom 10…45, colorTemperature 2700…8000, rotations −1…1. `hasFine` is true for pan, tilt, dimmer and zoom.
-- [ ] T021 [P] Create `src/visualization/capabilities/decode.ts`:
+- [X] T021 [P] Create `src/visualization/capabilities/decode.ts`:
   - `readDmx(entry, values)`: returns `null` if `entry.channel < 0` or out of range. With `fine >= 0`, returns `coarse·256 + fine`.
   - `findSegment(entry, raw)`: segment bounds are 8-bit and "scaled ×257" for 16-bit raws; returns `null` if none matches.
   - `decodeScalar(entry, values, fallback)`: linear/angle interpolation inside the segment. An empty segment list means one implicit `0…255 → KEY_INFO.defaultRange`. Returns `entry.defaultValue` when unmapped.
   - Holding the previous value when no segment matches is done by the callers (state decoders keep their last value).
-- [ ] T022 Fix `src/stage/fixtures/dmx/dmx.fixture.ts` `channelNames`: a `null` mode channel pushes the placeholder `"(unused)"` instead of being skipped, so channel indices match the DMX layout (research R3). The commit message must mention that fixtures whose mode contains `null` channels get correct, shifted channel indices.
-- [ ] T023 [P] Create `src/visualization/capabilities/oflResolve.ts`:
+- [X] T022 Fix `src/stage/fixtures/dmx/dmx.fixture.ts` `channelNames`: a `null` mode channel pushes the placeholder `"(unused)"` instead of being skipped, so channel indices match the DMX layout (research R3). The commit message must mention that fixtures whose mode contains `null` channels get correct, shifted channel indices.
+- [X] T023 [P] Create `src/visualization/capabilities/oflResolve.ts`:
   - `resolveModeChannels(definition, mode): ResolvedChannel[]`, in DMX order:
     - `null` → key `"(unused)"`, no capabilities.
     - String keys are looked up in `availableChannels`, then in `templateChannels` (matching `$pixelKey` templates).

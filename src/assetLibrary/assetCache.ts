@@ -5,7 +5,8 @@
  */
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { convertToLedLit, createLedLitMaterial, type LedStripLighting } from "@/visualization/ledLitMaterial";
+import { convertToLedLit, createLedLitMaterial } from "@/visualization/ledLitMaterial";
+import type { SurfaceLighting } from "@/visualization/lighting/surfaceLighting";
 import { builderKit } from "./builders/kit";
 import { assetCatalog } from "./catalog";
 import { resolveSlotStyle, type SlotStyleOptions } from "./materials";
@@ -80,7 +81,7 @@ export class AssetCache {
     private disposed = false;
 
     public constructor(
-        private readonly lighting: LedStripLighting,
+        private readonly lighting: SurfaceLighting,
         private readonly catalog: AssetCatalog = assetCatalog,
     ) {}
 

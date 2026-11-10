@@ -10,7 +10,8 @@ import { zipSync } from "fflate";
 import Button from "primevue/button";
 import SelectButton from "primevue/selectbutton";
 import ToggleSwitch from "primevue/toggleswitch";
-import { LedStripLighting } from "@/visualization/ledLitMaterial";
+import { SurfaceLighting } from "@/visualization/lighting/surfaceLighting";
+import { QUALITY_PROFILES } from "@/visualization/quality";
 import CategoryMapping from "./CategoryMapping.vue";
 import {
     AssetCache,
@@ -76,7 +77,7 @@ const tab = ref<Tab>("Assets");
 // Three.js state (kept outside Vue reactivity)
 // ---------------------------------------------------------------------------------------------------------------
 
-const lighting = new LedStripLighting();
+const lighting = new SurfaceLighting();
 const cache = new AssetCache(lighting);
 const shapeTemplates = new Map<string, THREE.Object3D>();
 let renderer: THREE.WebGLRenderer | null = null;
@@ -370,8 +371,10 @@ function animate(time: number) {
     frame = requestAnimationFrame(animate);
     applySweep(time);
     controls?.update();
-    lighting.update();
-    renderer?.render(scene, camera);
+    if (renderer) {
+        lighting.update(camera, scene, renderer, QUALITY_PROFILES.medium);
+        renderer.render(scene, camera);
+    }
 }
 
 function resize() {
@@ -423,7 +426,7 @@ async function renderPreviews() {
             previewCamera.far = distance + radius * 2;
             previewCamera.lookAt(sphere.center);
             previewCamera.updateProjectionMatrix();
-            lighting.update();
+            lighting.update(previewCamera, previewScene, previewRenderer, QUALITY_PROFILES.medium);
             previewRenderer.render(previewScene, previewCamera);
             const blob = await canvasToWebp(previewRenderer.domElement);
             files[`${def.id}.webp`] = new Uint8Array(await blob.arrayBuffer());

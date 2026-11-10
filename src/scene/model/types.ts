@@ -156,6 +156,28 @@ export interface SceneEditorSettings {
     transformSpace: "world" | "local";
 }
 
+export type AmbientPreset = "dark" | "house" | "daylight";
+
+export interface AmbientSetting {
+    preset: AmbientPreset;
+    /** 0..2, 1 = preset default. */
+    brightness: number;
+}
+
+/** Look of the room (feature 003, data-model §4). */
+export interface SceneEnvironment {
+    /** 0..1 (UI: 0–100 %), default 0.3. */
+    haze: number;
+    /** Active fog/hazer fixtures raise the effective haze (US5.5), default false. */
+    hazerCoupling: boolean;
+    ambient: {
+        /** default { preset: "house", brightness: 1 } */
+        editor: AmbientSetting;
+        /** default { preset: "dark", brightness: 1 } */
+        show: AmbientSetting;
+    };
+}
+
 export interface SceneAssetPersisted {
     id: string;
     /** Original file name. */

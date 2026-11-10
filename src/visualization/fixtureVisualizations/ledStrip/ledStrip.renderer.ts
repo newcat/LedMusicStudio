@@ -3,14 +3,12 @@ import * as THREE from "three";
 import { assetCatalog } from "@/assetLibrary/catalog";
 import { instantiate, templateKey } from "@/assetLibrary/assetCache";
 import type { FixtureAssetDefinition, ParamValues } from "@/assetLibrary/types";
-import { scaleColorArray } from "@/utils/scaleColorArray";
-import { Color } from "@/graph/colors";
-import type { LedStripSource } from "../../ledLitMaterial";
+import type { Color } from "@/graph/colors";
 import { VisualizationType } from "../../fixtureVisualization";
+import type { StripHandle } from "../../lighting/surfaceLighting";
 import { BaseRenderer, RendererInputs } from "../base.renderer";
 import type { LedStripVisualizationConfig } from "./types";
 
-const RESOLUTION = 128;
 const PLUS_Y = new THREE.Vector3(0, 1, 0);
 const PLUS_Z = new THREE.Vector3(0, 0, 1);
 
@@ -19,14 +17,51 @@ function roundedLength(length: number): number {
     return Math.round(length * 100) / 100;
 }
 
+function isInVisibleHierarchy(obj: THREE.Object3D | null): boolean {
+    for (let current = obj; current; current = current.parent) {
+        if (!current.visible) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/** Pixel colors as flat 0..255 RGB bytes; accepts `Color[]` and already flat values. */
+function toPixelBytes(data: Color[] | Uint8Array | null | undefined): Uint8Array {
+    if (!data) {
+        return new Uint8Array(0);
+    }
+    if (data instanceof Uint8Array) {
+        return data.length % 3 === 0 ? data : data.subarray(0, data.length - (data.length % 3));
+    }
+    const bytes = new Uint8Array(data.length * 3);
+    data.forEach((c, i) => {
+        bytes[i * 3] = c?.[0] ?? 0;
+        bytes[i * 3 + 1] = c?.[1] ?? 0;
+        bytes[i * 3 + 2] = c?.[2] ?? 0;
+    });
+    return bytes;
+}
+
 /**
  * LED strip (feature 002, research R7): a parametric profile body between `start` and `end`, whose diffuser faces
  * the emission direction (the object's local +Y). The body is pickable; the editor proxy only shows the direction.
+ * Its pixels light surfaces through the view's `SurfaceLighting` (one pixel per LED, evenly along the strip).
  */
-export class LedStripRenderer extends BaseRenderer<LedStripVisualizationConfig, Color[]> implements LedStripSource {
+export class LedStripRenderer extends BaseRenderer<LedStripVisualizationConfig, Color[] | Uint8Array> {
     private readonly start = new THREE.Vector3(-0.5, 0, 0);
     private readonly end = new THREE.Vector3(0.5, 0, 0);
-    private colors: Color[] = [];
+    /** Read by SurfaceLighting every frame; positions and normals are refreshed in `updateWorld`. */
+    private readonly segmentSource = {
+        worldPositions: new Float32Array(0),
+        worldNormals: new Float32Array(0),
+        colors: new Uint8Array(0) as Uint8Array,
+        visible: false,
+    };
+    private readonly stripHandle: StripHandle;
+    private readonly tmpPoint = new THREE.Vector3();
+    private readonly tmpNormal = new THREE.Vector3();
+    private readonly worldNormalMatrix = new THREE.Matrix3();
     private proxy: THREE.Group | null = null;
 
     private modelId = "";
@@ -38,13 +73,13 @@ export class LedStripRenderer extends BaseRenderer<LedStripVisualizationConfig, 
 
     public constructor(inputs: RendererInputs) {
         super(inputs);
-        inputs.lighting.addStrip(this);
+        this.stripHandle = inputs.lighting.addStrip(this.segmentSource);
     }
 
     public override dispose() {
         this.disposed = true;
         this.request++;
-        this.inputs.lighting.removeStrip(this);
+        this.inputs.lighting.removeStrip(this.stripHandle);
         if (this.proxy) {
             this.proxy.traverse((o) => {
                 if (o instanceof THREE.Mesh) {
@@ -73,13 +108,39 @@ export class LedStripRenderer extends BaseRenderer<LedStripVisualizationConfig, 
         this.updateProfile();
     }
 
-    public override onFixtureValueUpdate(data: Color[]): void {
-        if (!data || data.length === 0) {
-            this.colors = scaleColorArray([[0, 0, 0]], RESOLUTION);
+    public override onFixtureValueUpdate(data: Color[] | Uint8Array): void {
+        const colors = toPixelBytes(data);
+        const source = this.segmentSource;
+        source.colors = colors;
+        if (source.worldPositions.length !== colors.length) {
+            source.worldPositions = new Float32Array(colors.length);
+            source.worldNormals = new Float32Array(colors.length);
+        }
+    }
+
+    /** Pixel positions (evenly between start and end) and the emission direction (local +Y) in world space. */
+    public override updateWorld(): void {
+        const source = this.segmentSource;
+        source.visible = isInVisibleHierarchy(this);
+        const pixels = source.colors.length / 3;
+        if (!source.visible || pixels === 0) {
             return;
         }
-
-        this.colors = scaleColorArray(data, RESOLUTION);
+        const positions = source.worldPositions;
+        const normals = source.worldNormals;
+        const normal = this.tmpNormal.copy(PLUS_Y).applyNormalMatrix(this.worldNormalMatrix.getNormalMatrix(this.matrixWorld));
+        for (let i = 0; i < pixels; i++) {
+            const p = this.tmpPoint
+                .copy(this.start)
+                .lerp(this.end, (i + 0.5) / pixels)
+                .applyMatrix4(this.matrixWorld);
+            positions[i * 3] = p.x;
+            positions[i * 3 + 1] = p.y;
+            positions[i * 3 + 2] = p.z;
+            normals[i * 3] = normal.x;
+            normals[i * 3 + 1] = normal.y;
+            normals[i * 3 + 2] = normal.z;
+        }
     }
 
     /** Only the emission direction arrow; the profile body itself is pickable. */
@@ -92,18 +153,6 @@ export class LedStripRenderer extends BaseRenderer<LedStripVisualizationConfig, 
             this.updateProxy();
         }
         return this.proxy;
-    }
-
-    public getLocalStart(): THREE.Vector3 {
-        return this.start;
-    }
-
-    public getLocalEnd(): THREE.Vector3 {
-        return this.end;
-    }
-
-    public getColors(): Color[] {
-        return this.colors;
     }
 
     /** The strip's model, or the default LED strip body for unknown or unsuitable ids. */

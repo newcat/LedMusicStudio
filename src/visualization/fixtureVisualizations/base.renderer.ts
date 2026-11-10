@@ -6,11 +6,11 @@ import { FixtureBody } from "@/assetLibrary/fixtureBody";
 import type { FixtureAssetDefinition } from "@/assetLibrary/types";
 import { validateAsset } from "@/assetLibrary/validate";
 import { VisualizationType } from "../fixtureVisualization";
-import type { LedStripLighting } from "../ledLitMaterial";
+import type { SurfaceLighting } from "../lighting/surfaceLighting";
 
 export interface RendererInputs {
     camera: THREE.Camera;
-    lighting: LedStripLighting;
+    lighting: SurfaceLighting;
     /** Asset templates of the view (feature 002). */
     assets: AssetCache;
 }

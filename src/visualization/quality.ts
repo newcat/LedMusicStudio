@@ -1,6 +1,7 @@
 import type * as THREE from "three";
 
 export type QualityLevel = "low" | "medium" | "high";
+export type ViewKind = "editor" | "show";
 
 export interface QualityProfile {
     level: QualityLevel;

@@ -466,3 +466,9 @@ Each commit to `main` must pass `pnpm lint` and `pnpm build` (constitution II). 
 
 - [X] T074 CRITICAL: Remove the unexplained `any` in `src/visualization/fixtureVisualizations/factory.ts` (`FixtureVisualizationController<any, any, any>` return type and `fixture as any`), or add a comment stating why each is needed; T070 is checked but this is still unresolved per Constitution II (contradicts)
 - [X] T075 Check whether `src/visualization/fixtureVisualization.ts` (imports `FixtureType` from `@/stage`) and `src/visualization/fixtureVisualizationController.ts` pull the Pinia stage store into the show window bundle (`visualization.html`); if so, break the dependency so `src/visualization/**` honors the import boundary in the tasks.md conventions per plan: show window bundle boundary (partial)
+
+---
+
+## Phase 13: Convergence
+
+- [ ] T076 CRITICAL: Replace the unexplained `Promise<any>` return type of `loadModel` in `src/visualization/modelLibrary.ts` with `Promise<GLTF>` (or the loaded model type), or add a comment saying why `any` is needed per Constitution II (contradicts)

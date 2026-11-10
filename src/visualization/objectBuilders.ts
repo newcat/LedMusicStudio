@@ -3,10 +3,11 @@ import * as THREE from "three";
 import type { SceneObject, ShapeDimensions, ShapeObject, Vec3 } from "@/scene/model/types";
 import { isLibraryAsset, isShape } from "@/scene/model/types";
 import { MATERIAL_PRESETS } from "@/assetLibrary/materials";
-import { createLedLitMaterial, LedStripLighting, type LedLitMaterialParams } from "./ledLitMaterial";
+import { createLedLitMaterial, type LedLitMaterialParams } from "./ledLitMaterial";
+import type { SurfaceLighting } from "./lighting/surfaceLighting";
 
 export interface BuildContext {
-    lighting: LedStripLighting;
+    lighting: SurfaceLighting;
 }
 
 export interface Disposable {

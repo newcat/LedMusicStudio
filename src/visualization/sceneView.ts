@@ -16,7 +16,9 @@ import { MovingHeadRenderer } from "./fixtureVisualizations/movingHead/movingHea
 import { GenericRenderer } from "./fixtureVisualizations/generic/generic.renderer";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { UnrealBloomPass } from "./bloom";
-import { convertToLedLit, LedStripLighting } from "./ledLitMaterial";
+import { convertToLedLit } from "./ledLitMaterial";
+import { SurfaceLighting } from "./lighting/surfaceLighting";
+import { QUALITY_PROFILES, type QualityProfile } from "./quality";
 import { buildObject3D, createPlaceholder, disposeObject3D, SCENE_OBJECT_ID, updateObject3D } from "./objectBuilders";
 
 /** Objects that only exist for editing (grid, handles, proxies) are put on this layer. */
@@ -97,7 +99,7 @@ export class SceneView {
     /** All scene objects hang below this group. */
     public readonly root = new THREE.Group();
     public readonly camera = new THREE.PerspectiveCamera(50, 1, 0.05, 1000);
-    public readonly lighting = new LedStripLighting();
+    public readonly lighting = new SurfaceLighting();
     public readonly renderer: THREE.WebGLRenderer;
     /** Templates of library assets and fixture bodies (feature 002). */
     public readonly assets: AssetCache;
@@ -116,6 +118,7 @@ export class SceneView {
     private readonly afterRenderCallbacks = new Set<() => void>();
     private animationFrame = 0;
     private disposed = false;
+    private quality: QualityProfile = QUALITY_PROFILES.medium;
 
     public constructor(public readonly canvas: HTMLCanvasElement, private readonly options: SceneViewOptions) {
         this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -591,7 +594,7 @@ export class SceneView {
         for (const entry of this.entries.values()) {
             entry.fixture?.renderer.updateWorld();
         }
-        this.lighting.update();
+        this.lighting.update(this.camera, this.scene, this.renderer, this.quality);
         this.composer.render();
         for (const cb of this.afterRenderCallbacks) {
             cb();
