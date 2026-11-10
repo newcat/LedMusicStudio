@@ -9,7 +9,7 @@
         </LabelledFormField>
     </div>
     <Fieldset legend="Capability Mapping" toggleable>
-        <CapabilityMappingEditor v-model:mapping="config.mapping" :type="controller.type" :controller="controller" />
+        <CapabilityMappingEditor v-model:mapping="config.mapping" :type="controller.type" :controller="controller" :model-id="modelId" />
         <div class="text-sm opacity-70 mt-2">White when no color channel is mapped, full output when no dimmer channel is mapped.</div>
     </Fieldset>
 </template>
@@ -32,6 +32,8 @@ const rawConfig = defineModel<GenericVisualizationConfig>("config", { required: 
 
 defineProps<{
     controller: FixtureVisualizationController<DmxFixture>;
+    /** Model of the visualization object (Auto-Assign fallbacks). */
+    modelId?: string;
 }>();
 
 const config = useLiveConfig(rawConfig, (value) => (rawConfig.value = value));

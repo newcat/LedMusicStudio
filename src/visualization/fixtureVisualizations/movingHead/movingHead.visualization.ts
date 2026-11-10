@@ -1,7 +1,7 @@
 import { markRaw } from "vue";
 import { DmxFixture, FixtureType } from "@/stage/fixtures";
 import { FixtureVisualization, VisualizationType } from "../../fixtureVisualization";
-import { emptyMapping } from "../../capabilities/types";
+import { defaultMappingFor } from "../defaultMapping";
 import { defaultMovement, type BeamVisualizationConfig } from "../beam/types";
 import { defaultBeamAngleFor } from "../modelDefaults";
 import BeamVisualizationSettings from "../beam/BeamVisualizationSettings.vue";
@@ -9,9 +9,10 @@ import BeamVisualizationSettings from "../beam/BeamVisualizationSettings.vue";
 export const MovingHeadVisualization: FixtureVisualization<DmxFixture, BeamVisualizationConfig, number[]> = {
     type: VisualizationType.MOVING_HEAD,
     compatibleFixtures: [FixtureType.DMX],
-    // softness and the pan/tilt ranges depend on the model and are set by `withModelRanges` (scene/fixtureModels.ts)
-    defaultConfig: (fixture) => ({
-        mapping: emptyMapping(),
+    // the mapping is auto-mapped from the fixture (model limits as pan/tilt fallback); softness depends on the
+    // model and is set by `withModelRanges` (scene/fixtureModels.ts)
+    defaultConfig: (fixture, modelId) => ({
+        mapping: defaultMappingFor(fixture, VisualizationType.MOVING_HEAD, modelId),
         movement: defaultMovement(),
         defaultBeamAngle: defaultBeamAngleFor(fixture?.config.definition, fixture?.config.mode),
         softness: 0.25,

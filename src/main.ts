@@ -17,6 +17,7 @@ import "./index.css";
 import App from "./App.vue";
 import PrimeVue from "primevue/config";
 import ToastService from "primevue/toastservice";
+import ConfirmationService from "primevue/confirmationservice";
 import Tooltip from "primevue/tooltip";
 import { definePreset, palette } from "@primevue/themes";
 
@@ -49,6 +50,7 @@ async function main() {
             },
         })
         .use(ToastService)
+        .use(ConfirmationService)
         .directive("tooltip", Tooltip)
         .use(pinia)
         .use(router)

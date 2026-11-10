@@ -331,7 +331,7 @@ After this phase the app works as before (beams, strips, generic), but on the ne
 
 **Independent Test**: create visualizations for five different OFL fixtures and confirm that all supported capabilities are mapped correctly without manual work (quickstart Q1–Q3, SC-001 checklist).
 
-- [ ] T038 [US2] Create `src/visualization/capabilities/autoMap.ts`. `autoMapCapabilities(definition, mode, type, model): CapabilityMapping` implements research R3:
+- [X] T038 [US2] Create `src/visualization/capabilities/autoMap.ts`. `autoMapCapabilities(definition, mode, type, model): CapabilityMapping` implements research R3:
   1. `resolveModeChannels`.
   2. For each non-matrix channel, map its capabilities to keys with the table of research R3 (Pan/Tilt, Intensity → dimmer, ShutterStrobe → shutter, ColorIntensity by color, ColorTemperature, ColorPreset → colorMacro, WheelSlot/WheelRotation/WheelSlotRotation by wheel type, Zoom/BeamAngle → zoom, Prism/PrismRotation, Fog/FogOutput → fogOutput). Only keys in `KEYS_BY_TYPE[type]` are mapped, and "The first matching channel wins". The fine channel comes from `fineOf`.
   3. Build segments per capability `dmxRange`:
@@ -349,16 +349,16 @@ After this phase the app works as before (beams, strips, generic), but on the ne
   7. Set `mappedMode = mode.name`, `mappedChannelCount = channels.length`, and `source: "auto"` on every entry.
 
   Effect keywords for `Effect`/`Generic` channels come from research R14 (`laserPattern`: "pattern", "figure", "gobo"; `laserSize`: "size", "zoom"; `laserRotation`: "rotat"; `laserX`/`laserY`: "x", "y", "move"; `trigger`: "flame", "fire", "co2", "jet", "spark"; `height`: "height") and are matched on the channel key and `effectName`, case-insensitively.
-- [ ] T039 [US2] Use auto-mapping in every DMX `defaultConfig(fixture)`. When `fixture.config.definition` and `mode` exist, `mapping = autoMapCapabilities(definition, mode, type, model)`, otherwise `emptyMapping()`. This applies to `movingHead.visualization.ts`, `spot.visualization.ts` and `generic.visualization.ts` in `src/visualization/fixtureVisualizations/`.
+- [X] T039 [US2] Use auto-mapping in every DMX `defaultConfig(fixture)`. When `fixture.config.definition` and `mode` exist, `mapping = autoMapCapabilities(definition, mode, type, model)`, otherwise `emptyMapping()`. This applies to `movingHead.visualization.ts`, `spot.visualization.ts` and `generic.visualization.ts` in `src/visualization/fixtureVisualizations/`.
   - The model comes from `assetCatalog.get(modelId)`. Extend the signature to `defaultConfig(fixture, modelId?)` in `src/visualization/fixtureVisualization.ts`, and pass the model id from `src/scene/sceneStore.ts` (`addFixtureVisualization`, `setVisualizationType`, `addFixtureModel`).
   - `defaultBeamAngle` comes from `physical.lens.degreesMinMax[0]`, else 15.
   - Remove the now-redundant pan/tilt part of `withModelRanges` in `src/scene/sceneStore.ts` (auto-mapping already uses the model limits as fallback). Keep it for configs without a fixture.
-- [ ] T040 [US2] Add Auto-Assign to `src/visualization/fixtureVisualizations/CapabilityMappingEditor.vue`:
+- [X] T040 [US2] Add Auto-Assign to `src/visualization/fixtureVisualizations/CapabilityMappingEditor.vue`:
   - An "Auto-Assign" button in the header that regenerates the mapping with `autoMapCapabilities`. If the current mapping has `manual` entries, a PrimeVue `ConfirmPopup` asks "Replace N manual mappings?" first. The result is emitted as one config change, so it is one undo step.
   - If nothing could be mapped, the toast "No supported capabilities found in this fixture mode." (`emitSceneToast`, warn).
   - The outdated notice "⚠ Fixture mode changed – mapping may be outdated" is shown when `fixture.config.mode?.name !== mapping.mappedMode` or `channelNames.length !== mapping.mappedChannelCount` (and `mappedMode !== null`).
   - The mapping is never changed automatically after creation (FR-011, US2.3).
-- [ ] T041 [P] [US2] Add a dev-only console helper in `src/visualization/capabilities/autoMap.ts`: `export function describeMapping(mapping): string[]`, one line per key (`pan ← ch 1 (+fine 2), −270…270°`). Expose it on `window.__lmsDescribeMapping` only when `import.meta.env.DEV`. Use it for the SC-001 checklist.
+- [X] T041 [P] [US2] Add a dev-only console helper in `src/visualization/capabilities/autoMap.ts`: `export function describeMapping(mapping): string[]`, one line per key (`pan ← ch 1 (+fine 2), −270…270°`). Expose it on `window.__lmsDescribeMapping` only when `import.meta.env.DEV`. Use it for the SC-001 checklist.
 
 **Checkpoint**: Q1, Q2 and Q3 pass. The SC-001 checklist (quickstart) is filled in for 10 fixtures with 100 % of the supported FR-001 capabilities auto-mapped. Misses are fixed in `autoMap.ts` / `oflResolve.ts`.
 

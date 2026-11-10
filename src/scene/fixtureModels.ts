@@ -67,8 +67,9 @@ export function modelForType(fixture: BaseFixture | undefined | null, type: Visu
 
 /**
  * Model-dependent defaults of a new config (research R13, feature 003 data-model §2):
- * - Moving Head: pan/tilt ranges from the model's physical limits, as linear segments 0…255 → min…max of
- *   `mapping.channels.pan/tilt` (the entry is created unmapped if it does not exist yet).
+ * - Moving Head without auto-mapping (no fixture, `mappedMode` null): pan/tilt ranges from the model's physical
+ *   limits, as linear segments 0…255 → min…max of `mapping.channels.pan/tilt` (the entry is created unmapped if
+ *   it does not exist yet). Auto-mapped configs already use the model limits as fallback (T039).
  * - Spot / Moving Head: `softness` by model.
  * - Generic Fixture: `surfaceLight` and `lightAngle` by model.
  */
@@ -77,7 +78,7 @@ export function withModelRanges<C>(type: VisualizationType, config: C, modelId: 
     if (type === VisualizationType.MOVING_HEAD || type === VisualizationType.SPOT) {
         const beam = config as unknown as BeamVisualizationConfig;
         beam.softness = beamSoftnessFor(modelId);
-        if (type === VisualizationType.MOVING_HEAD && model && beam.mapping) {
+        if (type === VisualizationType.MOVING_HEAD && model && beam.mapping && beam.mapping.mappedMode === null) {
             const ranges = defaultChannelRanges(model);
             for (const role of ["pan", "tilt"] as const) {
                 const range = ranges[role];

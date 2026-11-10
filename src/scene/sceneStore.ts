@@ -468,7 +468,11 @@ export const useScene = defineStore("scene", () => {
             modelId: model?.modelId ?? fallback.modelId,
             modelScale: model?.modelScale ?? (model?.modelId ? modelScaleForFixture(fixture, model.modelId) : fallback.modelScale),
         };
-        const config = withModelRanges(type, visualization.defaultConfig(fixture as never) as FixtureVisualizationObject["config"], modelFields.modelId);
+        const config = withModelRanges(
+            type,
+            visualization.defaultConfig(fixture as never, modelFields.modelId) as FixtureVisualizationObject["config"],
+            modelFields.modelId
+        );
         const obj = createFixtureVisualizationObject(fixtureId, type, config, fixture.name, modelFields);
         if (placement) {
             obj.position = [...placement.position];
@@ -493,7 +497,7 @@ export const useScene = defineStore("scene", () => {
         }
         const fixture = obj.fixtureId ? useStage().fixtures.get(obj.fixtureId) : undefined;
         const { modelId, modelScale } = modelForType(fixture, type, false);
-        const config = withModelRanges(type, getVisualizationByType(type).defaultConfig(fixture as never), modelId);
+        const config = withModelRanges(type, getVisualizationByType(type).defaultConfig(fixture as never, modelId), modelId);
         updateObjects({ [objectId]: { visualizationType: type, config, modelId, modelScale } as Partial<SceneObject> }, "Change visualization type");
     }
 
@@ -916,7 +920,7 @@ export const useScene = defineStore("scene", () => {
             return null;
         }
         const type = definition.fixture.visualizationTypes[0];
-        const config = withModelRanges(type, getVisualizationByType(type).defaultConfig(undefined as never), modelId);
+        const config = withModelRanges(type, getVisualizationByType(type).defaultConfig(undefined as never, modelId), modelId);
         const obj = createFixtureVisualizationObject(null, type, config as FixtureVisualizationObject["config"], nextObjectName(scene.value, definition.name), {
             modelId,
             modelScale: 1,

@@ -27,7 +27,8 @@ export interface FixtureVisualizationUpdateResult<Config, Value> {
 export interface FixtureVisualization<Fixture extends BaseFixture = BaseFixture, Config = unknown, Value = unknown> {
     type: VisualizationType;
     compatibleFixtures: FixtureType[];
-    defaultConfig: (fixture: Fixture) => Config;
+    /** Config of a new visualization; `modelId` is the model of the visualization object (auto-mapping fallbacks). */
+    defaultConfig: (fixture: Fixture, modelId?: string) => Config;
     settingsComponent?: Component;
     onFixtureValueUpdate?: (
         value: Fixture["value"],

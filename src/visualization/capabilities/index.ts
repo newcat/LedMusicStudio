@@ -6,3 +6,4 @@ export * from "./sanitizeMapping";
 export * from "./movement";
 export * from "./strobe";
 export * from "./beamState";
+export * from "./autoMap";

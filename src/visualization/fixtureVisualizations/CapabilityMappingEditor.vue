@@ -2,7 +2,11 @@
     <div class="capability-mapping">
         <div v-if="channels === null" class="text-sm opacity-70">Select a fixture and mode in the fixture settings to map channels.</div>
         <template v-else>
-            <Message v-if="modeChanged" severity="warn" size="small" :closable="false">Fixture mode changed – mapping may be outdated</Message>
+            <div class="capability-header">
+                <Button icon="pi pi-sparkles" label="Auto-Assign" size="small" outlined @click="onAutoAssign($event)" />
+                <Message v-if="modeChanged" severity="warn" size="small" :closable="false">⚠ Fixture mode changed – mapping may be outdated</Message>
+            </div>
+            <ConfirmPopup :group="confirmGroup" />
 
             <section v-for="group in groups" :key="group.label" class="capability-group">
                 <div class="capability-group-label">{{ group.label }}</div>
@@ -209,20 +213,25 @@
 
 <script setup lang="ts">
 /**
- * Manual capability mapping editor (contracts/rendering-ui.md, FR-011). Emits a new mapping object on every edit;
- * any edit of an entry marks it `source: "manual"`. Auto-Assign is added with the auto mapper (US2).
+ * Capability mapping editor (contracts/rendering-ui.md, FR-011). Emits a new mapping object on every edit; any
+ * edit of an entry marks it `source: "manual"`. Auto-Assign regenerates the mapping from the fixture's OFL mode
+ * (US2); the mapping is never changed automatically.
  */
 import { computed, ref } from "vue";
 import Button from "primevue/button";
+import ConfirmPopup from "primevue/confirmpopup";
+import { useConfirm } from "primevue/useconfirm";
 import InputNumber from "primevue/inputnumber";
 import InputText from "primevue/inputtext";
 import Message from "primevue/message";
 import Select from "primevue/select";
 import Tag from "primevue/tag";
 
+import { emitSceneToast } from "@/scene/toastBus";
 import type { DmxFixture } from "@/stage/fixtures";
 import type { VisualizationType } from "@/visualization/fixtureVisualization";
 import type { FixtureVisualizationController } from "@/visualization/fixtureVisualizationController";
+import { autoMapCapabilities } from "../capabilities/autoMap";
 import { kelvinToRgb } from "../capabilities/colorMath";
 import { unmappedChannels } from "../capabilities/decode";
 import { KEY_GROUPS, KEY_INFO, KEYS_BY_TYPE } from "../capabilities/keys";
@@ -238,11 +247,14 @@ import type {
     WheelDefinition,
     WheelSlot,
 } from "../capabilities/types";
+import { fixtureModelOf } from "./defaultMapping";
 
 const props = defineProps<{
     mapping: CapabilityMapping;
     type: VisualizationType;
     controller: FixtureVisualizationController<DmxFixture>;
+    /** Model of the visualization object: its limits are the fallback ranges of Auto-Assign. */
+    modelId?: string;
 }>();
 
 const emit = defineEmits<{
@@ -297,9 +309,13 @@ const channelOptions = computed(() => [
     ...(channels.value ?? []).map((c) => ({ label: `${c.index + 1}: ${c.key}`, value: c.index })),
 ]);
 
+/** Outdated notice: the fixture's mode or channel count differs from what the mapping was generated for. */
 const modeChanged = computed(() => {
-    const mode = fixtureConfig.value.mode;
-    return props.mapping.mappedMode !== null && !!mode && props.mapping.mappedMode !== mode.name;
+    const { mappedMode, mappedChannelCount } = props.mapping;
+    if (mappedMode === null) {
+        return false;
+    }
+    return fixtureConfig.value.mode?.name !== mappedMode || props.controller.fixture.channelNames.length !== mappedChannelCount;
 });
 
 const groups = computed(() => {
@@ -390,6 +406,47 @@ function swatchStyle(slot: WheelSlot): Record<string, string> {
         default:
             return { background: "repeating-linear-gradient(45deg, #888 0 2px, transparent 2px 4px)" };
     }
+}
+
+// ------------------------------------------------------------------------------------------------------------
+// Auto-Assign
+// ------------------------------------------------------------------------------------------------------------
+
+const confirm = useConfirm();
+/** Own ConfirmPopup group, so another mounted editor does not answer this editor's confirmation. */
+const confirmGroup = `capability-mapping-${Math.random().toString(36).slice(2, 10)}`;
+
+const manualCount = computed(() => Object.values(props.mapping.channels).filter((entry) => entry?.source === "manual").length);
+
+/** Regenerates the mapping from the fixture's mode, as one config change (one undo step). */
+function autoAssign() {
+    const { definition, mode } = fixtureConfig.value;
+    if (!definition || !mode) {
+        return;
+    }
+    const mapping = autoMapCapabilities(definition, mode, props.type, fixtureModelOf(props.modelId));
+    const mapped = Object.values(mapping.channels).some((entry) => entry && entry.channel >= 0) || mapping.cells.length > 0;
+    if (!mapped) {
+        emitSceneToast({ severity: "warn", summary: "Auto-Assign", detail: "No supported capabilities found in this fixture mode.", life: 4000 });
+    }
+    emit("update:mapping", mapping);
+}
+
+function onAutoAssign(event: MouseEvent) {
+    const count = manualCount.value;
+    if (count === 0) {
+        autoAssign();
+        return;
+    }
+    confirm.require({
+        group: confirmGroup,
+        target: event.currentTarget as HTMLElement,
+        message: `Replace ${count} manual mapping${count === 1 ? "" : "s"}?`,
+        icon: "pi pi-exclamation-triangle",
+        rejectProps: { label: "Cancel", severity: "secondary", outlined: true, size: "small" },
+        acceptProps: { label: "Replace", size: "small" },
+        accept: autoAssign,
+    });
 }
 
 // ------------------------------------------------------------------------------------------------------------
@@ -539,6 +596,13 @@ function setCellChannel(index: number, field: CellChannelField, channel: number)
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+}
+
+.capability-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .capability-group {

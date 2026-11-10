@@ -1,7 +1,7 @@
 import { markRaw } from "vue";
 import { DmxFixture, FixtureType } from "@/stage/fixtures";
 import { FixtureVisualization, VisualizationType } from "../../fixtureVisualization";
-import { emptyMapping } from "../../capabilities/types";
+import { defaultMappingFor } from "../defaultMapping";
 import GenericVisualizationSettings from "./GenericVisualizationSettings.vue";
 import { GenericVisualizationConfig } from "./types";
 
@@ -10,8 +10,8 @@ export const GenericVisualization: FixtureVisualization<DmxFixture, GenericVisua
     type: VisualizationType.GENERIC,
     compatibleFixtures: [FixtureType.DMX],
     // surfaceLight and lightAngle depend on the model and are set by `withModelRanges` (scene/fixtureModels.ts)
-    defaultConfig: () => ({
-        mapping: emptyMapping(),
+    defaultConfig: (fixture, modelId) => ({
+        mapping: defaultMappingFor(fixture, VisualizationType.GENERIC, modelId),
         surfaceLight: false,
         lightAngle: 90,
     }),

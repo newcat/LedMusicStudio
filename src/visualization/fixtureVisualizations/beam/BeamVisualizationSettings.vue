@@ -33,7 +33,7 @@
         </LabelledFormField>
 
         <Fieldset legend="Capability Mapping" toggleable>
-            <CapabilityMappingEditor v-model:mapping="config.mapping" :type="controller.type" :controller="controller" />
+            <CapabilityMappingEditor v-model:mapping="config.mapping" :type="controller.type" :controller="controller" :model-id="modelId" />
         </Fieldset>
     </div>
 </template>
