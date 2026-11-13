@@ -39,6 +39,18 @@ function effectModel(input: MappingInput): string {
 
 const generic = (modelId: string): CategoryRule => () => ({ type: VisualizationType.GENERIC, modelId });
 
+/** Dedicated effect visualization of the effect models; every other effect model stays Generic. */
+const EFFECT_TYPE_BY_MODEL: Record<string, VisualizationType> = {
+    "fixture.flame-projector": VisualizationType.FLAME,
+    "fixture.co2-jet": VisualizationType.CO2_JET,
+    "fixture.cold-spark": VisualizationType.COLD_SPARK,
+};
+
+const effect: CategoryRule = (input) => {
+    const modelId = effectModel(input);
+    return { type: EFFECT_TYPE_BY_MODEL[modelId] ?? VisualizationType.GENERIC, modelId };
+};
+
 const RULES: Partial<Record<OflCategory, CategoryRule>> = {
     "Moving Head": (input) => ({
         type: VisualizationType.MOVING_HEAD,
@@ -55,14 +67,14 @@ const RULES: Partial<Record<OflCategory, CategoryRule>> = {
     Matrix: generic("fixture.led-panel"),
     Strobe: generic("fixture.strobe"),
     Blinder: generic("fixture.blinder"),
-    Laser: generic("fixture.laser"),
-    Smoke: generic("fixture.fog-machine"),
-    Hazer: generic("fixture.fog-machine"),
-    Effect: (input) => ({ type: VisualizationType.GENERIC, modelId: effectModel(input) }),
-    Flower: (input) => ({ type: VisualizationType.GENERIC, modelId: effectModel(input) }),
-    Fan: (input) => ({ type: VisualizationType.GENERIC, modelId: effectModel(input) }),
-    Stand: (input) => ({ type: VisualizationType.GENERIC, modelId: effectModel(input) }),
-    Other: (input) => ({ type: VisualizationType.GENERIC, modelId: effectModel(input) }),
+    Laser: () => ({ type: VisualizationType.LASER, modelId: "fixture.laser" }),
+    Smoke: () => ({ type: VisualizationType.FOG, modelId: "fixture.fog-machine" }),
+    Hazer: () => ({ type: VisualizationType.FOG, modelId: "fixture.fog-machine" }),
+    Effect: effect,
+    Flower: effect,
+    Fan: effect,
+    Stand: effect,
+    Other: effect,
 };
 
 function colorChangerModel(input: MappingInput): string {

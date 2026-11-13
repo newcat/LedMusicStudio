@@ -14,6 +14,9 @@ import type { GenericVisualizationConfig } from "./types";
 
 /** Emitter output factor, so full output blooms. */
 const EMITTER_GAIN = 4;
+/** Strobes and blinders flash so brightly that they "light up the scene" (T069). */
+const FLASH_FIXTURE_GAIN = 8;
+const FLASH_FIXTURE_MODELS = new Set(["fixture.strobe", "fixture.blinder"]);
 /** Surface light output factor: compensates the `1 / (1 + d²)` falloff of the surface lighting (as the beam renderer). */
 const LIGHT_GAIN = 20;
 const LIGHT_SOFTNESS = 0.8;
@@ -53,6 +56,7 @@ export class GenericRenderer extends BaseRenderer<GenericVisualizationConfig> {
     private config: GenericVisualizationConfig = { mapping: emptyMapping(), surfaceLight: false, lightAngle: 90 };
     private values: Uint8Array = new Uint8Array(0);
     private modelScale = 1;
+    private emitterGain = EMITTER_GAIN;
 
     private readonly gate = new ShutterGate();
     private shutterSegment: CapabilitySegment | null = null;
@@ -68,6 +72,7 @@ export class GenericRenderer extends BaseRenderer<GenericVisualizationConfig> {
 
     public override onModelUpdate(modelId: string, modelScale: number): void {
         this.modelScale = modelScale;
+        this.emitterGain = FLASH_FIXTURE_MODELS.has(modelId) ? FLASH_FIXTURE_GAIN : EMITTER_GAIN;
         this.body?.setModelScale(modelScale);
         this.loadBody(modelId);
     }
@@ -107,12 +112,12 @@ export class GenericRenderer extends BaseRenderer<GenericVisualizationConfig> {
             if (mapping.cells.length > 0) {
                 const colors = cells.colors;
                 for (let i = 0; i < colors.length; i++) {
-                    colors[i] *= EMITTER_GAIN;
+                    colors[i] *= this.emitterGain;
                 }
                 body.setCellColors(colors);
             } else {
                 const a = cells.average;
-                body.setEmitterColor("all", a.r * EMITTER_GAIN, a.g * EMITTER_GAIN, a.b * EMITTER_GAIN);
+                body.setEmitterColor("all", a.r * this.emitterGain, a.g * this.emitterGain, a.b * this.emitterGain);
             }
         }
 

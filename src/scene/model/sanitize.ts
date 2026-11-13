@@ -20,6 +20,7 @@ import { DEFAULT_ENVIRONMENT } from "@/visualization/environment";
 import { emptyMapping, type CapabilityChannel, type CapabilityKey, type CapabilityMapping } from "@/visualization/capabilities/types";
 import { sanitizeMapping } from "@/visualization/capabilities/sanitizeMapping";
 import { defaultMovement } from "@/visualization/fixtureVisualizations/beam/types";
+import { defaultEffectOptions, effectKindOf } from "@/visualization/fixtureVisualizations/effects/types";
 import { defaultStripPath } from "@/visualization/fixtureVisualizations/ledStrip/types";
 import { beamSoftnessFor, genericLightAngleFor, genericSurfaceLightFor } from "@/visualization/fixtureVisualizations/modelDefaults";
 import type {
@@ -477,10 +478,17 @@ export function sanitizeVisualizationConfig(
             config = sanitizeLedStripConfig(c, fix);
             break;
         default: {
-            // effect types are drawn by the Generic renderer until their phases exist; only the mapping is checked
+            // effect types (Laser, Flame, CO2 Jet, Cold Spark, Fog): the options must match the type, else defaults
             const result = sanitizeMapping(c.mapping, type);
             fix.flag(result.repaired);
-            config = { ...c, mapping: result.mapping } as unknown as FixtureVisualizationObject["config"];
+            const kind = effectKindOf(type);
+            const options = c.options as { kind?: unknown } | undefined;
+            const optionsOk = kind !== null && options !== undefined && typeof options === "object" && options.kind === kind;
+            if (kind !== null && !optionsOk) fix.flag(true);
+            config = {
+                mapping: result.mapping,
+                options: optionsOk ? options : kind !== null ? defaultEffectOptions(kind) : undefined,
+            } as unknown as FixtureVisualizationObject["config"];
         }
     }
     return { config, repaired: fix.repaired };

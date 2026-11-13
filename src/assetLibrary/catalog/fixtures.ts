@@ -40,11 +40,17 @@ function rectEmitter(id: string, position: Vec3, size: [number, number]): Emitte
     return { id, node: "", shape: "rect", size, position, normal: UP, up: FACE_UP_TOP };
 }
 
-/** Static Generic Fixture effect with one round nozzle emitter facing +Y. */
-function nozzleEffect(categories: FixtureModelDescription["categories"], nozzleY: number, radius: number): FixtureModelDescription {
+/** Effect with a dedicated visualization and one round nozzle emitter facing +Y; the beam leaves the nozzle along +Y. */
+function nozzleEffect(
+    visualization: VisualizationType,
+    categories: FixtureModelDescription["categories"],
+    nozzleY: number,
+    radius: number,
+): FixtureModelDescription {
     return {
-        visualizationTypes: [VisualizationType.GENERIC],
+        visualizationTypes: [visualization, VisualizationType.GENERIC],
         categories,
+        beam: { node: "", position: [0, nozzleY, 0], direction: [0, 1, 0] },
         lensRadius: radius,
         emitters: [circleEmitter("nozzle", [0, nozzleY + 0.001, 0], radius)],
         mountingPoints: [BASE_MOUNT],
@@ -331,7 +337,7 @@ export const FIXTURE_ASSETS: FixtureAssetDefinition[] = [
         // The rest beam points +Z by design: lasers are placed level. This is an exception to research R3, allowed
         // because only Generic Fixture is declared, which does not use the beam (the +Y rule covers Moving Head and Spot).
         fixture: {
-            visualizationTypes: [VisualizationType.GENERIC],
+            visualizationTypes: [VisualizationType.LASER, VisualizationType.GENERIC],
             categories: ["Laser"],
             beam: { node: "", position: [0, LASER_APERTURE_Y, LASER_FRONT_Z], direction: [0, 0, 1] },
             lensRadius: 0.03,
@@ -351,7 +357,7 @@ export const FIXTURE_ASSETS: FixtureAssetDefinition[] = [
         credits: PROJECT_CREDITS,
         source: { type: "procedural", build: buildFlameProjector },
         materialSlots: ["body", "accent", "metal", "glass"],
-        fixture: nozzleEffect(["Effect"], FLAME_NOZZLE_Y, FLAME_NOZZLE_RADIUS),
+        fixture: nozzleEffect(VisualizationType.FLAME, ["Effect"], FLAME_NOZZLE_Y, FLAME_NOZZLE_RADIUS),
     },
     {
         id: "fixture.co2-jet",
@@ -363,7 +369,7 @@ export const FIXTURE_ASSETS: FixtureAssetDefinition[] = [
         credits: PROJECT_CREDITS,
         source: { type: "procedural", build: buildCo2Jet },
         materialSlots: ["body", "accent", "metal"],
-        fixture: nozzleEffect(["Effect", "Smoke"], CO2_NOZZLE_Y, CO2_NOZZLE_RADIUS),
+        fixture: nozzleEffect(VisualizationType.CO2_JET, ["Effect", "Smoke"], CO2_NOZZLE_Y, CO2_NOZZLE_RADIUS),
     },
     {
         id: "fixture.cold-spark",
@@ -375,7 +381,7 @@ export const FIXTURE_ASSETS: FixtureAssetDefinition[] = [
         credits: PROJECT_CREDITS,
         source: { type: "procedural", build: buildColdSpark },
         materialSlots: ["body", "accent", "metal", "glass"],
-        fixture: nozzleEffect(["Effect"], COLD_SPARK_OUTLET_Y, COLD_SPARK_OUTLET_RADIUS),
+        fixture: nozzleEffect(VisualizationType.COLD_SPARK, ["Effect"], COLD_SPARK_OUTLET_Y, COLD_SPARK_OUTLET_RADIUS),
     },
     {
         id: "fixture.fog-machine",
@@ -388,8 +394,9 @@ export const FIXTURE_ASSETS: FixtureAssetDefinition[] = [
         source: { type: "procedural", build: buildFogMachine },
         materialSlots: ["body", "accent", "metal", "glass"],
         fixture: {
-            visualizationTypes: [VisualizationType.GENERIC],
+            visualizationTypes: [VisualizationType.FOG, VisualizationType.GENERIC],
             categories: ["Smoke", "Hazer"],
+            beam: { node: "", position: [0, FOG_NOZZLE_Y, FOG_NOZZLE_Z], direction: [0, 0, 1] },
             lensRadius: FOG_NOZZLE_RADIUS,
             emitters: [circleEmitter("nozzle", [0, FOG_NOZZLE_Y, FOG_NOZZLE_Z + 0.001], FOG_NOZZLE_RADIUS, [0, 0, 1])],
             mountingPoints: [BASE_MOUNT],

@@ -14,27 +14,47 @@ export const DEFAULT_ENVIRONMENT: SceneEnvironment = {
     },
 };
 
+/** Time constants of the coupled haze (data-model §4), in seconds. */
+const HAZE_TAU_RISING = 8;
+const HAZE_TAU_FALLING = 30;
+
 /** Per-view state of the environment (research R13): the project settings plus the effective haze. */
 export class EnvironmentState {
     private current: SceneEnvironment = structuredClone(DEFAULT_ENVIRONMENT);
     private readonly hazeOutputs = new Map<string, number>();
+    /** Haze produced by the hazers (h in data-model §4); smoothed by `update`. */
+    private coupledHaze = 0;
 
     public get settings(): SceneEnvironment {
         return this.current;
     }
 
-    /** Effective haze for this frame. Hazer coupling is added in US5; until then it is the project haze. */
+    /** Effective haze for this frame (valid after `update`): the project haze plus the hazer output when coupled. */
     public get haze(): number {
-        return this.current.haze;
+        if (!this.current.hazerCoupling) {
+            return this.current.haze;
+        }
+        return Math.min(1, Math.max(0, this.current.haze + this.coupledHaze));
     }
 
     public setSettings(environment: SceneEnvironment) {
         this.current = environment;
     }
 
-    /** Fog renderers report their output each frame (0..1 × contribution). Not used until hazer coupling (US5). */
+    /** Fog renderers report their output each frame (0..1 × contribution); 0 when they are removed. */
     public reportHazeOutput(objectId: string, amount: number) {
         this.hazeOutputs.set(objectId, amount);
+    }
+
+    /** Advances the coupled haze by one frame: h += dt · (Σ outputs − h) / τ. Call once per frame before rendering. */
+    public update(dt: number) {
+        let target = 0;
+        for (const amount of this.hazeOutputs.values()) {
+            target += amount;
+        }
+        const h = this.coupledHaze;
+        const tau = target > h ? HAZE_TAU_RISING : HAZE_TAU_FALLING;
+        this.coupledHaze = h + (Math.max(0, dt) * (target - h)) / tau;
     }
 
     public ambientFor(kind: ViewKind): AmbientSetting {

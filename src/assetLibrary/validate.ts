@@ -35,6 +35,16 @@ const PARAMETRIC_TOLERANCE = 0.02;
 const PARAMETRIC_TOLERANCE_MIN = 0.001;
 const UNIT_TOLERANCE = 0.01;
 const BEAM_REST_TOLERANCE_DEG = 1;
+/** Visualization types whose models must declare a `beam` (data-model §9). */
+const BEAM_TYPES: VisualizationType[] = [
+    VisualizationType.SPOT,
+    VisualizationType.MOVING_HEAD,
+    VisualizationType.LASER,
+    VisualizationType.FLAME,
+    VisualizationType.CO2_JET,
+    VisualizationType.COLD_SPARK,
+    VisualizationType.FOG,
+];
 
 export type BuildAt = (params: ParamValues) => THREE.Object3D;
 
@@ -291,14 +301,15 @@ function checkFixtureContract(def: FixtureAssetDefinition, template: THREE.Objec
         nodeExists(point.node, `mounting point "${point.id}"`);
     }
 
+    const beamTypes = (f.visualizationTypes ?? []).filter((t) => BEAM_TYPES.includes(t));
+    if (beamTypes.length > 0 && !f.beam) {
+        issues.error(`${beamTypes.join(", ")} needs beam`);
+    }
+
     for (const type of f.visualizationTypes ?? []) {
         if (type === VisualizationType.MOVING_HEAD) {
-            if (!pan || !tilt || !f.beam) {
-                issues.error("Moving Head needs movingParts.pan, movingParts.tilt and beam");
-            }
-        } else if (type === VisualizationType.SPOT) {
-            if (!f.beam) {
-                issues.error("Spot needs beam");
+            if (!pan || !tilt) {
+                issues.error("Moving Head needs movingParts.pan and movingParts.tilt");
             }
         } else if (type === VisualizationType.GENERIC) {
             if (!f.emitters?.length) {

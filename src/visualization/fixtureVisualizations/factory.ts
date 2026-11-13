@@ -5,6 +5,11 @@ import { LedStripVisualization } from "./ledStrip/ledStrip.visualization";
 import { SpotVisualization } from "./spot/spot.visualization";
 import { MovingHeadVisualization } from "./movingHead/movingHead.visualization";
 import { GenericVisualization } from "./generic/generic.visualization";
+import { LaserVisualization } from "./effects/laser/laser.visualization";
+import { FlameVisualization } from "./effects/flame/flame.visualization";
+import { Co2Visualization } from "./effects/co2/co2.visualization";
+import { SparkVisualization } from "./effects/spark/spark.visualization";
+import { FogVisualization } from "./effects/fog/fog.visualization";
 
 export function createFixtureVisualizationController(
     type: VisualizationType,
@@ -28,12 +33,17 @@ export function getVisualizationByType(type: VisualizationType) {
         case VisualizationType.MOVING_HEAD:
             return MovingHeadVisualization;
         case VisualizationType.GENERIC:
-        case VisualizationType.LASER:
-        case VisualizationType.FLAME:
-        case VisualizationType.CO2_JET:
-        case VisualizationType.COLD_SPARK:
-        case VisualizationType.FOG:
             return GenericVisualization;
+        case VisualizationType.LASER:
+            return LaserVisualization;
+        case VisualizationType.FLAME:
+            return FlameVisualization;
+        case VisualizationType.CO2_JET:
+            return Co2Visualization;
+        case VisualizationType.COLD_SPARK:
+            return SparkVisualization;
+        case VisualizationType.FOG:
+            return FogVisualization;
         default:
             throw new Error(`No visualization for type ${type}`);
     }

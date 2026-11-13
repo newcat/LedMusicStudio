@@ -13,6 +13,11 @@ import type { BaseRenderer, FrameContext, RendererInputs } from "./fixtureVisual
 import { LedStripRenderer } from "./fixtureVisualizations/ledStrip/ledStrip.renderer";
 import { BeamRenderer } from "./fixtureVisualizations/beam/beam.renderer";
 import { GenericRenderer } from "./fixtureVisualizations/generic/generic.renderer";
+import { LaserRenderer } from "./fixtureVisualizations/effects/laser/laser.renderer";
+import { FlameRenderer } from "./fixtureVisualizations/effects/flame/flame.renderer";
+import { Co2Renderer } from "./fixtureVisualizations/effects/co2/co2.renderer";
+import { SparkRenderer } from "./fixtureVisualizations/effects/spark/spark.renderer";
+import { FogRenderer } from "./fixtureVisualizations/effects/fog/fog.renderer";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { UnrealBloomPass } from "./bloom";
 import { convertToLedLit } from "./ledLitMaterial";
@@ -62,12 +67,11 @@ const RENDERER_TYPES: Record<VisualizationType, RendererConstructor> = {
     [VisualizationType.SPOT]: BeamRenderer,
     [VisualizationType.MOVING_HEAD]: BeamRenderer,
     [VisualizationType.GENERIC]: GenericRenderer,
-    // Placeholders until the effect renderers exist (feature 003, US5).
-    [VisualizationType.LASER]: GenericRenderer,
-    [VisualizationType.FLAME]: GenericRenderer,
-    [VisualizationType.CO2_JET]: GenericRenderer,
-    [VisualizationType.COLD_SPARK]: GenericRenderer,
-    [VisualizationType.FOG]: GenericRenderer,
+    [VisualizationType.LASER]: LaserRenderer,
+    [VisualizationType.FLAME]: FlameRenderer,
+    [VisualizationType.CO2_JET]: Co2Renderer,
+    [VisualizationType.COLD_SPARK]: SparkRenderer,
+    [VisualizationType.FOG]: FogRenderer,
 };
 
 interface FixtureEntry {
@@ -540,6 +544,8 @@ export class SceneView {
             });
         }
         fixture.renderer.dispose();
+        // a removed renderer no longer contributes to the hazer coupling (T067)
+        this.environment.reportHazeOutput(entry.data.id, 0);
         entry.fixture = undefined;
     }
 
@@ -827,6 +833,7 @@ export class SceneView {
             cb();
         }
         this.scene.updateMatrixWorld();
+        this.environment.update(dt);
         const frame: FrameContext = {
             time: (now - this.startTime) / 1000,
             dt,

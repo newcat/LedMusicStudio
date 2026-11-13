@@ -7,4 +7,5 @@ export * from "./movement";
 export * from "./strobe";
 export * from "./beamState";
 export * from "./cellState";
+export * from "./effectState";
 export * from "./autoMap";
