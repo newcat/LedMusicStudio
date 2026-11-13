@@ -1,3 +1,5 @@
+> **Superseded** by `specs/003-rendering-capabilities/contracts/show-window-protocol-v3.md`. This document describes protocol v2 and is kept for history only.
+
 # Contract: Show Window Protocol
 
 **Feature**: 001-scene-editor | Replaces the message set in `src/visualization/stageRenderer.ts` (`StageRendererPayloads`).

@@ -151,9 +151,6 @@ export function isImportedModel(obj: { kind: string }): obj is ImportedModelObje
 export function isLibraryAsset(obj: { kind: string }): obj is LibraryAssetObject {
     return obj.kind === "libraryAsset";
 }
-export function isGroup(obj: { kind: string }): obj is GroupObject {
-    return obj.kind === "group";
-}
 
 // ---------------------------------------------------------------------------
 // Cameras, settings, assets

@@ -450,6 +450,28 @@ function fogLevel(value: string | undefined): number | null {
     return parseBrightness(value);
 }
 
+/** Trigger level of an `EffectParameter` keyword: "off" 0, low/slow/small/short 0.5, high/fast/big/long 1, "%" as is. */
+function effectParameterLevel(value: string | undefined): number | null {
+    const v = value?.trim().toLowerCase();
+    switch (v) {
+        case undefined:
+            return null;
+        case "off":
+            return 0;
+        case "low":
+        case "slow":
+        case "small":
+        case "short":
+            return 0.5;
+        case "high":
+        case "fast":
+        case "big":
+        case "long":
+            return 1;
+    }
+    return percent(v);
+}
+
 function percent(value: string): number | null {
     const m = /^\s*([+-]?\d+(?:\.\d+)?)\s*%\s*$/.exec(value);
     return m ? Number(m[1]) / 100 : null;
@@ -674,6 +696,11 @@ function typedSegment(ctx: MapContext, target: CapTarget, cap: Cap, positions: M
         case "trigger": {
             if (cap.type === "Intensity") {
                 const [s, e] = parsedPair(rec, "brightness", parseBrightness, [0, 1]);
+                return linear(cap, s, e);
+            }
+            if (cap.type === "EffectParameter") {
+                // "off" … "high" (MagicFX Stage Flame): off at the bottom of the range, not held on
+                const [s, e] = parsedPair(rec, "parameter", effectParameterLevel, [1, 1]);
                 return linear(cap, s, e);
             }
             return linear(cap, 1, 1);

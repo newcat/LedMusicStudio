@@ -34,7 +34,7 @@ export const useStage = defineStore("stage", () => {
     const visualization = ref(new VisualizationServer(fixtures.value)) as Ref<VisualizationServer>;
     const scene = useScene();
 
-    // show windows get every scene change (protocol v2)
+    // show windows get every scene change (protocol v3)
     scene.registerSink(
         new BroadcastSceneSink({
             getScene: () => scene.rawScene(),

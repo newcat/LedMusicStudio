@@ -324,7 +324,8 @@ export class LedStripRenderer extends BaseRenderer<LedStripVisualizationConfig> 
             this.geometry.dispose();
             this.geometry = new THREE.BufferGeometry();
             this.geometry.setAttribute("position", new THREE.BufferAttribute(this.localPositions, 3));
-            this.geometry.setAttribute("color", new THREE.Uint8BufferAttribute(this.colors, 3, true));
+            // BufferAttribute (not Uint8BufferAttribute, which copies the array): the attribute must share `colors`
+            this.geometry.setAttribute("color", new THREE.BufferAttribute(this.colors, 3, true));
             this.points.geometry = this.geometry;
         }
         if (n > 0) {

@@ -9,7 +9,6 @@ export interface LocalTransform {
 }
 
 type SceneObjects = Pick<SceneState, "objects">;
-type SceneWithOrder = Pick<SceneState, "objects" | "rootOrder">;
 
 export const MIN_SCALE = 0.01;
 
@@ -163,11 +162,6 @@ export function isEffectivelyVisible(scene: SceneObjects, id: string): boolean {
         current = current.parentId ? scene.objects[current.parentId] : undefined;
     }
     return true;
-}
-
-/** Children list of `parentId` (root order for null). */
-export function getSiblings(scene: SceneWithOrder, parentId: string | null): string[] {
-    return parentId ? scene.objects[parentId]?.children ?? [] : scene.rootOrder;
 }
 
 export type Axis = "x" | "y" | "z";
