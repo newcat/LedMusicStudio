@@ -107,11 +107,16 @@ export class VisualizationServer {
         return result;
     }
 
-    /** Sends the current configs and values of all controllers to one sink (used when a view is created). */
+    /**
+     * Sends the current configs and values of all controllers to one sink (when a view is created or turns active).
+     * Values only go to active sinks (FR-053); an inactive sink gets them when it is activated.
+     */
     public sendStateTo(sink: SceneSink) {
         const state = this.getConfigsAndValues();
         sink.fixtureConfigs(Object.fromEntries(Object.entries(state).map(([id, s]) => [id, s.config])));
-        sink.fixtureValues(Object.fromEntries(Object.entries(state).map(([id, s]) => [id, s.value])));
+        if (sink.active) {
+            sink.fixtureValues(Object.fromEntries(Object.entries(state).map(([id, s]) => [id, s.value])));
+        }
     }
 
     public pause() {

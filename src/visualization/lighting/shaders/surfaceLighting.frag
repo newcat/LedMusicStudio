@@ -16,12 +16,17 @@ uniform highp sampler2D uLightData;
 uniform int uSegmentCount;
 // 3 texels per segment (row = segment): [start.xyz, 0] [end.xyz, 0] [color.rgb, packed normal]
 uniform highp sampler2D uSegmentData;
+// SL_NO_GOBOS / SL_NO_SHADOWS: device fallbacks (FR-055, SurfaceLighting.setFallbacks) compile the features out.
+#ifndef SL_NO_GOBOS
 uniform sampler2D uGoboAtlas;
+#endif
 uniform vec3 uAmbientColor;
 uniform vec3 uOverflowLight;
+#ifndef SL_NO_SHADOWS
 // Shadow depth atlas (shadowAtlas.ts): 4x4 tiles of 512 px; uShadowTiles[tile] = the light's view-projection matrix.
 uniform highp sampler2D uShadowAtlas;
 uniform mat4 uShadowTiles[SL_MAX_SHADOW_LIGHTS];
+#endif
 
 varying vec3 vWorldPosition;
 varying vec3 vWorldNormal;
@@ -44,6 +49,9 @@ void slBasis(vec3 n, out vec3 t, out vec3 b) {
 // GOBO: cookie for the direction `l` (normalized, light -> fragment) in the beam frame (n, t, b); 1.0 = open.
 // The cone edge maps to the edge of the tile's light circle. `footprint` = world size of the pixel (mip level).
 float slGobo(vec3 l, vec3 n, vec3 t, vec3 b, float tanOuter, float dist, float footprint, vec4 goboData) {
+#ifdef SL_NO_GOBOS
+    return 1.0;
+#else
     if (goboData.x < -0.5) {
         return 1.0;
     }
@@ -65,6 +73,7 @@ float slGobo(vec3 l, vec3 n, vec3 t, vec3 b, float tanOuter, float dist, float f
     float texelsPerMeter = SL_GOBO_TILE_TEXELS * SL_GOBO_RADIUS / max(dist * axial * tanOuter, 1e-4);
     float lod = clamp(log2(max(footprint * texelsPerMeter, 1.0)), 0.0, SL_GOBO_MAX_LOD);
     return textureLod(uGoboAtlas, uv, lod).r;
+#endif
 }
 
 // Spot cone times gobo cookie; with a prism (facets >= 3) the average over the facet beams, each tilted outward
@@ -136,6 +145,9 @@ float slShadowViewDepth(mat4 m, float ndcZ) {
 // SHADOW: visibility of `worldPosition` from the light that owns shadow tile `tile`; 1.0 = lit. 2x2 PCF on the
 // tile's sub-rect, compared in linear depth with a bias of SL_SHADOW_BIAS of the range (x3 at grazing angles).
 float slShadow(int tile, vec3 worldPosition, float lambert) {
+#ifdef SL_NO_SHADOWS
+    return 1.0;
+#else
     mat4 m = uShadowTiles[tile];
     vec4 clip = m * vec4(worldPosition, 1.0);
     if (clip.w <= 1e-4) {
@@ -162,6 +174,7 @@ float slShadow(int tile, vec3 worldPosition, float lambert) {
         lit[k] = depth <= occluder ? 1.0 : 0.0;
     }
     return mix(mix(lit.x, lit.y, f.x), mix(lit.z, lit.w, f.x), f.y);
+#endif
 }
 
 // Inverse-square falloff with a smooth cutoff at the range.

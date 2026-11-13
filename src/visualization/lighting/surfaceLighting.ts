@@ -135,8 +135,11 @@ export class SurfaceLighting {
     };
     /** Receives fallback notices (shadows unavailable); set by the view. */
     public onNotice: ((notice: FallbackNotice) => void) | null = null;
-    /** Compile-time sizes of the light loops; they change only with the quality level. */
-    public readonly defines: { MAX_LIGHTS: number; MAX_SEGMENTS: number };
+    /**
+     * Compile-time sizes of the light loops (they change only with the quality level) and the device fallbacks
+     * (`setFallbacks`, FR-055); a define with the value `false` is left out by three.js.
+     */
+    public readonly defines: { MAX_LIGHTS: number; MAX_SEGMENTS: number; SL_NO_SHADOWS: boolean; SL_NO_GOBOS: boolean };
     public readonly gobos: CanvasGoboAtlas;
 
     private readonly shadowPlaceholder = createPlaceholderTexture();
@@ -164,7 +167,12 @@ export class SurfaceLighting {
     private readonly tmp = new THREE.Vector3();
 
     public constructor(quality: QualityProfile = QUALITY_PROFILES.medium) {
-        this.defines = { MAX_LIGHTS: quality.fullLights + quality.simpleLights, MAX_SEGMENTS: quality.stripSegments };
+        this.defines = {
+            MAX_LIGHTS: quality.fullLights + quality.simpleLights,
+            MAX_SEGMENTS: quality.stripSegments,
+            SL_NO_SHADOWS: false,
+            SL_NO_GOBOS: false,
+        };
         this.lightTexture = createDataTexture(LIGHT_TEXELS, this.defines.MAX_LIGHTS);
         this.segmentTexture = createDataTexture(SEGMENT_TEXELS, this.defines.MAX_SEGMENTS);
         this.gobos = new CanvasGoboAtlas();
@@ -360,6 +368,24 @@ export class SurfaceLighting {
         }
         this.defines.MAX_LIGHTS = maxLights;
         this.defines.MAX_SEGMENTS = maxSegments;
+        this.recompileMaterials();
+    }
+
+    /**
+     * Device fallbacks (FR-055): compiles the shadow and/or gobo code out of the surface lighting shader, so a
+     * program that failed to compile is rebuilt without it.
+     */
+    public setFallbacks(fallbacks: { shadows: boolean; gobos: boolean }) {
+        if (fallbacks.shadows === this.defines.SL_NO_SHADOWS && fallbacks.gobos === this.defines.SL_NO_GOBOS) {
+            return;
+        }
+        this.defines.SL_NO_SHADOWS = fallbacks.shadows;
+        this.defines.SL_NO_GOBOS = fallbacks.gobos;
+        this.recompileMaterials();
+    }
+
+    /** Re-applies the defines to all registered materials; their programs are rebuilt on the next render. */
+    private recompileMaterials() {
         for (const material of this.materials) {
             material.defines = Object.assign(material.defines ?? {}, this.defines);
             material.needsUpdate = true;

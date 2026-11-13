@@ -11,14 +11,17 @@
     >
         <canvas ref="canvas"></canvas>
         <div v-if="snapHint" class="snap-hint">{{ snapHint }}</div>
+        <ViewHud v-if="hudView" :view="hudView" :show-fps="preferences.editor.showFps" />
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
+import { computed, markRaw, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import { useResizeObserver, useThrottleFn } from "@vueuse/core";
 
 import { SceneView } from "@/visualization/sceneView";
+import ViewHud from "@/visualization/ViewHud.vue";
+import { flashLimitHz, useViewPreferences, type ViewPreferences } from "@/visualization/viewPreferences";
 import { LocalSceneSink } from "../sceneSink";
 import { useScene } from "../sceneStore";
 import { EditorOverlay } from "./editorOverlay";
@@ -37,7 +40,20 @@ const overlay = shallowRef<EditorOverlay | null>(null);
 /** Status hint of the active mount/connection snap candidate (feature 002, T084). */
 const snapHint = computed(() => overlay.value?.snapHint.value ?? null);
 
+/** User preferences (quality, FPS overlay, flash limit), shared with the show window via localStorage (T075). */
+const preferences = useViewPreferences();
+
 let view: SceneView | undefined;
+/** The view for the HUD; set once the view exists. */
+const hudView = shallowRef<SceneView | null>(null);
+
+function applyPreferences(p: ViewPreferences) {
+    view?.setQuality(p.editor.quality);
+    view?.setFlashLimit(flashLimitHz(p));
+}
+
+watch(preferences, applyPreferences);
+
 let unregisterSink: (() => void) | undefined;
 let intersectionObserver: IntersectionObserver | undefined;
 /** Last IntersectionObserver result for the container. */
@@ -73,6 +89,8 @@ onMounted(() => {
         return;
     }
     view = new SceneView(canvas.value, { showEditorProxies: true, kind: "editor" });
+    applyPreferences(preferences.value);
+    hudView.value = markRaw(view);
     intersectionObserver = new IntersectionObserver((records) => {
         const record = records[records.length - 1];
         if (record) {
@@ -117,6 +135,7 @@ onBeforeUnmount(() => {
     unregisterSink?.();
     overlay.value?.dispose();
     overlay.value = null;
+    hudView.value = null;
     view?.dispose();
     view = undefined;
 });

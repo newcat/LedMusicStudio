@@ -70,6 +70,7 @@
 
         <span class="separator"></span>
         <EnvironmentPopover />
+        <DisplayPopover />
 
         <span class="separator"></span>
         <Button outlined size="small" icon="mdi mdi-align-horizontal-center" label="Arrange" :disabled="store.selection.length < 2" @click="arrangeMenu?.toggle($event)" />
@@ -93,6 +94,7 @@ import { useScene, type TransformMode } from "../sceneStore";
 import type { EditorOverlay, ViewPreset } from "./editorOverlay";
 import CameraMenu from "./CameraMenu.vue";
 import EnvironmentPopover from "./EnvironmentPopover.vue";
+import DisplayPopover from "./DisplayPopover.vue";
 
 export type AddKind = "box" | "cylinder" | "plane" | "sphere" | "group" | "fixture" | "model";
 

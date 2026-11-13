@@ -514,34 +514,34 @@ After this phase the app works as before (beams, strips, generic), but on the ne
 
 **Independent Test**: on the reference scene, switch quality levels and check that the frame rate and the visual quality change; close all views and check that the load drops (quickstart Q12–Q16, Q22).
 
-- [ ] T070 [US6] Apply the quality profile in `src/visualization/sceneView.ts`, `setQuality(level)`:
+- [X] T070 [US6] Apply the quality profile in `src/visualization/sceneView.ts`, `setQuality(level)`:
   - `renderer.setPixelRatio(min(devicePixelRatio, pixelRatioCap) × pixelRatioScale)`.
   - Recreate the composer's render target with `samples: msaaSamples` (WebGL2 `WebGLRenderTarget({ samples })`).
   - Set the bloom mip count, `lighting` defines (MAX_LIGHTS / MAX_SEGMENTS) and the shadow atlas on/off.
   - Pass the profile in `FrameContext.quality`, so renderers rebuild beam geometry and particle pools.
   - Positions, colors and beams must not depend on the level (US6.1).
-- [ ] T071 [US6] Make bloom follow the view in `src/visualization/bloom.ts` and `src/visualization/sceneView.ts`: replace the fixed `new Vector2(4096, 4096)` with the drawing-buffer size. `UnrealBloomPass.setSize` follows `resize()` (canvas size × pixel ratio, FR-051). Make `nMips` configurable (`setMips(n)`, recreating the mip targets and blur materials) and driven by `quality.bloomMips`.
-- [ ] T072 [US6] Add device fallback (FR-055) in `src/visualization/quality.ts` and `src/visualization/sceneView.ts`:
+- [X] T071 [US6] Make bloom follow the view in `src/visualization/bloom.ts` and `src/visualization/sceneView.ts`: replace the fixed `new Vector2(4096, 4096)` with the drawing-buffer size. `UnrealBloomPass.setSize` follows `resize()` (canvas size × pixel ratio, FR-051). Make `nMips` configurable (`setMips(n)`, recreating the mip targets and blur materials) and driven by `quality.bloomMips`.
+- [X] T072 [US6] Add device fallback (FR-055) in `src/visualization/quality.ts` and `src/visualization/sceneView.ts`:
   - At view start, run `detectDeviceSupport`.
   - Hook `renderer.debug.onShaderError` so that a compile failure of a lighting or beam program downgrades one feature, in the order shadows → gobos (full lights treated as simple) → light count halved → MSAA 0. Rebuild, then emit one `FallbackNotice` per feature per view with the text "<Feature> is not supported on this device; a simpler version is used.".
   - The dev flag `?forceFallback=shadows|gobos|lights` (only `import.meta.env.DEV`) simulates it (quickstart Q22).
   - The view never throws out of the render loop: a render error is caught, logged once, and triggers the next fallback step.
-- [ ] T073 [P] [US6] Create `src/visualization/ViewHud.vue`, with props `view: SceneView` and `showFps: boolean`:
+- [X] T073 [P] [US6] Create `src/visualization/ViewHud.vue`, with props `view: SceneView` and `showFps: boolean`:
   - Top-left, monospace, semi-transparent background: `60 fps · 16.6 ms`, updated every 500 ms from `view.onFrameStats`.
   - Notices from `view.onNotice`, each shown once, auto-hiding after 8 s, with a close button.
   - No PrimeVue dependency (the show window bundle stays small).
-- [ ] T074 [US6] Create `src/scene/editor/DisplayPopover.vue` with toolbar button "Display" (icon `mdi mdi-monitor`) in `src/scene/editor/EditorToolbar.vue`:
+- [X] T074 [US6] Create `src/scene/editor/DisplayPopover.vue` with toolbar button "Display" (icon `mdi mdi-monitor`) in `src/scene/editor/EditorToolbar.vue`:
   - Editor quality and show window quality (Low / Medium / High `SelectButton`).
   - "Show frame rate" checkboxes for the editor and the show window.
   - "Limit flash rate" (default on), with the hint "Limits strobes and flashes to 3 per second (photosensitivity).".
   - "Show true strobe rate", only enabled while the limit is off.
 
   All values are read and written through `useViewPreferences()`.
-- [ ] T075 [US6] Wire the preferences into both views:
+- [X] T075 [US6] Wire the preferences into both views:
   - `src/scene/editor/Viewport.vue` subscribes to `viewPreferences` → `view.setQuality(p.editor.quality)` and `view.setFlashLimit(flashLimitHz(p))`, and renders `<ViewHud :view :show-fps="p.editor.showFps">`.
   - `src/visualization/StageView.vue` does the same with `p.show`, and adds a gear button next to the camera menu (same 3 s auto-hide) that opens a small plain-HTML panel with show quality, FPS overlay and the two flash checkboxes (no PrimeVue).
   - Changes in either window reach the other through the `storage` event (Q13).
-- [ ] T076 [US6] Verify and tighten the idle behavior (FR-053, SC-006):
+- [X] T076 [US6] Verify and tighten the idle behavior (FR-053, SC-006):
   - With the editor hidden (Programming view) and no show window, `VisualizationServer` must send no values, and `SceneView` must schedule no frames. Add a dev-only counter `window.__lmsVizStats = { framesRendered, valuesPosted }` in `src/visualization/sceneView.ts` and `src/scene/sceneSink.ts` behind `import.meta.env.DEV`.
   - Re-activating the view (switching back, or showing the show window) applies the latest state within one frame.
 
@@ -557,13 +557,13 @@ After this phase the app works as before (beams, strips, generic), but on the ne
 
 **Independent Test**: switch between the presets and adjust the brightness; the stage geometry becomes visible or hidden accordingly (quickstart Q13).
 
-- [ ] T077 [US7] Apply ambient in `src/visualization/sceneView.ts`:
+- [X] T077 [US7] Apply ambient in `src/visualization/sceneView.ts`:
   - Replace the fixed `HemisphereLight(0xffffff, 0x909090, 1.2)` with one hemisphere light driven by `ambientLight(environment.ambientFor(options.kind))` (T013).
   - Also set `lighting.setAmbient(sky × intensity × 0.1)` so LED-lit surfaces receive a matching ambient tint.
   - "dark" = intensity 0: only fixtures light the scene (US7.1).
   - Tone-mapping exposure stays unchanged (research R13).
   - Updates on `setEnvironment`.
-- [ ] T078 [US7] Add the ambient controls to `src/scene/editor/EnvironmentPopover.vue`: "Ambient – editor" and "Ambient – show window", each a `Select` (Dark / House lights / Daylight) plus a brightness `Slider` 0–200 % (stored 0…2), written with `setEnvironment({ ambient: { editor | show: … } }, "ambient-<view>")`.
+- [X] T078 [US7] Add the ambient controls to `src/scene/editor/EnvironmentPopover.vue`: "Ambient – editor" and "Ambient – show window", each a `Select` (Dark / House lights / Daylight) plus a brightness `Slider` 0–200 % (stored 0…2), written with `setEnvironment({ ambient: { editor | show: … } }, "ambient-<view>")`.
 
 **Checkpoint**: Q13 (ambient part) passes. Editor in house lights and show window in dark at the same time.
 

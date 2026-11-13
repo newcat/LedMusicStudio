@@ -1,4 +1,4 @@
-import type { SceneView } from "@/visualization/sceneView";
+import type { SceneView, VizStats } from "@/visualization/sceneView";
 import {
     CHANNEL_NAME,
     PROTOCOL_VERSION,
@@ -8,6 +8,15 @@ import {
     type ShowWindowMessage,
 } from "@/visualization/protocol";
 import type { CameraPosition, SceneAsset, SceneEnvironment, SceneObject, SceneState } from "./model/types";
+
+/** Dev only (T076): counts fixture values handed to a view or posted to show windows in `window.__lmsVizStats`. */
+function countValuesPosted(count: number) {
+    if (!import.meta.env.DEV || typeof window === "undefined" || count === 0) {
+        return;
+    }
+    const stats: VizStats = (window.__lmsVizStats ??= { framesRendered: 0, valuesPosted: 0 });
+    stats.valuesPosted += count;
+}
 
 /**
  * Receives every change of the scene. The embedded editor's view and the show windows are sinks.
@@ -87,9 +96,12 @@ export class LocalSceneSink implements SceneSink {
     }
 
     public fixtureValues(values: Record<string, Uint8Array>) {
+        let count = 0;
         for (const [id, value] of Object.entries(values)) {
             this.view.setFixtureValue(id, value);
+            count++;
         }
+        countValuesPosted(count);
     }
 }
 
@@ -339,8 +351,10 @@ export class BroadcastSceneSink implements SceneSink {
             this.post({ protocol: PROTOCOL_VERSION, type: "fixtureConfigs", configs: this.pendingConfigs });
             this.pendingConfigs = {};
         }
-        if (Object.keys(this.pendingValues).length > 0) {
+        const valueCount = Object.keys(this.pendingValues).length;
+        if (valueCount > 0) {
             this.post({ protocol: PROTOCOL_VERSION, type: "fixtureValues", values: this.pendingValues });
+            countValuesPosted(valueCount);
             this.pendingValues = {};
         }
     }

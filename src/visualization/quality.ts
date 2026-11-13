@@ -85,6 +85,48 @@ export interface FallbackNotice {
     message: string;
 }
 
+/** Features that a shader or render failure downgrades, one per step, in this order (FR-055, T072). */
+export type FallbackFeature = "shadows" | "gobos" | "lights" | "msaa";
+export const FALLBACK_ORDER: readonly FallbackFeature[] = ["shadows", "gobos", "lights", "msaa"];
+
+const FEATURE_LABELS: Record<FallbackNotice["feature"], string> = {
+    shadows: "Shadows",
+    gobos: "Gobo projection",
+    lights: "The full light count",
+    msaa: "Antialiasing (MSAA)",
+    bloom: "HDR bloom",
+};
+
+export function fallbackNotice(feature: FallbackNotice["feature"]): FallbackNotice {
+    return { feature, message: `${FEATURE_LABELS[feature]} is not supported on this device; a simpler version is used.` };
+}
+
+/**
+ * The profile with the downgraded features applied: shadows off; gobos off (full lights treated as simple);
+ * light count halved; MSAA 0. Positions, colors and beams are unaffected (US6.1).
+ */
+export function applyFallbacks(profile: QualityProfile, fallbacks: ReadonlySet<FallbackFeature>): QualityProfile {
+    if (fallbacks.size === 0) {
+        return profile;
+    }
+    const result: QualityProfile = { ...profile };
+    if (fallbacks.has("shadows")) {
+        result.shadowLights = 0;
+    }
+    if (fallbacks.has("gobos")) {
+        result.simpleLights += result.fullLights;
+        result.fullLights = 0;
+    }
+    if (fallbacks.has("lights")) {
+        result.fullLights = Math.floor(result.fullLights / 2);
+        result.simpleLights = Math.max(1, Math.floor(result.simpleLights / 2));
+    }
+    if (fallbacks.has("msaa")) {
+        result.msaaSamples = 0;
+    }
+    return result;
+}
+
 export function detectDeviceSupport(renderer: THREE.WebGLRenderer): DeviceSupport {
     const gl = renderer.getContext();
     return {

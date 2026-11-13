@@ -22,8 +22,20 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { UnrealBloomPass } from "./bloom";
 import { convertToLedLit } from "./ledLitMaterial";
 import { SurfaceLighting } from "./lighting/surfaceLighting";
-import { DEFAULT_ENVIRONMENT, EnvironmentState } from "./environment";
-import { QUALITY_PROFILES, type FallbackNotice, type QualityLevel, type QualityProfile, type ViewKind } from "./quality";
+import { ambientLight, DEFAULT_ENVIRONMENT, EnvironmentState } from "./environment";
+import {
+    applyFallbacks,
+    detectDeviceSupport,
+    FALLBACK_ORDER,
+    fallbackNotice,
+    QUALITY_PROFILES,
+    type FallbackFeature,
+    type FallbackNotice,
+    type QualityLevel,
+    type QualityProfile,
+    type ViewKind,
+} from "./quality";
+import { MIN_TEXTURE_UNITS_FOR_SHADOWS, SHADOW_ATLAS_SIZE } from "./lighting/shadowAtlas";
 import { buildObject3D, createPlaceholder, disposeObject3D, SCENE_OBJECT_ID, updateObject3D } from "./objectBuilders";
 import { EDITOR_LAYER, NO_SHADOW_LAYER } from "./layers";
 
@@ -41,6 +53,49 @@ const FPS_WINDOW_MS = 500;
 const EMPTY_VALUE = new Uint8Array(0);
 const FLOOR_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const surfaceRaycaster = new THREE.Raycaster();
+/** Bloom settings of the view: strength, radius, threshold. */
+const BLOOM_STRENGTH = 0.3;
+const BLOOM_RADIUS = 0.0;
+const BLOOM_THRESHOLD = 0.5;
+
+/** Fragment shader markers of the programs whose compile failure triggers a fallback step (T072). */
+const FALLBACK_PROGRAM_MARKERS = [
+    "uLightData", // surface lighting (LED-lit materials)
+    "uHazeOctaves", // beams
+];
+
+function isFallbackFeature(value: string | null): value is FallbackFeature {
+    return value !== null && (FALLBACK_ORDER as readonly string[]).includes(value);
+}
+
+/** Dev only (quickstart Q22): `?forceFallback=shadows|gobos|lights` simulates a device fallback. */
+function forcedFallback(): FallbackFeature | null {
+    if (!import.meta.env.DEV || typeof window === "undefined") {
+        return null;
+    }
+    const value = new URLSearchParams(window.location.search).get("forceFallback");
+    return isFallbackFeature(value) ? value : null;
+}
+
+/** Dev-only idle counters (T076, FR-053, SC-006): frames rendered by all views, fixture values handed to sinks. */
+export interface VizStats {
+    framesRendered: number;
+    valuesPosted: number;
+}
+
+declare global {
+    interface Window {
+        __lmsVizStats?: VizStats;
+    }
+}
+
+/** `window.__lmsVizStats`, created on first use; null outside dev builds. */
+export function devVizStats(): VizStats | null {
+    if (!import.meta.env.DEV || typeof window === "undefined") {
+        return null;
+    }
+    return (window.__lmsVizStats ??= { framesRendered: 0, valuesPosted: 0 });
+}
 
 /** Result of `SceneView.raycastSurfaces`: world point and normal; `objectId` is null on the floor plane fallback. */
 export interface SurfaceHit {
@@ -148,6 +203,8 @@ export class SceneView {
 
     private readonly composer: EffectComposer;
     private readonly bloomPass: UnrealBloomPass;
+    /** Ambient of this view (T077); color and intensity follow `environment.ambientFor(options.kind)`. */
+    private readonly hemisphereLight = new THREE.HemisphereLight(0x000000, 0x000000, 0);
     private readonly entries = new Map<string, ViewEntry>();
     /** states of all objects, needed for effective visibility */
     private readonly states: { objects: Record<string, SceneObject> } = { objects: {} };
@@ -167,7 +224,19 @@ export class SceneView {
     private animationFrame = 0;
     private disposed = false;
     private isActive = true;
+    /** Profile of the selected level. */
+    private baseQuality: QualityProfile = QUALITY_PROFILES.medium;
+    /** Effective profile: `baseQuality` with the device fallbacks applied; handed to lighting and renderers. */
     private quality: QualityProfile = QUALITY_PROFILES.medium;
+    /** Features downgraded on this device (FR-055); grows by one step per shader/render failure. */
+    private readonly fallbacks = new Set<FallbackFeature>();
+    /** Set by a shader or render failure; the next frame applies one fallback step. */
+    private fallbackPending = false;
+    private renderErrorLogged = false;
+    /** Texture type of the composer and bloom targets (UnsignedByteType without float render targets). */
+    private readonly targetType: THREE.TextureDataType;
+    private appliedPixelRatio = 0;
+    private appliedSamples = -1;
     private flashLimit: number | null = null;
     /** Static meshes for renderer raycasts; null = rebuild on next access. */
     private raycastCache: THREE.Object3D[] | null = null;
@@ -192,7 +261,8 @@ export class SceneView {
         this.assets = new AssetCache(this.lighting);
 
         this.scene.add(this.root);
-        this.scene.add(new THREE.HemisphereLight(0xffffff, 0x909090, 1.2));
+        this.scene.add(this.hemisphereLight);
+        this.applyAmbient();
         // non-shadow-casting objects (beams, emitters, ...) are visible in every view; only shadow cameras skip them
         this.camera.layers.enable(NO_SHADOW_LAYER);
         if (options.showEditorProxies) {
@@ -200,11 +270,37 @@ export class SceneView {
         }
         this.lighting.onNotice = (notice) => this.reportNotice(notice);
 
-        this.bloomPass = new UnrealBloomPass(new THREE.Vector2(4096, 4096), 0.3, 0.0, 0.5);
-        this.composer = new EffectComposer(this.renderer);
+        // device fallback (FR-055, research R12): limits checked once at view start
+        const support = detectDeviceSupport(this.renderer);
+        this.targetType = support.floatRenderTargets ? THREE.HalfFloatType : THREE.UnsignedByteType;
+        if (!support.floatRenderTargets) {
+            this.reportNotice(fallbackNotice("bloom"));
+        }
+        if (support.maxTextureUnits < MIN_TEXTURE_UNITS_FOR_SHADOWS || support.maxTextureSize < SHADOW_ATLAS_SIZE) {
+            this.fallbacks.add("shadows");
+            this.reportNotice(fallbackNotice("shadows"));
+        }
+        const forced = forcedFallback();
+        if (forced) {
+            this.fallbacks.add(forced);
+            this.reportNotice(fallbackNotice(forced));
+        }
+        this.renderer.debug.onShaderError = (gl, program, vertexShader, fragmentShader) =>
+            this.onShaderError(gl, program, vertexShader, fragmentShader);
+
+        // bloom and composer targets follow the drawing-buffer size (FR-051); the composer target is replaced when
+        // the MSAA sample count changes (applyQuality)
+        const bufferSize = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+        this.bloomPass = new UnrealBloomPass(bufferSize, BLOOM_STRENGTH, BLOOM_RADIUS, BLOOM_THRESHOLD, {
+            mips: this.quality.bloomMips,
+            type: this.targetType,
+        });
+        this.composer = new EffectComposer(this.renderer, this.createComposerTarget(0));
+        this.appliedSamples = 0;
         this.composer.addPass(new RenderPass(this.scene, this.camera));
         this.composer.addPass(this.bloomPass);
         this.composer.addPass(new OutputPass());
+        this.applyQuality();
 
         this.scheduleFrame();
     }
@@ -246,10 +342,104 @@ export class SceneView {
 
     public setEnvironment(environment: SceneEnvironment) {
         this.environment.setSettings(environment);
+        this.applyAmbient();
     }
 
+    /**
+     * Ambient of this view (FR-060, research R13): the hemisphere light follows the preset of `options.kind`, and
+     * LED-lit surfaces get a matching tint (sky × intensity × 0.1). "dark" = intensity 0, only fixtures light the
+     * scene. Tone-mapping exposure is not touched.
+     */
+    private applyAmbient() {
+        const { sky, ground, intensity } = ambientLight(this.environment.ambientFor(this.options.kind));
+        this.hemisphereLight.color.copy(sky);
+        this.hemisphereLight.groundColor.copy(ground);
+        // intensity 0 instead of hiding the light: a changed light count would recompile every lit material
+        this.hemisphereLight.intensity = intensity;
+        this.lighting.setAmbient(sky.clone().multiplyScalar(intensity * 0.1));
+    }
+
+    /**
+     * Applies a quality level (T070, research R12): pixel ratio, composer MSAA, bloom mips, lighting loop sizes and
+     * shadows. Renderers get the profile through `FrameContext.quality`. Positions, colors and beams do not depend
+     * on the level (US6.1).
+     */
     public setQuality(level: QualityLevel) {
-        this.quality = QUALITY_PROFILES[level] ?? QUALITY_PROFILES.medium;
+        this.baseQuality = QUALITY_PROFILES[level] ?? QUALITY_PROFILES.medium;
+        this.applyQuality();
+    }
+
+    /** The effective profile (selected level with device fallbacks). */
+    public get qualityProfile(): QualityProfile {
+        return this.quality;
+    }
+
+    private applyQuality() {
+        if (this.disposed) {
+            return;
+        }
+        const quality = applyFallbacks(this.baseQuality, this.fallbacks);
+        this.quality = quality;
+        this.applyPixelRatio();
+        if (quality.msaaSamples !== this.appliedSamples) {
+            this.appliedSamples = quality.msaaSamples;
+            // reset() disposes the old targets; setPixelRatio sizes the new ones and all passes
+            this.composer.reset(this.createComposerTarget(quality.msaaSamples));
+            this.composer.setPixelRatio(this.appliedPixelRatio);
+        }
+        this.bloomPass.setMips(quality.bloomMips);
+        // MAX_LIGHTS / MAX_SEGMENTS and the shadow atlas follow `quality` in lighting.update every frame
+        this.lighting.setFallbacks({ shadows: this.fallbacks.has("shadows"), gobos: this.fallbacks.has("gobos") });
+    }
+
+    /** `min(devicePixelRatio, pixelRatioCap) × pixelRatioScale`; resizes the composer targets and passes. */
+    private applyPixelRatio() {
+        const dpr = this.canvas.ownerDocument.defaultView?.devicePixelRatio ?? 1;
+        const pixelRatio = Math.min(dpr, this.quality.pixelRatioCap) * this.quality.pixelRatioScale;
+        if (pixelRatio === this.appliedPixelRatio) {
+            return;
+        }
+        this.appliedPixelRatio = pixelRatio;
+        this.renderer.setPixelRatio(pixelRatio);
+        this.composer.setPixelRatio(pixelRatio);
+    }
+
+    private createComposerTarget(samples: number): THREE.WebGLRenderTarget {
+        const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+        return new THREE.WebGLRenderTarget(Math.max(1, size.x), Math.max(1, size.y), { type: this.targetType, samples });
+    }
+
+    /**
+     * `renderer.debug.onShaderError` (T072): logs the failure; a failed lighting or beam program schedules one
+     * fallback step for the next frame.
+     */
+    private onShaderError(gl: WebGLRenderingContext, program: WebGLProgram, vertexShader: WebGLShader, fragmentShader: WebGLShader) {
+        const source = gl.getShaderSource(fragmentShader) ?? "";
+        const relevant = FALLBACK_PROGRAM_MARKERS.some((marker) => source.includes(marker));
+        console.error(
+            "SceneView: shader program failed to compile/link" + (relevant ? "; using a simpler version" : ""),
+            gl.getProgramInfoLog(program),
+            gl.getShaderInfoLog(vertexShader),
+            gl.getShaderInfoLog(fragmentShader),
+        );
+        if (relevant) {
+            this.fallbackPending = true;
+        }
+    }
+
+    /**
+     * Downgrades the next feature (shadows → gobos → light count → MSAA), rebuilds and reports one notice per
+     * feature. Returns false when nothing is left to downgrade.
+     */
+    private stepFallback(): boolean {
+        const next = FALLBACK_ORDER.find((feature) => !this.fallbacks.has(feature));
+        if (!next) {
+            return false;
+        }
+        this.fallbacks.add(next);
+        this.applyQuality();
+        this.reportNotice(fallbackNotice(next));
+        return true;
     }
 
     /** Strobe limit from the preferences (research R5); null = unlimited. */
@@ -465,7 +655,10 @@ export class SceneView {
         if (width <= 0 || height <= 0) {
             return;
         }
+        // the device pixel ratio changes when the window moves to another screen
+        this.applyPixelRatio();
         this.renderer.setSize(width, height, false);
+        // composer targets and passes (bloom) get width/height × pixel ratio (FR-051)
         this.composer.setSize(width, height);
         this.camera.aspect = width / height;
         this.camera.updateProjectionMatrix();
@@ -499,6 +692,7 @@ export class SceneView {
         this.frameStatsCallbacks.clear();
         this.noticeCallbacks.clear();
         this.lighting.dispose();
+        this.renderer.debug.onShaderError = null;
         this.bloomPass.dispose();
         this.composer.dispose();
         this.renderer.dispose();
@@ -819,10 +1013,24 @@ export class SceneView {
             return;
         }
         this.scheduleFrame();
-        this.renderFrame();
+        // the view never throws out of the render loop (FR-055): log once, then try the next fallback step
+        try {
+            this.renderFrame();
+        } catch (err) {
+            if (!this.renderErrorLogged) {
+                this.renderErrorLogged = true;
+                console.error("SceneView: render failed; trying a simpler version", err);
+            }
+            this.fallbackPending = true;
+        }
     };
 
     private renderFrame() {
+        if (this.fallbackPending) {
+            // one step per frame: all failures of the previous frame came from the same settings
+            this.fallbackPending = false;
+            this.stepFallback();
+        }
         const now = performance.now();
         const dt = Math.min(MAX_FRAME_DT, Math.max(0, (now - this.lastFrameTime) / 1000));
         this.lastFrameTime = now;
@@ -847,6 +1055,10 @@ export class SceneView {
         }
         this.lighting.update(this.camera, this.scene, this.renderer, this.quality, this.raycastVersion);
         this.composer.render();
+        if (import.meta.env.DEV) {
+            const stats = devVizStats();
+            if (stats) stats.framesRendered++;
+        }
         for (const cb of this.afterRenderCallbacks) {
             cb();
         }
