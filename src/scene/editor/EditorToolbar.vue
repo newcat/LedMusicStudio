@@ -60,6 +60,9 @@
         <CameraMenu :get-pose="() => overlay?.getCameraPose() ?? null" @apply="(pose) => overlay?.setCameraPose(pose)" />
 
         <span class="separator"></span>
+        <EnvironmentPopover />
+
+        <span class="separator"></span>
         <Button outlined size="small" icon="mdi mdi-align-horizontal-center" label="Arrange" :disabled="store.selection.length < 2" @click="arrangeMenu?.toggle($event)" />
         <TieredMenu ref="arrangeMenu" :model="arrangeItems" popup />
 
@@ -80,6 +83,7 @@ import type { MenuItem } from "primevue/menuitem";
 import { useScene, type TransformMode } from "../sceneStore";
 import type { EditorOverlay, ViewPreset } from "./editorOverlay";
 import CameraMenu from "./CameraMenu.vue";
+import EnvironmentPopover from "./EnvironmentPopover.vue";
 
 export type AddKind = "box" | "cylinder" | "plane" | "sphere" | "group" | "fixture" | "model";
 

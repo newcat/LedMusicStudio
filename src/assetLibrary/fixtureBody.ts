@@ -5,6 +5,7 @@
  */
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils";
+import { NO_SHADOW_LAYER } from "@/visualization/layers";
 import { instantiate } from "./assetCache";
 import type { Axis, Emitter, FixtureAssetDefinition, MovingPart, Vec3 } from "./types";
 
@@ -215,6 +216,7 @@ export class FixtureBody extends THREE.Group {
         const mesh = new THREE.Mesh(emitterGeometry(emitter), material);
         mesh.name = `emitter:${emitter.id}`;
         mesh.raycast = noRaycast;
+        mesh.layers.set(NO_SHADOW_LAYER);
         mesh.position.copy(vec(emitter.position));
         mesh.quaternion.copy(emitterOrientation(emitter));
         mesh.visible = false;
@@ -256,6 +258,7 @@ export class FixtureBody extends THREE.Group {
             );
             mesh.name = "emitters:merged";
             mesh.raycast = noRaycast;
+            mesh.layers.set(NO_SHADOW_LAYER);
             this.nodeOf(nodeName).add(mesh);
             this.merged.push({ mesh, ranges });
         }

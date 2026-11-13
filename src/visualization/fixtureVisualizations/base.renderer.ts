@@ -18,6 +18,8 @@ export interface RendererInputs {
     environment: EnvironmentState;
     /** Static meshes for beam-length and laser raycasts (research R11). */
     raycastTargets: () => readonly THREE.Object3D[];
+    /** Changes whenever `raycastTargets()` may return different or moved meshes; renderers cache raycasts on it. */
+    raycastTargetsVersion: () => number;
 }
 
 /** Per-frame data handed to `BaseRenderer.update` (contracts/renderer-api.ts). */

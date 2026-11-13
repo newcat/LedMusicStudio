@@ -7,14 +7,17 @@ import { KEY_INFO } from "../../capabilities/keys";
 import { AxisFollower } from "../../capabilities/movement";
 import { emptyMapping } from "../../capabilities/types";
 import type { CapabilityChannel } from "../../capabilities/types";
+import { NO_SHADOW_LAYER } from "../../layers";
 import type { LightHandle } from "../../lighting/surfaceLighting";
 import { BaseRenderer, type FrameContext, type RendererInputs } from "../base.renderer";
 import { isInVisibleHierarchy } from "../interimColor";
 import { createBeamGeometry, createBeamMaterial, MAX_PRISM_FACETS, setBeamFacets, type BeamMaterial } from "./beamMaterial";
 import { defaultMovement, type BeamVisualizationConfig } from "./types";
 
-/** Beam length and light range in meters until the beam is clamped to the first hit (research R11). */
-const BEAM_LENGTH = 50;
+/** Farthest beam length in meters: the center ray's raycast distance when nothing is hit (research R11). */
+const MAX_BEAM_LENGTH = 100;
+/** The surface light reaches this far beyond the first hit, meters. */
+const LIGHT_RANGE_MARGIN = 2;
 /** Used until the body (and with it the model's lens radius) is ready. */
 const DEFAULT_LENS_RADIUS = 0.06;
 /** Emitter output factor, so a full color blooms. */
@@ -90,11 +93,22 @@ export class BeamRenderer extends BaseRenderer<BeamVisualizationConfig> {
     private readonly mixColor = new THREE.Color();
     private readonly lightColor = new THREE.Color();
 
+    /** Center-ray raycast cache (research R11): redone only when the anchor moved or the targets changed. */
+    private readonly raycaster = new THREE.Raycaster();
+    private readonly hits: THREE.Intersection[] = [];
+    private readonly rayAnchorMatrix = new THREE.Matrix4();
+    private rayTargetsVersion = -1;
+    private rayValid = false;
+    /** World distance from the lens to the first hit (MAX_BEAM_LENGTH without a hit), and the hit point. */
+    private hitDistance = MAX_BEAM_LENGTH;
+    private readonly hitPoint = new THREE.Vector3();
+
     public constructor(inputs: RendererInputs) {
         super(inputs);
         this.lightHandle = inputs.lighting.addLight();
+        this.raycaster.far = MAX_BEAM_LENGTH;
 
-        this.beamMaterial = createBeamMaterial(inputs.lighting.gobos.texture);
+        this.beamMaterial = createBeamMaterial(inputs.lighting.gobos.texture, inputs.lighting.shadowAtlasTexture);
         this.beamMaterial.uniforms.topRadius.value = DEFAULT_LENS_RADIUS;
         this.beamRadialSegments = 48;
         this.beamGeometry = createBeamGeometry(this.beamRadialSegments, MAX_PRISM_FACETS);
@@ -105,12 +119,17 @@ export class BeamRenderer extends BaseRenderer<BeamVisualizationConfig> {
         this.beam.userData.excludeFromBounds = true;
         // the shader displaces the vertices; the geometry's bounding sphere is infinite anyway
         this.beam.frustumCulled = false;
+        // beams never cast shadows (research R11)
+        this.beam.layers.set(NO_SHADOW_LAYER);
+        // the shadow tile is assigned in SurfaceLighting.update, after this renderer's update: read it when drawing
+        this.beam.onBeforeRender = () => this.applyShadowTile();
 
         // at the anchor origin, facing +Z (the beam direction); scaled to the model's lens radius in onBodyReady
         this.cap = new THREE.Mesh(
             new THREE.CircleGeometry(DEFAULT_LENS_RADIUS, 40),
             new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, color: 0x000000, toneMapped: false })
         );
+        this.cap.layers.set(NO_SHADOW_LAYER);
     }
 
     public override onModelUpdate(modelId: string, modelScale: number): void {
@@ -190,7 +209,10 @@ export class BeamRenderer extends BaseRenderer<BeamVisualizationConfig> {
             anchor.getWorldPosition(this.worldPosition);
             this.worldDirection.copy(PLUS_Z).transformDirection(anchor.matrixWorld);
             this.worldScale.setFromMatrixScale(anchor.matrixWorld);
-            u.uLength.value = BEAM_LENGTH / Math.max(1e-6, this.worldScale.z);
+            if (on) {
+                this.updateCenterRay(anchor);
+            }
+            u.uLength.value = this.hitDistance / Math.max(1e-6, this.worldScale.z);
         }
         u.color.value.copy(state.color);
         u.uIntensity.value = intensity;
@@ -218,7 +240,8 @@ export class BeamRenderer extends BaseRenderer<BeamVisualizationConfig> {
             color: this.lightColor,
             angle,
             softness: state.softness,
-            range: BEAM_LENGTH,
+            range: this.hitDistance + LIGHT_RANGE_MARGIN,
+            litPoint: this.hitPoint,
             goboTile,
             goboRotation: state.goboRotation,
             prismFacets: facets,
@@ -273,6 +296,42 @@ export class BeamRenderer extends BaseRenderer<BeamVisualizationConfig> {
         slot.image = image;
         slot.tile = tile;
         return tile;
+    }
+
+    /**
+     * Beam length from the center ray (research R11): at most one raycast per frame against the view's static
+     * meshes, and only when the anchor's world matrix or the raycast targets changed since the last one.
+     */
+    private updateCenterRay(anchor: THREE.Object3D) {
+        const version = this.inputs.raycastTargetsVersion();
+        if (this.rayValid && version === this.rayTargetsVersion && this.rayAnchorMatrix.equals(anchor.matrixWorld)) {
+            return;
+        }
+        this.rayValid = true;
+        this.rayTargetsVersion = version;
+        this.rayAnchorMatrix.copy(anchor.matrixWorld);
+
+        this.raycaster.set(this.worldPosition, this.worldDirection);
+        this.hits.length = 0;
+        this.raycaster.intersectObjects(this.inputs.raycastTargets() as THREE.Object3D[], false, this.hits);
+        const hit = this.hits[0];
+        this.hitDistance = hit ? Math.max(hit.distance, 1e-3) : MAX_BEAM_LENGTH;
+        this.hitPoint.copy(this.worldDirection).multiplyScalar(this.hitDistance).add(this.worldPosition);
+        this.hits.length = 0;
+    }
+
+    /** Called right before the beam is drawn: the shadow tile of this frame cuts the beam off (quality "high"). */
+    private applyShadowTile() {
+        const u = this.beamMaterial.uniforms;
+        const lighting = this.inputs.lighting;
+        u.uShadowAtlas.value = lighting.shadowAtlasTexture;
+        const shadow = lighting.getShadowTile(this.lightHandle);
+        if (shadow) {
+            u.uShadowTile.value = shadow.tile;
+            u.uShadowMatrix.value.copy(shadow.matrix);
+        } else {
+            u.uShadowTile.value = -1;
+        }
     }
 
     private rebuildBeamGeometry(radialSegments: number) {

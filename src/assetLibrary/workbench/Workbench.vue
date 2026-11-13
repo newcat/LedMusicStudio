@@ -12,6 +12,7 @@ import SelectButton from "primevue/selectbutton";
 import ToggleSwitch from "primevue/toggleswitch";
 import { SurfaceLighting } from "@/visualization/lighting/surfaceLighting";
 import { QUALITY_PROFILES } from "@/visualization/quality";
+import { NO_SHADOW_LAYER } from "@/visualization/layers";
 import CategoryMapping from "./CategoryMapping.vue";
 import {
     AssetCache,
@@ -88,6 +89,8 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1e1f22);
 const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 200);
 camera.position.set(1.5, 1.2, 2);
+// emitters of fixture bodies live on the no-shadow layer
+camera.layers.enable(NO_SHADOW_LAYER);
 const display = new THREE.Group();
 scene.add(display);
 const overlayDisposables: Array<{ dispose(): void }> = [];
@@ -408,6 +411,7 @@ async function renderPreviews() {
         const previewScene = new THREE.Scene();
         addLights(previewScene);
         const previewCamera = new THREE.PerspectiveCamera(PREVIEW_FOV, 1, 0.01, 200);
+        previewCamera.layers.enable(NO_SHADOW_LAYER);
         const files: Record<string, Uint8Array> = {};
 
         for (const def of definitions) {

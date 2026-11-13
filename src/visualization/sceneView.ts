@@ -20,9 +20,14 @@ import { SurfaceLighting } from "./lighting/surfaceLighting";
 import { DEFAULT_ENVIRONMENT, EnvironmentState } from "./environment";
 import { QUALITY_PROFILES, type FallbackNotice, type QualityLevel, type QualityProfile, type ViewKind } from "./quality";
 import { buildObject3D, createPlaceholder, disposeObject3D, SCENE_OBJECT_ID, updateObject3D } from "./objectBuilders";
+import { EDITOR_LAYER, NO_SHADOW_LAYER } from "./layers";
 
-/** Objects that only exist for editing (grid, handles, proxies) are put on this layer. */
-export const EDITOR_LAYER = 1;
+/**
+ * `EDITOR_LAYER`: objects that only exist for editing (grid, handles, proxies).
+ * `NO_SHADOW_LAYER`: objects that never cast shadows (beams, emitters, particles, strip pixels); research R11.
+ * Both are defined in `layers.ts` so fixture bodies can use them without importing the view.
+ */
+export { EDITOR_LAYER, NO_SHADOW_LAYER };
 
 /** Largest time step handed to renderers, in seconds. */
 const MAX_FRAME_DT = 0.1;
@@ -153,7 +158,12 @@ export class SceneView {
     private flashLimit: number | null = null;
     /** Static meshes for renderer raycasts; null = rebuild on next access. */
     private raycastCache: THREE.Object3D[] | null = null;
+    /** Incremented whenever the raycast targets (and with them the static scene geometry) may have changed. */
+    private raycastVersion = 0;
     private readonly raycastTargets = () => this.getRaycastTargets();
+    private readonly raycastTargetsVersion = () => this.raycastVersion;
+    /** Notices already reported; each is reported once per view. */
+    private readonly reportedNotices = new Map<FallbackNotice["feature"], FallbackNotice>();
 
     private readonly startTime = performance.now();
     private lastFrameTime = performance.now();
@@ -170,9 +180,12 @@ export class SceneView {
 
         this.scene.add(this.root);
         this.scene.add(new THREE.HemisphereLight(0xffffff, 0x909090, 1.2));
+        // non-shadow-casting objects (beams, emitters, ...) are visible in every view; only shadow cameras skip them
+        this.camera.layers.enable(NO_SHADOW_LAYER);
         if (options.showEditorProxies) {
             this.camera.layers.enable(EDITOR_LAYER);
         }
+        this.lighting.onNotice = (notice) => this.reportNotice(notice);
 
         this.bloomPass = new UnrealBloomPass(new THREE.Vector2(4096, 4096), 0.3, 0.0, 0.5);
         this.composer = new EffectComposer(this.renderer);
@@ -240,7 +253,22 @@ export class SceneView {
     /** Features downgraded on this device (research R12, FR-055). */
     public onNotice(cb: (notice: FallbackNotice) => void) {
         this.noticeCallbacks.add(cb);
+        // notices reported before the subscription are replayed
+        for (const notice of this.reportedNotices.values()) {
+            cb(notice);
+        }
         return () => this.noticeCallbacks.delete(cb);
+    }
+
+    /** Reports a fallback notice to the subscribers, once per feature and view. */
+    private reportNotice(notice: FallbackNotice) {
+        if (this.reportedNotices.has(notice.feature)) {
+            return;
+        }
+        this.reportedNotices.set(notice.feature, notice);
+        for (const cb of this.noticeCallbacks) {
+            cb(notice);
+        }
     }
 
     // -----------------------------------------------------------------------------------------------------------
@@ -281,7 +309,7 @@ export class SceneView {
                 parent.add(entry.o3d);
             }
         }
-        this.raycastCache = null;
+        this.invalidateRaycastTargets();
         this.refreshVisibility();
     }
 
@@ -305,7 +333,7 @@ export class SceneView {
             this.dirty.delete(id);
             this.configDirty.delete(id);
         }
-        this.raycastCache = null;
+        this.invalidateRaycastTargets();
         this.refreshVisibility();
     }
 
@@ -332,19 +360,36 @@ export class SceneView {
         this.dirty.add(objectId);
     }
 
-    /** Static meshes (shapes, library assets, imported models) for beam-length and laser raycasts (research R11). */
+    /**
+     * Static meshes (shapes, library assets, imported models) of visible objects for beam-length and laser raycasts
+     * (research R11).
+     */
     public getRaycastTargets(): readonly THREE.Object3D[] {
         if (!this.raycastCache) {
             const targets: THREE.Object3D[] = [];
             for (const entry of this.entries.values()) {
                 const obj = entry.data;
-                if (isShape(obj) || isLibraryAsset(obj) || isImportedModel(obj)) {
+                // o3d.visible holds the effective visibility (refreshVisibility); raycasts ignore `visible`
+                if (entry.o3d.visible && (isShape(obj) || isLibraryAsset(obj) || isImportedModel(obj))) {
                     collectMeshes(entry.o3d, targets, true);
                 }
             }
             this.raycastCache = targets;
         }
         return this.raycastCache;
+    }
+
+    /**
+     * Changes whenever the raycast targets may have changed (objects added, removed, moved, shown/hidden, model
+     * content replaced). Renderers cache their raycasts against it; the shadow atlas re-renders its tiles.
+     */
+    public getRaycastTargetsVersion(): number {
+        return this.raycastVersion;
+    }
+
+    private invalidateRaycastTargets() {
+        this.raycastCache = null;
+        this.raycastVersion++;
     }
 
     // -----------------------------------------------------------------------------------------------------------
@@ -432,7 +477,7 @@ export class SceneView {
         this.fixtureConfigs.clear();
         this.dirty.clear();
         this.configDirty.clear();
-        this.raycastCache = null;
+        this.invalidateRaycastTargets();
     }
 
     private disposeEntry(entry: ViewEntry) {
@@ -487,6 +532,7 @@ export class SceneView {
                     lighting: this.lighting,
                     environment: this.environment,
                     raycastTargets: this.raycastTargets,
+                    raycastTargetsVersion: this.raycastTargetsVersion,
                 });
                 (renderer as { isFixtureRenderer?: boolean }).isFixtureRenderer = true;
                 let proxy: THREE.Object3D | null = null;
@@ -616,7 +662,7 @@ export class SceneView {
     /** Removes the placeholder or model clone of an imported model object. */
     private clearModelContent(o3d: THREE.Object3D) {
         // the content is replaced right after this, so the raycast list must be rebuilt
-        this.raycastCache = null;
+        this.invalidateRaycastTargets();
         for (const child of [...o3d.children]) {
             if (child.userData[SCENE_OBJECT_ID] || (child as { isFixtureRenderer?: boolean }).isFixtureRenderer) {
                 continue;
@@ -758,7 +804,7 @@ export class SceneView {
         for (const entry of this.entries.values()) {
             entry.fixture?.renderer.update(frame);
         }
-        this.lighting.update(this.camera, this.scene, this.renderer, this.quality);
+        this.lighting.update(this.camera, this.scene, this.renderer, this.quality, this.raycastVersion);
         this.composer.render();
         for (const cb of this.afterRenderCallbacks) {
             cb();

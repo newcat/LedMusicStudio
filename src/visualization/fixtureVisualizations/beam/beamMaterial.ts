@@ -51,6 +51,12 @@ export interface BeamUniforms {
     uPrismSpread: THREE.IUniform<number>;
     /** Radians. */
     uPrismRotation: THREE.IUniform<number>;
+    /** lighting.shadowAtlasTexture (research R11). */
+    uShadowAtlas: THREE.IUniform<THREE.Texture | null>;
+    /** Shadow tile of the beam's light, −1 = none (beam not cut off). */
+    uShadowTile: THREE.IUniform<number>;
+    /** View-projection matrix of the shadow tile. */
+    uShadowMatrix: THREE.IUniform<THREE.Matrix4>;
 }
 
 export type BeamMaterial = THREE.ShaderMaterial & { uniforms: BeamUniforms };
@@ -75,13 +81,17 @@ export function createBeamUniforms(): BeamUniforms {
         uFacets: { value: 0 },
         uPrismSpread: { value: 6 },
         uPrismRotation: { value: 0 },
+        uShadowAtlas: { value: null },
+        uShadowTile: { value: -1 },
+        uShadowMatrix: { value: new THREE.Matrix4() },
     };
 }
 
 /** Additive, transparent, no depth write, double sided, clipping planes honored. */
-export function createBeamMaterial(goboAtlas: THREE.Texture | null = null): BeamMaterial {
+export function createBeamMaterial(goboAtlas: THREE.Texture | null = null, shadowAtlas: THREE.Texture | null = null): BeamMaterial {
     const uniforms = createBeamUniforms();
     uniforms.uGoboAtlas.value = goboAtlas;
+    uniforms.uShadowAtlas.value = shadowAtlas;
     return new THREE.ShaderMaterial({
         transparent: true,
         depthWrite: false,

@@ -4,7 +4,7 @@ import { TransformControls } from "three/examples/jsm/controls/TransformControls
 import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer";
 import { ref, toRaw, watch, type Ref, type WatchStopHandle } from "vue";
 
-import { EDITOR_LAYER, type SceneView } from "@/visualization/sceneView";
+import { EDITOR_LAYER, NO_SHADOW_LAYER, type SceneView } from "@/visualization/sceneView";
 import { SCENE_OBJECT_ID } from "@/visualization/objectBuilders";
 import { assetCatalog, completeParams } from "@/assetLibrary";
 import {
@@ -135,6 +135,8 @@ export class EditorOverlay {
     public constructor(private readonly view: SceneView, private readonly container: HTMLElement, private readonly store: SceneStore) {
         const canvas = view.canvas;
         this.raycaster.layers.enable(EDITOR_LAYER);
+        // lens caps and other non-shadow-casting parts stay pickable
+        this.raycaster.layers.enable(NO_SHADOW_LAYER);
 
         // transform controls first: their pointer handlers have to run before the orbit controls' handlers
         this.transform = new TransformControls(view.camera, canvas);

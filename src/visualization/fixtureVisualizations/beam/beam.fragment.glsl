@@ -125,6 +125,9 @@ uniform float uGoboTile;        // atlas tile, < 0 = open
 uniform float uGoboRotation;    // radians
 uniform vec3 uSplitColor;       // second half color of a split wheel slot
 uniform bool uHasSplit;
+uniform highp sampler2D uShadowAtlas; // SurfaceLighting shadow depth atlas (quality "high")
+uniform float uShadowTile;      // this beam's light tile in the atlas, < 0 = no shadow
+uniform mat4 uShadowMatrix;     // the tile's view-projection matrix
 
 varying vec3 vLocal;
 varying vec3 vCamLocal;
@@ -151,6 +154,51 @@ float fogging(vec3 coord) {
 float coneRadius(float z) {
   float halfAngle = radians(clamp(angle, 0.1, 170.0) * 0.5);
   return topRadius + tan(halfAngle) * clamp(z, 0.0, uLength);
+}
+
+/** Shadow atlas layout (shadowAtlas.ts; same as SL_SHADOW_* in surfaceLighting.frag). */
+#define SHADOW_GRID 4
+#define SHADOW_TILE_TEXELS 512
+/** Depth bias as a share of the light's range (linear depth). */
+#define SHADOW_BIAS 0.002
+
+/** View-space depth along the light axis for NDC depth ndcZ (slShadowViewDepth in surfaceLighting.frag). */
+float shadowViewDepth(mat4 m, float ndcZ) {
+  vec3 row2 = vec3(m[0][2], m[1][2], m[2][2]);
+  vec3 row3 = vec3(m[0][3], m[1][3], m[2][3]);
+  float a = -dot(row2, row3);
+  float b = m[3][2] + a * m[3][3];
+  return b / (ndcZ + a);
+}
+
+/** 1 in front of the first occluder seen from the beam's light, 0 behind it (2x2 PCF); 1 without a shadow tile. */
+float beamShadow(vec3 world) {
+  if (uShadowTile < -0.5) {
+    return 1.0;
+  }
+  vec4 clip = uShadowMatrix * vec4(world, 1.0);
+  if (clip.w <= 1e-4) {
+    return 1.0;
+  }
+  vec3 ndc = clip.xyz / clip.w;
+  if (abs(ndc.x) >= 1.0 || abs(ndc.y) >= 1.0 || ndc.z >= 1.0) {
+    return 1.0;
+  }
+  float depth = clip.w - SHADOW_BIAS * shadowViewDepth(uShadowMatrix, 1.0);
+  int tile = int(uShadowTile + 0.5);
+  float tileTexels = float(SHADOW_TILE_TEXELS);
+  vec2 origin = vec2(float(tile % SHADOW_GRID), float(tile / SHADOW_GRID)) * tileTexels;
+  vec2 texel = (ndc.xy * 0.5 + 0.5) * tileTexels - 0.5;
+  vec2 base = floor(texel);
+  vec2 f = texel - base;
+  vec4 lit;
+  for (int k = 0; k < 4; k++) {
+    vec2 offset = vec2(float(k & 1), float(k >> 1));
+    ivec2 p = ivec2(origin + clamp(base + offset, vec2(0.0), vec2(tileTexels - 1.0)));
+    float occluder = shadowViewDepth(uShadowMatrix, texelFetch(uShadowAtlas, p, 0).r * 2.0 - 1.0);
+    lit[k] = depth <= occluder ? 1.0 : 0.0;
+  }
+  return mix(mix(lit.x, lit.y, f.x), mix(lit.z, lit.w, f.x), f.y);
 }
 
 /** Gobo transmission at cross-section coordinate c (unit disc = beam edge). */
@@ -212,6 +260,9 @@ void main() {
   // fade out over the last 5 % of the (clamped) length
   float fade = 1.0 - smoothstep(0.95, 1.0, vLocal.z / max(uLength, 1e-4));
 
-  float energy = uIntensity * vFacetGain * attenuation * density * fog * fade * hazeAlpha;
+  // cut off behind the first occluder in the light's shadow tile (quality "high")
+  float shadow = beamShadow(vWorld);
+
+  float energy = uIntensity * vFacetGain * attenuation * density * fog * fade * hazeAlpha * shadow;
   gl_FragColor = vec4(light * energy, 1.0);
 }

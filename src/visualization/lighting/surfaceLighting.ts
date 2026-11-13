@@ -1,7 +1,9 @@
 import * as THREE from "three";
 
-import { QUALITY_PROFILES, type QualityProfile } from "../quality";
+import { detectDeviceSupport, QUALITY_PROFILES, type FallbackNotice, type QualityProfile } from "../quality";
 import { CanvasGoboAtlas } from "./goboAtlas";
+import { assignTiers, OMNI_ANGLE, type LightTier, type PrioritizedLight } from "./lightPriority";
+import { MAX_SHADOW_LIGHTS, MIN_TEXTURE_UNITS_FOR_SHADOWS, ShadowAtlas, type ShadowLight } from "./shadowAtlas";
 
 /**
  * All light that fixtures throw onto surfaces, one instance per view (feature 003, research R7/R10). Lights and
@@ -33,6 +35,11 @@ export interface SpotLightParams {
     prismFacets: number;
     prismRotation: number;
     prismSpread: number;
+    /**
+     * World point the beam center mainly lights (first hit of the center ray), used for the light priority.
+     * Defaults to `position + direction · range`.
+     */
+    litPoint?: THREE.Vector3;
 }
 
 export interface OmniLightParams {
@@ -59,6 +66,13 @@ const SEGMENT_TEXELS = 3;
 const SEGMENT_LENGTH = 0.5;
 /** Lights darker than this (luminance of color × intensity) are skipped. */
 const MIN_LIGHT = 1e-4;
+/** Overflow lights are summed into `uOverflowLight` with this factor (research R7). */
+const OVERFLOW_FACTOR = 0.02;
+/**
+ * Texel 3.x of a light packs the gobo tile (−1..63) and the shadow tile (−1..7):
+ * `goboTile + SHADOW_TILE_STRIDE · (shadowTile + 1)`; decoded in surfaceLighting.frag.
+ */
+export const SHADOW_TILE_STRIDE = 128;
 
 function createDataTexture(width: number, height: number): THREE.DataTexture {
     const texture = new THREE.DataTexture(new Float32Array(width * height * 4), width, height, THREE.RGBAFormat, THREE.FloatType);
@@ -84,6 +98,17 @@ function packNormal(x: number, y: number, z: number): number {
 interface LightRecord {
     /** null until the first setLight. */
     data: Float32Array | null;
+    type: "spot" | "omni";
+    /** Full beam angle in degrees (spot). */
+    angle: number;
+    /** Input of the light priority; color and litPoint are updated by setLight. */
+    priority: PrioritizedLight<number> & { color: THREE.Color; angle: number };
+}
+
+/** Shadow tile of a light: index into the atlas and its view-projection matrix (uniform `uShadowTiles[tile]`). */
+export interface ShadowTile {
+    tile: number;
+    matrix: THREE.Matrix4;
 }
 
 interface StripRecord {
@@ -105,8 +130,11 @@ export class SurfaceLighting {
         uAmbientColor: { value: THREE.Color };
         uOverflowLight: { value: THREE.Color };
         uShadowAtlas: { value: THREE.Texture };
-        uShadowTiles: { value: number };
+        /** View-projection matrix per shadow tile (MAX_SHADOW_LIGHTS); the tile index is in texel 3 of the light. */
+        uShadowTiles: { value: THREE.Matrix4[] };
     };
+    /** Receives fallback notices (shadows unavailable); set by the view. */
+    public onNotice: ((notice: FallbackNotice) => void) | null = null;
     /** Compile-time sizes of the light loops; they change only with the quality level. */
     public readonly defines: { MAX_LIGHTS: number; MAX_SEGMENTS: number };
     public readonly gobos: CanvasGoboAtlas;
@@ -119,6 +147,18 @@ export class SurfaceLighting {
     private lightTexture: THREE.DataTexture;
     private segmentTexture: THREE.DataTexture;
     private disposed = false;
+
+    /** Tiers of the previous frame (hysteresis). */
+    private tiers = new Map<number, LightTier>();
+    private readonly activeLights: Array<PrioritizedLight<number> & { color: THREE.Color; angle: number }> = [];
+    private readonly overflow = new THREE.Color();
+    private shadowAtlas: ShadowAtlas<number> | null = null;
+    /** Set once shadows turned out to be unavailable on this device. */
+    private shadowsUnavailable = false;
+    /** Light handle → shadow tile of the current frame. */
+    private shadowTiles: ReadonlyMap<number, number> = new Map();
+    private readonly shadowLights: Array<ShadowLight<number>> = [];
+    private readonly unusedShadowMatrices = Array.from({ length: MAX_SHADOW_LIGHTS }, () => new THREE.Matrix4());
 
     private readonly cameraPosition = new THREE.Vector3();
     private readonly tmp = new THREE.Vector3();
@@ -137,8 +177,25 @@ export class SurfaceLighting {
             uAmbientColor: { value: new THREE.Color(0, 0, 0) },
             uOverflowLight: { value: new THREE.Color(0, 0, 0) },
             uShadowAtlas: { value: this.shadowPlaceholder },
-            uShadowTiles: { value: 0 },
+            uShadowTiles: { value: this.unusedShadowMatrices },
         };
+    }
+
+    /** The shadow depth atlas (a 1×1 placeholder while shadows are off). */
+    public get shadowAtlasTexture(): THREE.Texture {
+        return this.uniforms.uShadowAtlas.value;
+    }
+
+    /**
+     * The shadow tile of a light in the current frame, or null when it has none. Valid after `update`, so beams read
+     * it while rendering (e.g. in `onBeforeRender`).
+     */
+    public getShadowTile(handle: LightHandle): ShadowTile | null {
+        const tile = this.shadowTiles.get(handle);
+        if (tile === undefined || !this.shadowAtlas) {
+            return null;
+        }
+        return { tile, matrix: this.shadowAtlas.matrices[tile] };
     }
 
     // -----------------------------------------------------------------------------------------------------------
@@ -166,7 +223,12 @@ export class SurfaceLighting {
 
     public addLight(): LightHandle {
         const handle = this.nextHandle++;
-        this.lights.set(handle, { data: null });
+        this.lights.set(handle, {
+            data: null,
+            type: "spot",
+            angle: 0,
+            priority: { key: handle, color: new THREE.Color(0, 0, 0), angle: 0, litPoint: new THREE.Vector3(), score: 0 },
+        });
         return handle as LightHandle;
     }
 
@@ -196,6 +258,14 @@ export class SurfaceLighting {
             d[13] = params.goboRotation;
             d[14] = params.prismFacets + params.prismSpread / 100;
             d[15] = params.prismRotation;
+            record.type = "spot";
+            record.angle = params.angle;
+            record.priority.angle = params.angle;
+            if (params.litPoint) {
+                record.priority.litPoint.copy(params.litPoint);
+            } else {
+                record.priority.litPoint.set(d[4], d[5], d[6]).multiplyScalar(d[3]).add(params.position);
+            }
         } else {
             d[4] = 0;
             d[5] = 0;
@@ -206,11 +276,17 @@ export class SurfaceLighting {
             d[13] = 0;
             d[14] = 0;
             d[15] = 0;
+            record.type = "omni";
+            record.angle = OMNI_ANGLE;
+            record.priority.angle = OMNI_ANGLE;
+            record.priority.litPoint.copy(params.position);
         }
+        record.priority.color.copy(params.color);
     }
 
     public removeLight(handle: LightHandle) {
         this.lights.delete(handle);
+        this.tiers.delete(handle);
     }
 
     // -----------------------------------------------------------------------------------------------------------
@@ -233,13 +309,18 @@ export class SurfaceLighting {
         this.uniforms.uAmbientColor.value.copy(color);
     }
 
-    /** Once per frame before rendering: applies the quality level and uploads lights and strip segments. */
-    public update(camera: THREE.Camera, _scene: THREE.Scene, _renderer: THREE.WebGLRenderer, quality: QualityProfile) {
+    /**
+     * Once per frame before rendering: applies the quality level, prioritizes the lights (FR-023), renders the
+     * shadow tiles (quality "high") and uploads lights and strip segments. `sceneVersion` changes whenever the static
+     * scene geometry may have changed (SceneView raycast targets version); shadow tiles re-render then.
+     */
+    public update(camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.WebGLRenderer, quality: QualityProfile, sceneVersion = 0) {
         if (this.disposed) {
             return;
         }
         this.applyQuality(quality);
-        this.uploadLights();
+        this.syncShadowAtlas(renderer, quality);
+        this.uploadLights(camera, scene, renderer, quality, sceneVersion);
         camera.getWorldPosition(this.cameraPosition);
         this.uploadSegments();
     }
@@ -255,7 +336,9 @@ export class SurfaceLighting {
         this.lightTexture.dispose();
         this.segmentTexture.dispose();
         this.gobos.dispose();
+        this.disposeShadowAtlas();
         this.shadowPlaceholder.dispose();
+        this.onNotice = null;
     }
 
     /** Resizes the data textures and recompiles the registered materials when the loop sizes change. */
@@ -283,24 +366,154 @@ export class SurfaceLighting {
         }
     }
 
-    /** All lights up to MAX_LIGHTS in insertion order (tiers and overflow come with US3). */
-    private uploadLights() {
-        const data = this.lightTexture.image.data as Float32Array;
-        const max = this.defines.MAX_LIGHTS;
-        let count = 0;
+    /**
+     * Prioritizes the lit lights (lightPriority.ts) and uploads them, best first: `full` lights with gobo and prism,
+     * then `simple` lights without (goboTile −1, prismFacets 0). `overflow` lights are summed (color × 0.02) into
+     * `uOverflowLight` and left out of the texture. Lights with intensity 0 are skipped entirely. At quality "high"
+     * the first `shadowLights` full spot lights get a shadow tile.
+     */
+    private uploadLights(camera: THREE.Camera, scene: THREE.Scene, renderer: THREE.WebGLRenderer, quality: QualityProfile, sceneVersion: number) {
+        const active = this.activeLights;
+        active.length = 0;
         for (const record of this.lights.values()) {
-            if (count >= max) {
-                break;
-            }
             const d = record.data;
             if (!d || 0.2126 * d[8] + 0.7152 * d[9] + 0.0722 * d[10] < MIN_LIGHT || d[3] <= 0) {
                 continue;
             }
-            data.set(d, count * LIGHT_TEXELS * 4);
+            active.push(record.priority);
+        }
+        // the texture holds fullLights + simpleLights rows; quality may lag one frame behind MAX_LIGHTS
+        const tierQuality = this.tierQuality(quality);
+        this.tiers = assignTiers(active, camera, tierQuality, this.tiers);
+
+        this.updateShadowTiles(active, camera, scene, renderer, quality, sceneVersion);
+
+        const data = this.lightTexture.image.data as Float32Array;
+        const max = this.defines.MAX_LIGHTS;
+        const overflow = this.overflow.setRGB(0, 0, 0);
+        let count = 0;
+        for (const light of active) {
+            const record = this.lights.get(light.key)!;
+            const d = record.data!;
+            const tier = this.tiers.get(light.key);
+            if (tier === "overflow" || count >= max) {
+                overflow.r += d[8] * OVERFLOW_FACTOR;
+                overflow.g += d[9] * OVERFLOW_FACTOR;
+                overflow.b += d[10] * OVERFLOW_FACTOR;
+                continue;
+            }
+            const o = count * LIGHT_TEXELS * 4;
+            data.set(d, o);
+            if (record.type === "spot") {
+                if (tier === "simple") {
+                    data[o + 12] = -1;
+                    data[o + 14] = 0;
+                }
+                const shadowTile = this.shadowTiles.get(light.key) ?? -1;
+                data[o + 12] += SHADOW_TILE_STRIDE * (shadowTile + 1);
+            }
             count++;
         }
+        this.uniforms.uOverflowLight.value.copy(overflow);
         this.uniforms.uLightCount.value = count;
         this.lightTexture.needsUpdate = true;
+    }
+
+    /** `quality` with fullLights/simpleLights clamped to the rows of the light texture. */
+    private tierQuality(quality: QualityProfile): QualityProfile {
+        const max = this.defines.MAX_LIGHTS;
+        if (quality.fullLights + quality.simpleLights <= max) {
+            return quality;
+        }
+        const fullLights = Math.min(quality.fullLights, max);
+        return { ...quality, fullLights, simpleLights: max - fullLights };
+    }
+
+    // -----------------------------------------------------------------------------------------------------------
+    // Shadows (research R11, quality "high")
+
+    /** Creates or drops the shadow atlas when `quality.shadowLights` changes; reports a notice when unavailable. */
+    private syncShadowAtlas(renderer: THREE.WebGLRenderer, quality: QualityProfile) {
+        if (quality.shadowLights <= 0) {
+            this.disposeShadowAtlas();
+            return;
+        }
+        if (this.shadowAtlas || this.shadowsUnavailable) {
+            return;
+        }
+        const support = detectDeviceSupport(renderer);
+        if (support.maxTextureUnits < MIN_TEXTURE_UNITS_FOR_SHADOWS) {
+            this.shadowsUnavailable = true;
+            this.onNotice?.({
+                feature: "shadows",
+                message: `Shadows are off: this device has only ${support.maxTextureUnits} texture units (${MIN_TEXTURE_UNITS_FOR_SHADOWS} needed).`,
+            });
+            return;
+        }
+        const atlas = ShadowAtlas.create<number>(renderer);
+        if (!atlas) {
+            this.shadowsUnavailable = true;
+            this.onNotice?.({ feature: "shadows", message: "Shadows are off: the shadow depth texture could not be created on this device." });
+            return;
+        }
+        this.shadowAtlas = atlas;
+        this.uniforms.uShadowAtlas.value = atlas.depthTexture;
+        this.uniforms.uShadowTiles.value = atlas.matrices;
+    }
+
+    private disposeShadowAtlas() {
+        this.shadowTiles = new Map();
+        this.shadowLights.length = 0;
+        if (!this.shadowAtlas) {
+            return;
+        }
+        this.shadowAtlas.dispose();
+        this.shadowAtlas = null;
+        this.uniforms.uShadowAtlas.value = this.shadowPlaceholder;
+        this.uniforms.uShadowTiles.value = this.unusedShadowMatrices;
+    }
+
+    /** The first `shadowLights` full spot lights (in priority order) get a tile; changed tiles re-render. */
+    private updateShadowTiles(
+        sorted: ReadonlyArray<PrioritizedLight<number>>,
+        camera: THREE.Camera,
+        scene: THREE.Scene,
+        renderer: THREE.WebGLRenderer,
+        quality: QualityProfile,
+        sceneVersion: number,
+    ) {
+        const atlas = this.shadowAtlas;
+        if (!atlas) {
+            return;
+        }
+        const limit = Math.min(quality.shadowLights, MAX_SHADOW_LIGHTS);
+        const lights = this.shadowLights;
+        let count = 0;
+        for (const light of sorted) {
+            if (count >= limit) {
+                break;
+            }
+            const record = this.lights.get(light.key);
+            if (!record || record.type !== "spot" || this.tiers.get(light.key) !== "full") {
+                continue;
+            }
+            const d = record.data!;
+            const entry = (lights[count] ??= {
+                key: light.key,
+                position: new THREE.Vector3(),
+                direction: new THREE.Vector3(),
+                angle: 0,
+                range: 0,
+            });
+            entry.key = light.key;
+            entry.position.set(d[0], d[1], d[2]);
+            entry.direction.set(d[4], d[5], d[6]);
+            entry.angle = record.angle;
+            entry.range = d[3];
+            count++;
+        }
+        lights.length = count;
+        this.shadowTiles = atlas.update(renderer, scene, camera, lights, sceneVersion);
     }
 
     /**

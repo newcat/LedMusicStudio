@@ -370,29 +370,29 @@ After this phase the app works as before (beams, strips, generic), but on the ne
 
 **Independent Test**: four moving heads aimed at the floor, haze 0 → 100 %: beam visibility changes and the floor shows colored spots (quickstart Q9–Q11).
 
-- [ ] T042 [P] [US3] Create `src/scene/editor/EnvironmentPopover.vue` and add a toolbar button "Environment" (icon `mdi mdi-weather-fog`) to `src/scene/editor/EditorToolbar.vue` that toggles a PrimeVue `Popover` with:
+- [X] T042 [P] [US3] Create `src/scene/editor/EnvironmentPopover.vue` and add a toolbar button "Environment" (icon `mdi mdi-weather-fog`) to `src/scene/editor/EditorToolbar.vue` that toggles a PrimeVue `Popover` with:
   - **Haze**: a `Slider` 0–100 % plus an `InputNumber` (stored 0…1). The live drag uses `setEnvironment({ haze }, "haze")` so a drag is one undo step "Set haze".
   - **"Hazers raise haze"**: a checkbox (`hazerCoupling`) with the hint "Active fog/haze fixtures increase the haze while they run."
 
   The ambient controls are added in US7.
-- [ ] T043 [US3] Create `src/visualization/lighting/lightPriority.ts`, `assignTiers(lights, camera, quality, previous)`:
+- [X] T043 [US3] Create `src/visualization/lighting/lightPriority.ts`, `assignTiers(lights, camera, quality, previous)`:
   - `score = luminance(color) · (0.5 + angle/120) · visibility`.
   - `visibility` is 1 if the light's lit point (beam center hit point stored with the light, or the omni position) is inside the camera frustum, else 0.25.
   - Sort. Ranks < `fullLights` → `full`, < `fullLights + simpleLights` → `simple`, the rest → `overflow`.
   - "A light changes tier only if its score beats the boundary by 15 %."
   - Integrate it in `SurfaceLighting.update`: full lights keep the gobo and prism, simple lights get `goboTile −1` and `prismFacets 0`, and overflow lights are summed (`color × 0.02`) into `uOverflowLight` and left out of the texture. Lights with intensity 0 are skipped entirely.
-- [ ] T044 [US3] Add beam length from the center ray in `src/visualization/fixtureVisualizations/beam/beam.renderer.ts`:
+- [X] T044 [US3] Add beam length from the center ray in `src/visualization/fixtureVisualizations/beam/beam.renderer.ts`:
   - Each frame, if the beam anchor's world matrix changed or the raycast targets changed (version counter from `SceneView`), raycast along the beam direction against `inputs.raycastTargets()` with a `THREE.Raycaster` (`far = 100`).
   - Beam `uLength` = hit distance (or 100). The light `range` = hit distance + 2 m. The hit point is stored for light priority.
   - At most one raycast per fixture per frame; it is skipped while nothing changed.
-- [ ] T045 [US3] Create `src/visualization/lighting/shadowAtlas.ts`, used only when `quality.shadowLights > 0`:
+- [X] T045 [US3] Create `src/visualization/lighting/shadowAtlas.ts`, used only when `quality.shadowLights > 0`:
   - A 2048² depth render target (`DepthTexture`, `UnsignedIntType`), as a 4×4 grid of 512² tiles.
   - For the first `shadowLights` lights of tier `full`, a `PerspectiveCamera` (fov = outer angle + 5°, near 0.05, far = range).
   - Render the scene with `overrideMaterial = MeshDepthMaterial` into the tile viewport, with every camera layer except a new `NO_SHADOW_LAYER`. Beams, emitters, particles, strip pixels and editor objects must be put on `NO_SHADOW_LAYER` only and disabled for the shadow camera. Add `NO_SHADOW_LAYER = 2` next to `EDITOR_LAYER` in `src/visualization/sceneView.ts`.
   - Re-render a tile only when its light moved, its angle changed or the scene objects changed.
   - Write each light's tile index and view-projection matrix into `uShadowTiles` (a `mat4` array uniform of length `MAX_SHADOW_LIGHTS = 8`), and the tile index into texel 3 of the light data.
   - Skip with a `FallbackNotice` `"shadows"` when `DeviceSupport.maxTextureUnits < 12` or the depth texture can't be created.
-- [ ] T046 [US3] Implement the `// SHADOW` hook in `src/visualization/lighting/shaders/surfaceLighting.frag`: for lights with a tile ≥ 0, transform `vWorldPosition` with the tile matrix, apply 2×2 PCF on the atlas sub-rect, and add a bias of 0.002. In `src/visualization/fixtureVisualizations/beam/beam.fragment.glsl`, fade the beam fragment to 0 when it lies behind the first occluder in its light's tile: pass the tile index and matrix as uniforms from `BeamRenderer`, which reads them from `SurfaceLighting` (`getShadowTile(handle)`).
+- [X] T046 [US3] Implement the `// SHADOW` hook in `src/visualization/lighting/shaders/surfaceLighting.frag`: for lights with a tile ≥ 0, transform `vWorldPosition` with the tile matrix, apply 2×2 PCF on the atlas sub-rect, and add a bias of 0.002. In `src/visualization/fixtureVisualizations/beam/beam.fragment.glsl`, fade the beam fragment to 0 when it lies behind the first occluder in its light's tile: pass the tile index and matrix as uniforms from `BeamRenderer`, which reads them from `SurfaceLighting` (`getShadowTile(handle)`).
 
 **Checkpoint**: Q9 and Q11 pass at Medium. Q10 passes at High; until US6, set High temporarily through `localStorage["lms.viewPreferences"]` and reload.
 
