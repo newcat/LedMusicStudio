@@ -1,6 +1,6 @@
 <template>
     <div ref="root" class="scene-editor">
-        <EditorToolbar :overlay="overlay" @add="onAdd" @undo="undo" @redo="redo" />
+        <EditorToolbar :overlay="overlay" @add="onAdd" @draw-strip="drawNewStrip" @undo="undo" @redo="redo" />
         <splitpanes class="panes">
             <pane size="18" min-size="10">
                 <splitpanes horizontal class="left-column">
@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, provide, ref, watch } from "vue";
 import { Splitpanes, Pane } from "splitpanes";
 import ContextMenu from "primevue/contextmenu";
 import type { MenuItem } from "primevue/menuitem";
@@ -34,7 +34,8 @@ import { useFocusWithin } from "@vueuse/core";
 
 import { activeStageTab, selectedFixtureId, STAGE_TAB_FIXTURES } from "@/views/stageViewState";
 import { useStage } from "@/stage/stage";
-import type { VisualizationType } from "@/visualization/fixtureVisualization";
+import { VisualizationType } from "@/visualization/fixtureVisualization";
+import { STRIP_PATH_TOOL_KEY, type StripPathToolApi } from "@/visualization/fixtureVisualizations/ledStrip/stripPathToolApi";
 import { useScene } from "../sceneStore";
 import { modelScaleForFixture, preselectionOf } from "../fixtureModels";
 import { isFixtureVisualization } from "../model/types";
@@ -127,6 +128,29 @@ function onAdd(kind: AddKind) {
             break;
     }
 }
+
+// --- LED strip path tool (feature 003, T052/T053) --------------------------------------------------------------
+
+/** Toolbar "Draw LED strip": a new unlinked strip, drawn right away (removed again on Esc). */
+function drawNewStrip() {
+    const editorOverlay = overlay.value;
+    if (!editorOverlay) {
+        return;
+    }
+    const id = store.addUnlinkedFixtureVisualization(VisualizationType.LED_STRIP);
+    if (!editorOverlay.startStripTool(id, "drawing", { isNew: true })) {
+        store.discardAddedObject(id);
+    }
+}
+
+const stripPathToolApi: StripPathToolApi = {
+    state: computed(() => overlay.value?.toolState.value ?? null),
+    draw: (objectId) => overlay.value?.startStripTool(objectId, "drawing"),
+    edit: (objectId) => overlay.value?.startStripTool(objectId, "editing"),
+    stop: () => overlay.value?.stopTool(),
+    setPath: (objectId, path) => store.setStripPath(objectId, path),
+};
+provide(STRIP_PATH_TOOL_KEY, stripPathToolApi);
 
 /** The scale comes from the preselection for the mapped model, otherwise it is recomputed for the chosen one. */
 function addFixtureVisualization(fixtureId: string, type: VisualizationType, modelId: string) {

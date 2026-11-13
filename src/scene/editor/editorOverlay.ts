@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls";
 import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer";
-import { ref, toRaw, watch, type Ref, type WatchStopHandle } from "vue";
+import { ref, shallowRef, toRaw, watch, type Ref, type ShallowRef, type WatchStopHandle } from "vue";
 
 import { EDITOR_LAYER, NO_SHADOW_LAYER, type SceneView } from "@/visualization/sceneView";
 import { SCENE_OBJECT_ID } from "@/visualization/objectBuilders";
@@ -24,6 +24,8 @@ import type { ObjectStates, useScene } from "../sceneStore";
 import { computeObjectBounds } from "./bounds";
 import { AssetDropController, type SurfacePlacement } from "./assetDrop";
 import { isTrussAsset, SnapHighlightView, SnapResolver, type SnapResult } from "./snapping";
+import { StripPathTool } from "./stripPathTool";
+import type { StripPathToolMode } from "@/visualization/fixtureVisualizations/ledStrip/stripPathToolApi";
 
 type SceneStore = ReturnType<typeof useScene>;
 export type ViewPreset = "top" | "front" | "side" | "perspective";
@@ -75,6 +77,14 @@ function toVec3(v: THREE.Vector3): Vec3 {
     return [v.x, v.y, v.z];
 }
 
+function isTextInput(element: EventTarget | null): boolean {
+    if (!(element instanceof HTMLElement)) {
+        return false;
+    }
+    const tag = element.tagName;
+    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || element.isContentEditable;
+}
+
 function labelTexture(text: string, color: string): THREE.CanvasTexture {
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 64;
@@ -100,6 +110,8 @@ export class EditorOverlay {
     public readonly assetDrop: AssetDropController;
     /** Status hint of the active snap candidate ("Hang on Truss 1"), null if there is none (T084). */
     public readonly snapHint: Ref<string | null> = ref(null);
+    /** The running LED strip path tool (feature 003, T052), null if none. */
+    public readonly toolState: ShallowRef<{ objectId: string; mode: StripPathToolMode } | null> = shallowRef(null);
 
     private readonly transform: TransformControls;
     private readonly endpointTransform: TransformControls;
@@ -131,6 +143,9 @@ export class EditorOverlay {
     private endpointObjectId: string | null = null;
     private multiPivotIds: string[] = [];
     private disposed = false;
+    /** While a tool is active it gets pointer and keyboard events first; gizmo and selection clicks are off. */
+    private activeTool: StripPathTool | null = null;
+    private toolPointerId: number | null = null;
 
     public constructor(private readonly view: SceneView, private readonly container: HTMLElement, private readonly store: SceneStore) {
         const canvas = view.canvas;
@@ -165,11 +180,16 @@ export class EditorOverlay {
         this.endpointTransform.addEventListener("dragging-changed", (event) => this.onDraggingChanged(event.value as boolean, true));
         this.endpointTransform.addEventListener("objectChange", () => this.previewEndpoint());
 
+        // capture: the tool sees a press before the orbit controls do (a handle drag must not rotate the camera)
+        canvas.addEventListener("pointerdown", this.onToolPointerDown, { capture: true });
         canvas.addEventListener("pointerdown", this.onPointerDown);
         canvas.addEventListener("pointerup", this.onPointerUp);
         canvas.addEventListener("pointermove", this.onPointerMove);
         canvas.addEventListener("dblclick", this.onDoubleClick);
         canvas.addEventListener("contextmenu", this.onContextMenuEvent);
+        // capture: the tool's keys (Enter, Esc, Delete, ...) must not reach the editor shortcuts
+        window.addEventListener("keydown", this.onToolKey, { capture: true });
+        window.addEventListener("keyup", this.onToolKey, { capture: true });
         window.addEventListener("keydown", this.onKey);
         window.addEventListener("keyup", this.onKey);
 
@@ -228,7 +248,51 @@ export class EditorOverlay {
     // public API
 
     public get isDragging(): boolean {
-        return this.drag !== null;
+        return this.drag !== null || !!this.activeTool?.isDragging;
+    }
+
+    /**
+     * Starts the LED strip path tool for a strip (feature 003, T050–T052): `drawing` replaces its path on finish
+     * (`isNew`: the strip was just created and is removed again on cancel), `editing` shows the point handles.
+     * A running tool is left first. Returns false if the object is not an LED strip.
+     */
+    public startStripTool(objectId: string, mode: StripPathToolMode, options: { isNew?: boolean } = {}): boolean {
+        const obj = this.store.scene.objects[objectId];
+        if (!obj || !isFixtureVisualization(obj) || obj.visualizationType !== VisualizationType.LED_STRIP || !this.view.getObject3D(objectId)) {
+            return false;
+        }
+        this.stopTool();
+        this.cancelDrag();
+        if (this.attachedEndpoint) {
+            this.detachEndpoint();
+        }
+        if (mode === "editing" && !(this.store.selection.length === 1 && this.store.selection[0] === objectId)) {
+            this.store.select([objectId]);
+        }
+        const tool = new StripPathTool({
+            view: this.view,
+            store: this.store,
+            setHint: (text) => (this.snapHint.value = text),
+            setCursor: (cursor) => (this.view.canvas.style.cursor = cursor),
+            onEnd: (ended) => this.onToolEnd(ended),
+        });
+        this.activeTool = tool;
+        this.toolState.value = { objectId, mode };
+        this.transform.detach();
+        this.clearEndpointHandles();
+        if (mode === "drawing") {
+            tool.start(objectId, { isNew: !!options.isNew });
+        } else {
+            tool.startEditing(objectId);
+        }
+        // keys go to the viewport, not to the button that started the tool
+        this.container.focus({ preventScroll: true });
+        return true;
+    }
+
+    /** Leaves the running tool (a drawing is cancelled). */
+    public stopTool() {
+        this.activeTool?.leave();
     }
 
     public getLastSurfaceHit() {
@@ -336,6 +400,10 @@ export class EditorOverlay {
      * Cancels a running handle drag without a history entry (Escape or undo). Returns true if a drag was running.
      */
     public cancelDrag(): boolean {
+        if (this.activeTool?.cancelDrag()) {
+            this.releaseToolPointer();
+            return true;
+        }
         if (!this.drag) {
             return false;
         }
@@ -362,9 +430,15 @@ export class EditorOverlay {
         }
         this.disposed = true;
         clearTimeout(this.persistTimeout);
+        this.activeTool?.dispose();
+        this.activeTool = null;
+        this.toolState.value = null;
         this.assetDrop.dispose();
         this.snapHighlight.dispose();
         const canvas = this.view.canvas;
+        canvas.removeEventListener("pointerdown", this.onToolPointerDown, { capture: true });
+        window.removeEventListener("keydown", this.onToolKey, { capture: true });
+        window.removeEventListener("keyup", this.onToolKey, { capture: true });
         canvas.removeEventListener("pointerdown", this.onPointerDown);
         canvas.removeEventListener("pointerup", this.onPointerUp);
         canvas.removeEventListener("pointermove", this.onPointerMove);
@@ -733,11 +807,22 @@ export class EditorOverlay {
         if (event.buttons === 0) {
             this.updateSurfaceHit(event);
         }
+        this.activeTool?.onPointerMove(this.ndcFromEvent(event), event);
     };
 
     private readonly onPointerUp = (event: PointerEvent) => {
         const down = this.pointerDown;
         this.pointerDown = null;
+        if (this.activeTool) {
+            // the tool takes every click; selection clicks are off while it runs
+            const isClick =
+                !!down && down.button === event.button && event.button === 0 && Math.hypot(event.clientX - down.x, event.clientY - down.y) < CLICK_THRESHOLD_PX;
+            if (event.button === 0 || this.activeTool.isDragging) {
+                this.activeTool.onPointerUp(this.ndcFromEvent(event), event, isClick);
+            }
+            this.releaseToolPointer();
+            return;
+        }
         if (!down || down.button !== event.button || down.ignore || this.drag) {
             return;
         }
@@ -764,13 +849,68 @@ export class EditorOverlay {
     };
 
     private readonly onDoubleClick = (event: MouseEvent) => {
+        if (this.activeTool) {
+            this.activeTool.onDoubleClick();
+            return;
+        }
         if (this.pickObjectId(event)) {
             this.focusSelection();
         }
     };
 
+    // -----------------------------------------------------------------------------------------------------------
+    // LED strip path tool (feature 003, T052)
+
+    private readonly onToolPointerDown = (event: PointerEvent) => {
+        const tool = this.activeTool;
+        if (!tool || event.button !== 0) {
+            return;
+        }
+        if (tool.onPointerDown(this.ndcFromEvent(event))) {
+            // a handle press: the orbit controls must not rotate the camera
+            this.controls.enabled = false;
+            this.toolPointerId = event.pointerId;
+            this.view.canvas.setPointerCapture(event.pointerId);
+        }
+    };
+
+    private releaseToolPointer() {
+        if (this.toolPointerId !== null) {
+            if (this.view.canvas.hasPointerCapture(this.toolPointerId)) {
+                this.view.canvas.releasePointerCapture(this.toolPointerId);
+            }
+            this.toolPointerId = null;
+        }
+        this.controls.enabled = true;
+    }
+
+    private readonly onToolKey = (event: KeyboardEvent) => {
+        const tool = this.activeTool;
+        if (!tool || !this.view.active || isTextInput(event.target) || isTextInput(document.activeElement)) {
+            return;
+        }
+        if (tool.onKey(event)) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    };
+
+    private onToolEnd(tool: StripPathTool) {
+        if (this.activeTool !== tool) {
+            return;
+        }
+        this.activeTool = null;
+        this.toolState.value = null;
+        this.releaseToolPointer();
+        this.syncEndpointHandles();
+        this.refreshAttachment();
+    }
+
     private readonly onContextMenuEvent = (event: MouseEvent) => {
         event.preventDefault();
+        if (this.activeTool) {
+            return;
+        }
         const down = this.lastRightDown;
         // a right drag pans the camera, only a plain click opens the menu
         if (down && Math.hypot(event.clientX - down.x, event.clientY - down.y) >= CLICK_THRESHOLD_PX) {
@@ -811,6 +951,7 @@ export class EditorOverlay {
     };
 
     private onSelectionChanged() {
+        this.activeTool?.onSelectionChanged(this.store.selection);
         if (this.attachedEndpoint && !(this.store.selection.length === 1 && this.store.selection[0] === this.endpointObjectId)) {
             this.detachEndpoint();
         }
@@ -842,7 +983,8 @@ export class EditorOverlay {
         }
         this.transform.setMode(this.store.transformMode);
         this.transform.setSpace(this.store.scene.settings.transformSpace);
-        if (this.attachedEndpoint) {
+        // transform gizmos are hidden while a path is drawn or edited
+        if (this.attachedEndpoint || this.activeTool) {
             this.transform.detach();
             return;
         }
@@ -1035,7 +1177,7 @@ export class EditorOverlay {
 
     private showSnap(snap: SnapResult | null) {
         this.snapHighlight.show(snap?.highlight ?? null);
-        this.snapHint.value = snap?.label ?? null;
+        this.snapHint.value = snap?.label ?? this.activeTool?.hint ?? null;
     }
 
     /** Library drag: fixtures mount, truss elements connect; Ctrl disables both (FR-043). */
@@ -1136,7 +1278,8 @@ export class EditorOverlay {
     }
 
     private syncEndpointHandles() {
-        const id = this.selectedLedStripId();
+        // the path tool shows its own handles
+        const id = this.activeTool ? null : this.selectedLedStripId();
         if (id === this.endpointObjectId && (id === null || this.endpointHandles.length === 2)) {
             return;
         }
@@ -1219,6 +1362,7 @@ export class EditorOverlay {
     private readonly beforeRender = () => {
         this.updateAnimation();
         this.controls.update();
+        this.activeTool?.update();
         if (this.attachedEndpoint === null) {
             this.positionEndpointHandles();
         }

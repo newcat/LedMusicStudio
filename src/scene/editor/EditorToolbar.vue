@@ -2,6 +2,15 @@
     <div class="editor-toolbar">
         <Button outlined size="small" icon="mdi mdi-plus" label="Add" @click="addMenu?.toggle($event)" />
         <Menu ref="addMenu" :model="addItems" popup />
+        <Button
+            v-tooltip.bottom="'Draw LED strip'"
+            size="small"
+            icon="mdi mdi-led-strip-variant"
+            aria-label="Draw LED strip"
+            :outlined="overlay?.toolState.value?.mode !== 'drawing'"
+            :disabled="!overlay"
+            @click="$emit('drawStrip')"
+        />
 
         <span class="separator"></span>
         <Button
@@ -93,6 +102,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     add: [kind: AddKind];
+    drawStrip: [];
     undo: [];
     redo: [];
 }>();

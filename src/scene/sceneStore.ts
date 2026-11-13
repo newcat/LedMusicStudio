@@ -569,6 +569,53 @@ export const useScene = defineStore("scene", () => {
         return true;
     }
 
+    /**
+     * Creates an unlinked fixture visualization of `type` with the type's default model, named after the type
+     * ("LED strip N" for strips), at the scene origin (feature 003, T052). Selects it and returns its id.
+     */
+    function addUnlinkedFixtureVisualization(type: VisualizationType): string {
+        const visualization = getVisualizationByType(type);
+        const modelFields = modelForType(undefined, type, false);
+        const config = withModelRanges(
+            type,
+            visualization.defaultConfig(undefined as never, modelFields.modelId) as FixtureVisualizationObject["config"],
+            modelFields.modelId
+        );
+        const baseName = type === VisualizationType.LED_STRIP ? "LED strip" : type;
+        const obj = createFixtureVisualizationObject(null, type, config, nextObjectName(scene.value, baseName), modelFields);
+        addObjects([obj], null, `Add ${baseName}`);
+        select([obj.id]);
+        return obj.id;
+    }
+
+    /** True if the most recent history entry created `objectId`. */
+    function isAddEntry(entry: { before: ObjectStates; after: ObjectStates } | undefined, objectId: string): boolean {
+        return !!entry && entry.before[objectId] === null && !!entry.after[objectId];
+    }
+
+    /**
+     * Cancels the creation of an object (strip drawing tool, Esc on a new strip): the object is removed without a
+     * history entry, and its add entry is dropped from the history if it is the most recent one.
+     */
+    function discardAddedObject(objectId: string) {
+        if (isAddEntry(history.top, objectId)) {
+            history.discardTop();
+            bumpHistory();
+        }
+        removeObjectsWithoutHistory([objectId]);
+    }
+
+    /**
+     * Combines the most recent entry with the add entry of `objectId` directly below it, so creating and first
+     * editing a new object is one undo step (strip drawing tool: "Draw LED strip").
+     */
+    function mergeWithAddEntry(objectId: string, label: string) {
+        if (isAddEntry(history.belowTop, objectId) && history.top && objectId in history.top.after) {
+            history.mergeTopTwo(label);
+            bumpHistory();
+        }
+    }
+
     // preview API for drags ----------------------------------------------------------------------------------
 
     /** Updates state and sinks without a history entry. */
@@ -1197,6 +1244,9 @@ export const useScene = defineStore("scene", () => {
         resetModelScale,
         linkFixture,
         setStripPath,
+        addUnlinkedFixtureVisualization,
+        discardAddedObject,
+        mergeWithAddEntry,
         // shapes, groups, clipboard
         addShape,
         addGroup,

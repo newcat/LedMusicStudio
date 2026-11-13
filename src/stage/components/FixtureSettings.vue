@@ -32,6 +32,7 @@
                 :config="visObject.config"
                 :controller="visController"
                 :model-id="visObject.modelId"
+                :object-id="visObject.id"
                 @update:config="updateConfig"
             />
         </template>

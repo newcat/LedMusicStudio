@@ -60,6 +60,45 @@ export class SceneHistory {
         return entry;
     }
 
+    /** Entry below the most recent one. */
+    public get belowTop(): HistoryEntry | undefined {
+        return this.undoStack[this.undoStack.length - 2];
+    }
+
+    /** Drops the most recent entry without making it redoable (its change is reverted by the caller). */
+    public discardTop(): HistoryEntry | undefined {
+        return this.undoStack.pop();
+    }
+
+    /** Combines the two most recent entries into one with the given label. */
+    public mergeTopTwo(label: string) {
+        if (this.undoStack.length < 2) {
+            return;
+        }
+        const newer = this.undoStack.pop()!;
+        const older = this.undoStack.pop()!;
+        const before = { ...older.before };
+        for (const [id, state] of Object.entries(newer.before)) {
+            if (!(id in before)) {
+                before[id] = state;
+            }
+        }
+        this.undoStack.push({
+            label,
+            before,
+            after: { ...older.after, ...newer.after },
+            rootOrderBefore: older.rootOrderBefore,
+            rootOrderAfter: newer.rootOrderAfter,
+            ...(older.environmentBefore || newer.environmentBefore
+                ? {
+                      environmentBefore: older.environmentBefore ?? newer.environmentBefore,
+                      environmentAfter: newer.environmentAfter ?? older.environmentAfter,
+                  }
+                : {}),
+            time: newer.time,
+        });
+    }
+
     public clear() {
         this.undoStack = [];
         this.redoStack = [];

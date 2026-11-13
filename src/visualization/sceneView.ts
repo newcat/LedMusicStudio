@@ -34,6 +34,15 @@ const MAX_FRAME_DT = 0.1;
 /** Window of the rolling frame rate average, in milliseconds. */
 const FPS_WINDOW_MS = 500;
 const EMPTY_VALUE = new Uint8Array(0);
+const FLOOR_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const surfaceRaycaster = new THREE.Raycaster();
+
+/** Result of `SceneView.raycastSurfaces`: world point and normal; `objectId` is null on the floor plane fallback. */
+export interface SurfaceHit {
+    point: THREE.Vector3;
+    normal: THREE.Vector3;
+    objectId: string | null;
+}
 
 export interface SceneViewOptions {
     showEditorProxies: boolean;
@@ -385,6 +394,31 @@ export class SceneView {
      */
     public getRaycastTargetsVersion(): number {
         return this.raycastVersion;
+    }
+
+    /**
+     * Surface under the given normalized device coordinates (feature 003, T050): the first hit of the raycast
+     * targets with its world normal and scene object id. Misses fall back to the floor plane y = 0 (normal +Y,
+     * object id null); returns null only if the ray does not reach the floor either.
+     */
+    public raycastSurfaces(ndc: { x: number; y: number }): SurfaceHit | null {
+        surfaceRaycaster.setFromCamera(new THREE.Vector2(ndc.x, ndc.y), this.camera);
+        this.root.updateMatrixWorld();
+        const hit = surfaceRaycaster.intersectObjects(this.getRaycastTargets() as THREE.Object3D[], false)[0];
+        if (hit) {
+            const normal = hit.face ? hit.face.normal.clone().transformDirection(hit.object.matrixWorld) : new THREE.Vector3(0, 1, 0);
+            // back faces of double-sided materials: the clicked side faces the camera
+            if (normal.dot(surfaceRaycaster.ray.direction) > 0) {
+                normal.negate();
+            }
+            let id: string | null = null;
+            for (let o: THREE.Object3D | null = hit.object; o && !id; o = o.parent) {
+                id = (o.userData[SCENE_OBJECT_ID] as string | undefined) ?? null;
+            }
+            return { point: hit.point.clone(), normal, objectId: id };
+        }
+        const point = surfaceRaycaster.ray.intersectPlane(FLOOR_PLANE, new THREE.Vector3());
+        return point ? { point, normal: new THREE.Vector3(0, 1, 0), objectId: null } : null;
     }
 
     private invalidateRaycastTargets() {

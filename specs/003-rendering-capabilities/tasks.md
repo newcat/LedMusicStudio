@@ -421,7 +421,7 @@ After this phase the app works as before (beams, strips, generic), but on the ne
   - **Editor proxy**: keep the direction arrow at the path midpoint along its normal.
   - Delete `src/visualization/fixtureVisualizations/ledStrip/test.html` and `src/visualization/fixtureVisualizations/ledStrip/test.js`.
 - [X] T049 [US4] Add `setStripPath(objectId, path: StripPath, label = "Edit LED strip path")` to `src/scene/sceneStore.ts`. It validates per data-model §3 (≥ 2 distinct points, finite coordinates, normalized normals), writes `config.path` through `updateObjects` (undoable), and supports the preview/commit path (`previewPatches` + `commitPreview`) for drags.
-- [ ] T050 [US4] Create `src/scene/editor/stripPathTool.ts`, the drawing state machine (data-model §6, contracts/rendering-ui.md "LED strip drawing tool"):
+- [X] T050 [US4] Create `src/scene/editor/stripPathTool.ts`, the drawing state machine (data-model §6, contracts/rendering-ui.md "LED strip drawing tool"):
   - `start(objectId, { isNew })`.
   - Click → raycast surfaces with `view.raycastSurfaces(ndc)` (add it to `src/visualization/sceneView.ts`: it raycasts `raycastTargets` and returns the point, world normal and object id; it falls back to the floor plane y = 0 with normal +Y), then append a point offset "5 mm along the surface normal", converted to the object's local frame.
   - Shift locks the segment to the closest world axis. Backspace removes the last point.
@@ -429,13 +429,13 @@ After this phase the app works as before (beams, strips, generic), but on the ne
   - Esc cancels: a new strip is removed with `removeObjectsWithoutHistory` and its add is undone via history; an existing strip keeps its path.
   - The ghost segment is a `THREE.Line` on `EDITOR_LAYER`, following the cursor (curve preview when smooth).
   - Status hint text: "Click to add points · Shift: straight · Backspace: undo point · Enter/double-click: finish · Esc: cancel".
-- [ ] T051 [US4] Add path editing mode to `src/scene/editor/stripPathTool.ts`:
+- [X] T051 [US4] Add path editing mode to `src/scene/editor/stripPathTool.ts`:
   - Yellow sphere handles at the points and grey midpoint handles on `EDITOR_LAYER`.
   - Dragging a point slides it along surfaces with `previewPatches`, and commits one undo step on release.
   - Clicking a midpoint inserts a point. Delete/Backspace removes the selected point ("min 2").
   - Esc or clicking empty space leaves the mode.
-- [ ] T052 [US4] Host the tool in `src/scene/editor/editorOverlay.ts`: `activeTool: StripPathTool | null`. While a tool is active, it receives pointer and keyboard events first, the transform gizmo is hidden, selection clicks are disabled, and its hint is shown through the existing `snapHint` channel. Add the toolbar button "Draw LED strip" (icon `mdi mdi-led-strip-variant`) to `src/scene/editor/EditorToolbar.vue`. It creates an unlinked LED strip visualization named "LED strip N" (via `addFixtureModel` or a new `addUnlinkedFixtureVisualization(VisualizationType.LED_STRIP)` in `src/scene/sceneStore.ts`) and starts the tool with `isNew: true`.
-- [ ] T053 [US4] Rewrite `src/visualization/fixtureVisualizations/ledStrip/LedStripVisualizationSettings.vue` (props now include the object id):
+- [X] T052 [US4] Host the tool in `src/scene/editor/editorOverlay.ts`: `activeTool: StripPathTool | null`. While a tool is active, it receives pointer and keyboard events first, the transform gizmo is hidden, selection clicks are disabled, and its hint is shown through the existing `snapHint` channel. Add the toolbar button "Draw LED strip" (icon `mdi mdi-led-strip-variant`) to `src/scene/editor/EditorToolbar.vue`. It creates an unlinked LED strip visualization named "LED strip N" (via `addFixtureModel` or a new `addUnlinkedFixtureVisualization(VisualizationType.LED_STRIP)` in `src/scene/sceneStore.ts`) and starts the tool with `isNew: true`.
+- [X] T053 [US4] Rewrite `src/visualization/fixtureVisualizations/ledStrip/LedStripVisualizationSettings.vue` (props now include the object id):
   - "Draw path" / "Edit path" buttons, which call the editor overlay through a small injected API, `provide("stripPathTool", …)` in `src/scene/editor/SceneEditor.vue`.
   - Path info "N points · L m".
   - Interpolation `Select` ("Straight segments" / "Smooth curve"), a "Closed loop" checkbox, a pixel size `Slider` (0.2…1) and intensity.
