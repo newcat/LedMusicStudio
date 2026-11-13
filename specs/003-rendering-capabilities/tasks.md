@@ -404,7 +404,7 @@ After this phase the app works as before (beams, strips, generic), but on the ne
 
 **Independent Test**: a 300-pixel strip drawn around a platform edge, running a chase: each pixel lights individually and in order (quickstart Q17–Q19).
 
-- [ ] T047 [P] [US4] Create `src/visualization/fixtureVisualizations/ledStrip/stripPath.ts`:
+- [X] T047 [P] [US4] Create `src/visualization/fixtureVisualizations/ledStrip/stripPath.ts`:
   - `class StripPathSampler { constructor(path: StripPath); readonly length: number; sample(t: number, outPos, outNormal) }`:
     - `linear`: straight segments; `curve`: `THREE.CatmullRomCurve3` with `curveType "centripetal"`, `closed` per the path.
     - An arc-length table with "16 samples per segment".
@@ -412,7 +412,7 @@ After this phase the app works as before (beams, strips, generic), but on the ne
   - `pixelPositions(sampler, n, outPositions: Float32Array, outNormals: Float32Array)` places pixel i at arc length `(i + 0.5)/N · L`.
   - "A total length < 1 cm → pixels are placed at the first point."
   - "N = round(length × 30)" when unlinked.
-- [ ] T048 [US4] Rewrite `src/visualization/fixtureVisualizations/ledStrip/ledStrip.renderer.ts`:
+- [X] T048 [US4] Rewrite `src/visualization/fixtureVisualizations/ledStrip/ledStrip.renderer.ts`:
   - **Value**: the RGB byte triplets (`Uint8Array`). N = `value.length / 3`, or `round(length × 30)` if there is no value.
   - **Pixels**: one `THREE.Points` with a `BufferGeometry` (position Float32, color `Uint8BufferAttribute` normalized), and a `ShaderMaterial` that draws round soft points with size in world units = pitch × `config.pixelSize`, at least 1.5 px on screen. Additive, `toneMapped: false`, `depthWrite: false`. Points layer → `NO_SHADOW_LAYER`. The color attribute is updated from the value bytes with `intensity` applied, with no `Color[]` copies.
   - **Positions**: object-local, recomputed when the path or N changes.
@@ -420,7 +420,7 @@ After this phase the app works as before (beams, strips, generic), but on the ne
   - **Lighting**: register with `SurfaceLighting.addStrip`, supplying world positions/normals (transformed each frame only when `matrixWorld` changed) and the color bytes.
   - **Editor proxy**: keep the direction arrow at the path midpoint along its normal.
   - Delete `src/visualization/fixtureVisualizations/ledStrip/test.html` and `src/visualization/fixtureVisualizations/ledStrip/test.js`.
-- [ ] T049 [US4] Add `setStripPath(objectId, path: StripPath, label = "Edit LED strip path")` to `src/scene/sceneStore.ts`. It validates per data-model §3 (≥ 2 distinct points, finite coordinates, normalized normals), writes `config.path` through `updateObjects` (undoable), and supports the preview/commit path (`previewPatches` + `commitPreview`) for drags.
+- [X] T049 [US4] Add `setStripPath(objectId, path: StripPath, label = "Edit LED strip path")` to `src/scene/sceneStore.ts`. It validates per data-model §3 (≥ 2 distinct points, finite coordinates, normalized normals), writes `config.path` through `updateObjects` (undoable), and supports the preview/commit path (`previewPatches` + `commitPreview`) for drags.
 - [ ] T050 [US4] Create `src/scene/editor/stripPathTool.ts`, the drawing state machine (data-model §6, contracts/rendering-ui.md "LED strip drawing tool"):
   - `start(objectId, { isNew })`.
   - Click → raycast surfaces with `view.raycastSurfaces(ndc)` (add it to `src/visualization/sceneView.ts`: it raycasts `raycastTargets` and returns the point, world normal and object id; it falls back to the floor plane y = 0 with normal +Y), then append a point offset "5 mm along the surface normal", converted to the object's local frame.
@@ -441,14 +441,14 @@ After this phase the app works as before (beams, strips, generic), but on the ne
   - Interpolation `Select` ("Straight segments" / "Smooth curve"), a "Closed loop" checkbox, a pixel size `Slider` (0.2…1) and intensity.
   - The read-only pixel count from the linked fixture ("300 pixels, 62 per meter").
   - Path changes go through `setStripPath`.
-- [ ] T054 [P] [US4] Extend `src/assetLibrary/fixtureBody.ts` (contracts/renderer-api.ts `FixtureBodyDelta`):
+- [X] T054 [P] [US4] Extend `src/assetLibrary/fixtureBody.ts` (contracts/renderer-api.ts `FixtureBodyDelta`):
   - `emitterIds: readonly string[]` in description order.
   - `setCellColors(colors: Float32Array)`: for merged emitters, write each emitter's RGB into its vertex range of the merged color attribute (`needsUpdate` once per merged mesh) and hide individually created meshes; for individual meshes, set `material.color`.
-- [ ] T055 [US4] Create `src/visualization/capabilities/cellState.ts`. `decodeCells(mapping, values, emitterIds, fixtureColor, intensity): CellState`:
+- [X] T055 [US4] Create `src/visualization/capabilities/cellState.ts`. `decodeCells(mapping, values, emitterIds, fixtureColor, intensity): CellState`:
   - Per `CellMapping`, the color mix comes from its channels with the same additive constants as the beam pipeline. A cell without color channels uses the fixture color. A cell dimmer (if mapped) multiplies the fixture `intensity` (dimmer × shutter gate).
   - Write into a `Float32Array` in emitter order: "With more pixels than emitters, the emitter shows the average of its pixels. With fewer, the remaining emitters copy the nearest pixel." If the model has no `cell-*` emitters, all emitters show the average.
   - `average` = mean × intensity.
-- [ ] T056 [US4] Rewrite `src/visualization/fixtureVisualizations/generic/generic.renderer.ts`:
+- [X] T056 [US4] Rewrite `src/visualization/fixtureVisualizations/generic/generic.renderer.ts`:
   - **Per frame**: decode the fixture color (additive keys, white when none is mapped), the dimmer (default 1) and `ShutterGate` (default open), then `decodeCells`.
   - **Emitters**: `body.setCellColors(colors × 4)` when cells exist, else `setEmitterColor("all", …)`.
   - **Surface light**: when `config.surfaceLight` is set, one `spot` light from the body's beam anchor (or the model root, +Y), with `angle = lightAngle`, `softness 0.8`, `range 15` and the average color. Removed when unchecked.

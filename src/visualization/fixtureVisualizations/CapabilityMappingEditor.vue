@@ -202,6 +202,9 @@
                         </tr>
                     </tbody>
                 </table>
+                <div v-if="emitterCount !== undefined && mapping.cells.length !== emitterCount" class="text-sm opacity-70">
+                    {{ mapping.cells.length }} pixels are spread over {{ emitterCount }} model cells.
+                </div>
             </section>
 
             <div v-if="unmapped.length > 0" class="text-sm opacity-70">
@@ -255,6 +258,8 @@ const props = defineProps<{
     controller: FixtureVisualizationController<DmxFixture>;
     /** Model of the visualization object: its limits are the fallback ranges of Auto-Assign. */
     modelId?: string;
+    /** Number of `cell-*` emitters of the model; shows the cell-spread hint when it differs from the pixel count. */
+    emitterCount?: number;
 }>();
 
 const emit = defineEmits<{

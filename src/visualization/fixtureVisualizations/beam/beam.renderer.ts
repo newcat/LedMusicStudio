@@ -10,7 +10,7 @@ import type { CapabilityChannel } from "../../capabilities/types";
 import { NO_SHADOW_LAYER } from "../../layers";
 import type { LightHandle } from "../../lighting/surfaceLighting";
 import { BaseRenderer, type FrameContext, type RendererInputs } from "../base.renderer";
-import { isInVisibleHierarchy } from "../interimColor";
+import { isInVisibleHierarchy } from "../visibility";
 import { createBeamGeometry, createBeamMaterial, MAX_PRISM_FACETS, setBeamFacets, type BeamMaterial } from "./beamMaterial";
 import { defaultMovement, type BeamVisualizationConfig } from "./types";
 

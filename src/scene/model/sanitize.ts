@@ -368,9 +368,26 @@ function isFiniteVec3(v: unknown): v is Vec3 {
 
 /** Path rule: finite points, normalized normals (zero → +Y), at least 2 distinct points or the default path. */
 function sanitizeStripPath(raw: unknown, fix: RepairTracker): StripPath {
-    if (!isRec(raw) || !Array.isArray(raw.points)) {
+    const path = normalizeStripPath(raw, fix);
+    if (!path) {
         fix.flag(true);
         return defaultStripPath();
+    }
+    return path;
+}
+
+/**
+ * Validates a strip path (data-model §3): points with non-finite coordinates are dropped, normals are normalized
+ * (zero or invalid → +Y). Returns null when fewer than 2 distinct points remain. Used by the load rules and by the
+ * `setStripPath` command.
+ */
+export function validateStripPath(raw: unknown): StripPath | null {
+    return normalizeStripPath(raw, new RepairTracker());
+}
+
+function normalizeStripPath(raw: unknown, fix: RepairTracker): StripPath | null {
+    if (!isRec(raw) || !Array.isArray(raw.points)) {
+        return null;
     }
     const points: StripPathPoint[] = [];
     for (const p of raw.points) {
@@ -393,8 +410,7 @@ function sanitizeStripPath(raw: unknown, fix: RepairTracker): StripPath {
     const first = points[0]?.position;
     const distinct = !!first && points.some((p) => p.position[0] !== first[0] || p.position[1] !== first[1] || p.position[2] !== first[2]);
     if (!distinct) {
-        fix.flag(true);
-        return defaultStripPath();
+        return null;
     }
     if (raw.interpolation !== "linear" && raw.interpolation !== "curve") {
         fix.flag(true);

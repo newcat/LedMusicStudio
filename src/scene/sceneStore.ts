@@ -52,7 +52,8 @@ import type {
     ShapeType,
     Vec3,
 } from "./model/types";
-import { sanitizeEnvironment } from "./model/sanitize";
+import { sanitizeEnvironment, validateStripPath } from "./model/sanitize";
+import type { LedStripVisualizationConfig, StripPath } from "@/visualization/fixtureVisualizations/ledStrip/types";
 import { emitSceneToast } from "./toastBus";
 import { isFixtureVisualization, isLibraryAsset, isShape } from "./model/types";
 
@@ -540,6 +541,31 @@ export const useScene = defineStore("scene", () => {
             }
         }
         updateObjects({ [objectId]: { fixtureId } as Partial<SceneObject> }, "Link fixture");
+        return true;
+    }
+
+    /**
+     * Sets the path of an LED strip visualization (feature 003, T049). The path is validated per data-model §3
+     * (finite coordinates, normalized normals, at least 2 distinct points); an invalid path changes nothing and
+     * returns false. With `preview`, the change is applied without a history entry (drags: `captureBeforeStates`,
+     * then `setStripPath(..., { preview: true })` per move, then `commitPreview(before, label)`).
+     */
+    function setStripPath(objectId: string, path: StripPath, label = "Edit LED strip path", options?: { preview?: boolean }): boolean {
+        const obj = scene.value.objects[objectId];
+        if (!obj || !isFixtureVisualization(obj) || obj.visualizationType !== VisualizationType.LED_STRIP) {
+            return false;
+        }
+        const valid = validateStripPath(structuredClone(toRaw(path)));
+        if (!valid) {
+            return false;
+        }
+        const config: LedStripVisualizationConfig = { ...(toRaw(obj.config) as LedStripVisualizationConfig), path: valid };
+        const patches = { [objectId]: { config } as Partial<SceneObject> };
+        if (options?.preview) {
+            previewPatches(patches);
+        } else {
+            updateObjects(patches, label);
+        }
         return true;
     }
 
@@ -1170,6 +1196,7 @@ export const useScene = defineStore("scene", () => {
         setFixtureModel,
         resetModelScale,
         linkFixture,
+        setStripPath,
         // shapes, groups, clipboard
         addShape,
         addGroup,

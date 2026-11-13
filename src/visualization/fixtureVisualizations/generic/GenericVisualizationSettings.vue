@@ -9,12 +9,13 @@
         </LabelledFormField>
     </div>
     <Fieldset legend="Capability Mapping" toggleable>
-        <CapabilityMappingEditor v-model:mapping="config.mapping" :type="controller.type" :controller="controller" :model-id="modelId" />
+        <CapabilityMappingEditor v-model:mapping="config.mapping" :type="controller.type" :controller="controller" :model-id="modelId" :emitter-count="cellEmitterCount" />
         <div class="text-sm opacity-70 mt-2">White when no color channel is mapped, full output when no dimmer channel is mapped.</div>
     </Fieldset>
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import Checkbox from "primevue/checkbox";
 import Fieldset from "primevue/fieldset";
 import InputNumber from "primevue/inputnumber";
@@ -24,17 +25,24 @@ import { DmxFixture } from "@/stage";
 import { FixtureVisualizationController } from "@/visualization/fixtureVisualizationController";
 import { useLiveConfig } from "../useLiveConfig";
 import CapabilityMappingEditor from "../CapabilityMappingEditor.vue";
+import { fixtureModelOf } from "../defaultMapping";
 import { GenericVisualizationConfig } from "./types";
 
 defineOptions({ inheritAttrs: false });
 
 const rawConfig = defineModel<GenericVisualizationConfig>("config", { required: true });
 
-defineProps<{
+const props = defineProps<{
     controller: FixtureVisualizationController<DmxFixture>;
     /** Model of the visualization object (Auto-Assign fallbacks). */
     modelId?: string;
 }>();
 
 const config = useLiveConfig(rawConfig, (value) => (rawConfig.value = value));
+
+/** `cell-*` emitters of the model (decodeCells binds the pixels to these). */
+const cellEmitterCount = computed(() => {
+    const model = fixtureModelOf(props.modelId);
+    return model ? model.fixture.emitters.filter((emitter) => emitter.id.startsWith("cell-")).length : undefined;
+});
 </script>

@@ -71,11 +71,14 @@ export class FixtureBody extends THREE.Group {
     public readonly beamAnchor = new THREE.Object3D();
     /** Per-emitter meshes; created lazily when the body uses merged emitters. */
     public readonly emitters = new Map<string, THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>>();
+    /** Emitter ids in description order; index i corresponds to colors[3i..3i+2] of setCellColors. */
+    public readonly emitterIds: readonly string[];
 
     private readonly scaleGroup = new THREE.Group();
     private readonly pan: MovingNode | null;
     private readonly tilt: MovingNode | null;
     private readonly emitterById = new Map<string, Emitter>();
+    private readonly emitterIndex = new Map<string, number>();
     private readonly merged: MergedEmitters[] = [];
     private readonly quaternion1 = new THREE.Quaternion();
 
@@ -102,9 +105,11 @@ export class FixtureBody extends THREE.Group {
             this.model.add(this.beamAnchor);
         }
 
-        for (const emitter of description.emitters) {
+        this.emitterIds = description.emitters.map((emitter) => emitter.id);
+        description.emitters.forEach((emitter, index) => {
             this.emitterById.set(emitter.id, emitter);
-        }
+            this.emitterIndex.set(emitter.id, index);
+        });
         if (description.emitters.length > EMITTER_MERGE_THRESHOLD) {
             this.buildMergedEmitters(description.emitters);
         } else {
@@ -152,6 +157,39 @@ export class FixtureBody extends THREE.Group {
         }
         mesh.material.color.setRGB(r, g, b);
         mesh.visible = true;
+    }
+
+    /**
+     * Writes all emitter colors at once; `colors` holds RGB per emitter in `emitterIds` order. Values above 1 bloom.
+     * Merged emitters get their RGB written into their vertex range; individual meshes take it as material color.
+     */
+    public setCellColors(colors: Float32Array) {
+        if (this.merged.length > 0) {
+            for (const merged of this.merged) {
+                const attribute = merged.mesh.geometry.getAttribute("color") as THREE.BufferAttribute;
+                for (const [id, range] of merged.ranges) {
+                    const index = this.emitterIndex.get(id);
+                    if (index === undefined) {
+                        continue;
+                    }
+                    const r = colors[3 * index];
+                    const g = colors[3 * index + 1];
+                    const b = colors[3 * index + 2];
+                    for (let v = range.start; v < range.start + range.count; v++) {
+                        attribute.setXYZ(v, r, g, b);
+                    }
+                }
+                attribute.needsUpdate = true;
+            }
+            // individually set cells follow the merged values again
+            for (const mesh of this.emitters.values()) {
+                mesh.visible = false;
+            }
+            return;
+        }
+        this.emitterIds.forEach((id, index) => {
+            this.emitters.get(id)?.material.color.setRGB(colors[3 * index], colors[3 * index + 1], colors[3 * index + 2]);
+        });
     }
 
     /** Uniform scale of the body (the object's own transform stays the user's). */
