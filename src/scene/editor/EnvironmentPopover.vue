@@ -3,7 +3,7 @@
         <Button outlined size="small" icon="mdi mdi-weather-fog" label="Environment" @click="popover?.toggle($event)" />
         <Popover ref="popover">
             <div class="environment-panel">
-                <label class="field-label" for="environment-haze">Haze</label>
+                <label class="field-label" for="environment-haze">Haze (show window)</label>
                 <div class="haze-row">
                     <Slider id="environment-haze" v-model="hazePercent" :min="0" :max="100" :step="1" class="haze-slider" />
                     <InputNumber
@@ -28,6 +28,7 @@
                     <label class="field-label" :for="`environment-ambient-${view.kind}`">{{ view.label }}</label>
                     <div class="ambient-row">
                         <Select
+                            v-if="view.presets"
                             :input-id="`environment-ambient-${view.kind}`"
                             :model-value="environment.ambient[view.kind].preset"
                             :options="AMBIENT_PRESETS"
@@ -68,9 +69,10 @@ import { useScene } from "../sceneStore";
 
 type AmbientView = "editor" | "show";
 
-const AMBIENT_VIEWS: Array<{ kind: AmbientView; label: string }> = [
-    { kind: "editor", label: "Ambient – editor" },
-    { kind: "show", label: "Ambient – show window" },
+/** The editor always uses a neutral work light (only its brightness is adjustable); the show window uses presets. */
+const AMBIENT_VIEWS: Array<{ kind: AmbientView; label: string; presets: boolean }> = [
+    { kind: "editor", label: "Work light – editor", presets: false },
+    { kind: "show", label: "Ambient – show window", presets: true },
 ];
 
 const AMBIENT_PRESETS: Array<{ value: AmbientPreset; label: string }> = [

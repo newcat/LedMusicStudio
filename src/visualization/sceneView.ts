@@ -53,10 +53,25 @@ const FPS_WINDOW_MS = 500;
 const EMPTY_VALUE = new Uint8Array(0);
 const FLOOR_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const surfaceRaycaster = new THREE.Raycaster();
-/** Bloom settings of the view: strength, radius, threshold. */
-const BLOOM_STRENGTH = 0.3;
-const BLOOM_RADIUS = 0.0;
-const BLOOM_THRESHOLD = 0.5;
+/** Per view kind: tone-mapping exposure and bloom (strength, radius, threshold). */
+const VIEW_LOOK: Record<ViewKind, { exposure: number; bloomStrength: number; bloomRadius: number; bloomThreshold: number }> = {
+    // the show window is dark: fixtures, beams and haze carry the picture
+    show: { exposure: 4, bloomStrength: 0.3, bloomRadius: 0.0, bloomThreshold: 0.5 },
+    // the editor is for placing things: neutral exposure, only a hint of glow on the brightest emitters
+    editor: { exposure: 1, bloomStrength: 0.08, bloomRadius: 0.0, bloomThreshold: 0.9 },
+};
+
+/**
+ * Work light of the editor: an even hemisphere fill plus a key light that follows the camera (from above and
+ * slightly left of it), so surfaces facing the viewer are always lit and edges stay readable. Scaled by the editor
+ * ambient brightness.
+ */
+const WORK_LIGHT_SKY = 0xffffff;
+const WORK_LIGHT_GROUND = 0x5a5a5a;
+const WORK_LIGHT_FILL = 1.2;
+const WORK_LIGHT_KEY = 1.6;
+/** Key light offset in camera space (right, up, back). */
+const WORK_LIGHT_KEY_OFFSET = new THREE.Vector3(-0.5, 1, 0.3);
 
 /** Fragment shader markers of the programs whose compile failure triggers a fallback step (T072). */
 const FALLBACK_PROGRAM_MARKERS = [
@@ -205,6 +220,8 @@ export class SceneView {
     private readonly bloomPass: UnrealBloomPass;
     /** Ambient of this view (T077); color and intensity follow `environment.ambientFor(options.kind)`. */
     private readonly hemisphereLight = new THREE.HemisphereLight(0x000000, 0x000000, 0);
+    /** Editor only: key light that follows the camera (see WORK_LIGHT_*). */
+    private readonly workKeyLight: THREE.DirectionalLight | null;
     private readonly entries = new Map<string, ViewEntry>();
     /** states of all objects, needed for effective visibility */
     private readonly states: { objects: Record<string, SceneObject> } = { objects: {} };
@@ -257,11 +274,18 @@ export class SceneView {
         this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 4;
+        const look = VIEW_LOOK[options.kind];
+        this.renderer.toneMappingExposure = look.exposure;
         this.assets = new AssetCache(this.lighting);
 
         this.scene.add(this.root);
         this.scene.add(this.hemisphereLight);
+        if (options.kind === "editor") {
+            this.workKeyLight = new THREE.DirectionalLight(0xffffff, 0);
+            this.scene.add(this.workKeyLight, this.workKeyLight.target);
+        } else {
+            this.workKeyLight = null;
+        }
         this.applyAmbient();
         // non-shadow-casting objects (beams, emitters, ...) are visible in every view; only shadow cameras skip them
         this.camera.layers.enable(NO_SHADOW_LAYER);
@@ -291,7 +315,7 @@ export class SceneView {
         // bloom and composer targets follow the drawing-buffer size (FR-051); the composer target is replaced when
         // the MSAA sample count changes (applyQuality)
         const bufferSize = this.renderer.getDrawingBufferSize(new THREE.Vector2());
-        this.bloomPass = new UnrealBloomPass(bufferSize, BLOOM_STRENGTH, BLOOM_RADIUS, BLOOM_THRESHOLD, {
+        this.bloomPass = new UnrealBloomPass(bufferSize, look.bloomStrength, look.bloomRadius, look.bloomThreshold, {
             mips: this.quality.bloomMips,
             type: this.targetType,
         });
@@ -351,6 +375,17 @@ export class SceneView {
      * scene. Tone-mapping exposure is not touched.
      */
     private applyAmbient() {
+        if (this.workKeyLight) {
+            // editor: neutral work light instead of the show presets; only the brightness is used
+            const brightness = this.environment.ambientFor("editor").brightness;
+            const scale = Number.isFinite(brightness) ? Math.max(0, brightness) : 1;
+            this.hemisphereLight.color.set(WORK_LIGHT_SKY);
+            this.hemisphereLight.groundColor.set(WORK_LIGHT_GROUND);
+            this.hemisphereLight.intensity = WORK_LIGHT_FILL * scale;
+            this.workKeyLight.intensity = WORK_LIGHT_KEY * scale;
+            this.lighting.setAmbient(new THREE.Color(0, 0, 0));
+            return;
+        }
         const { sky, ground, intensity } = ambientLight(this.environment.ambientFor(this.options.kind));
         this.hemisphereLight.color.copy(sky);
         this.hemisphereLight.groundColor.copy(ground);
@@ -1040,13 +1075,15 @@ export class SceneView {
         for (const cb of this.beforeRenderCallbacks) {
             cb();
         }
+        this.updateWorkLight();
         this.scene.updateMatrixWorld();
         this.environment.update(dt);
         const frame: FrameContext = {
             time: (now - this.startTime) / 1000,
             dt,
             fps: this.fps,
-            haze: this.environment.haze,
+            // haze is a show-window effect; the editor stays clear for placing things
+            haze: this.options.kind === "editor" ? 0 : this.environment.haze,
             flashLimit: this.flashLimit,
             quality: this.quality,
         };
@@ -1062,6 +1099,17 @@ export class SceneView {
         for (const cb of this.afterRenderCallbacks) {
             cb();
         }
+    }
+
+    /** Editor: keeps the key light at a fixed offset from the camera, shining along the view direction. */
+    private updateWorkLight() {
+        const light = this.workKeyLight;
+        if (!light) {
+            return;
+        }
+        this.camera.updateMatrixWorld();
+        light.position.copy(WORK_LIGHT_KEY_OFFSET).applyMatrix4(this.camera.matrixWorld);
+        light.target.position.set(0, 0, -1).applyMatrix4(this.camera.matrixWorld);
     }
 
     /** Rolling average over FPS_WINDOW_MS; subscribers are notified once per window. */
