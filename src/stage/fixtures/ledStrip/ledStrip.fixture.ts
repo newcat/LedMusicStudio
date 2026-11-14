@@ -5,6 +5,9 @@ import { scaleColorArray } from "@/utils";
 import { BaseFixture, FixtureType } from "../base.fixture";
 import LedStripFixtureSettings from "./LedStripFixtureSettings.vue";
 
+/** LED count of a new strip fixture (60 LEDs = 1 m of a common 60 LED/m strip). */
+export const DEFAULT_NUM_LEDS = 60;
+
 interface LedStripFixtureConfiguration {
     numLeds: number;
 }
@@ -18,7 +21,8 @@ export class LedStripFixture extends BaseFixture<Color[], LedStripFixtureConfigu
     }
 
     constructor() {
-        super([[0, 0, 0]], { numLeds: 1 });
+        // a single LED would only show the first pixel of a graph's output (usually black)
+        super([[0, 0, 0]], { numLeds: DEFAULT_NUM_LEDS });
         this.name = "LED Strip";
     }
 
