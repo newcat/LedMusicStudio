@@ -19,6 +19,11 @@ export interface MovingHeadLayout {
 
 const CROSSBAR_HEIGHT = 0.02;
 
+/** Tilt pivot in the model frame (on the pan axis), used for aiming (feature 004, R11). */
+export function tiltPivotOf(layout: MovingHeadLayout): [number, number, number] {
+    return [0, layout.base[1] + layout.tiltHeight, 0];
+}
+
 /** Builds root, base, `pan` with the yoke and an empty `tilt` node at the pivot. The caller fills `tilt`. */
 export function buildMovingHeadFrame(kit: BuilderKit, name: string, layout: MovingHeadLayout): { root: THREE.Group; pan: THREE.Group; tilt: THREE.Group } {
     const [baseW, baseH, baseD] = layout.base;

@@ -22,6 +22,7 @@
         <ContextMenu ref="contextMenu" :model="contextMenuItems" />
         <AssetCreditsDialog v-model:visible="showCredits" />
         <AddFixtureVisualizationDialog v-model:visible="showAddFixtureDialog" @confirm="addFixtureVisualization" />
+        <ConfirmDialog group="scene-delete-aim-targets" />
     </div>
 </template>
 
@@ -29,6 +30,8 @@
 import { computed, provide, ref, watch } from "vue";
 import { Splitpanes, Pane } from "splitpanes";
 import ContextMenu from "primevue/contextmenu";
+import ConfirmDialog from "primevue/confirmdialog";
+import { useConfirm } from "primevue/useconfirm";
 import type { MenuItem } from "primevue/menuitem";
 import { useFocusWithin } from "@vueuse/core";
 
@@ -38,7 +41,9 @@ import { VisualizationType } from "@/visualization/fixtureVisualization";
 import { STRIP_PATH_TOOL_KEY, type StripPathToolApi } from "@/visualization/fixtureVisualizations/ledStrip/stripPathToolApi";
 import { useScene } from "../sceneStore";
 import { modelScaleForFixture, preselectionOf } from "../fixtureModels";
-import { isFixtureVisualization } from "../model/types";
+import { isAimTarget, isFixtureVisualization } from "../model/types";
+import { getDescendantIds } from "../model/transformMath";
+import { aimTargetUses } from "@/programming/uses";
 import EditorToolbar, { type AddKind } from "./EditorToolbar.vue";
 import Outliner from "./Outliner.vue";
 import Viewport from "./Viewport.vue";
@@ -52,6 +57,34 @@ import { useEditorShortcuts } from "./useEditorShortcuts";
 
 const store = useScene();
 const stage = useStage();
+const confirm = useConfirm();
+
+/** Delete; aim targets used by looks/presets ask first (feature 004, contracts/programming-ui.md). */
+function deleteSelectionConfirmed() {
+    const ids = new Set<string>();
+    for (const id of store.selection) {
+        ids.add(id);
+        getDescendantIds(store.scene, id).forEach((d) => ids.add(d));
+    }
+    const targets = [...ids].filter((id) => {
+        const obj = store.scene.objects[id];
+        return !!obj && isAimTarget(obj);
+    });
+    const uses = targets.length > 0 ? aimTargetUses(targets) : { looks: 0, presets: 0 };
+    if (uses.looks + uses.presets === 0) {
+        store.deleteSelection();
+        return;
+    }
+    confirm.require({
+        group: "scene-delete-aim-targets",
+        header: "Delete aim target",
+        message: `Used by ${uses.looks} look${uses.looks === 1 ? "" : "s"} / ${uses.presets} preset${uses.presets === 1 ? "" : "s"}. Aimed fixtures fall back to centered pan/tilt. Delete anyway?`,
+        icon: "pi pi-exclamation-triangle",
+        acceptLabel: "Delete",
+        rejectLabel: "Cancel",
+        accept: () => store.deleteSelection(),
+    });
+}
 
 const root = ref<HTMLElement>();
 const viewport = ref<InstanceType<typeof Viewport>>();
@@ -83,7 +116,7 @@ useEditorShortcuts(isActive, {
     rotateMode: () => (store.transformMode = "rotate"),
     scaleMode: () => (store.transformMode = "scale"),
     toggleSpace: () => store.updateSettings({ transformSpace: store.scene.settings.transformSpace === "world" ? "local" : "world" }),
-    delete: () => store.deleteSelection(),
+    delete: () => deleteSelectionConfirmed(),
     duplicate: () => store.duplicateSelection(),
     copy: () => store.copySelection(),
     paste: () => store.pasteClipboard(),
@@ -126,6 +159,12 @@ function onAdd(kind: AddKind) {
         case "model":
             void importModelFile(store, hit);
             break;
+        case "aimTarget": {
+            // feature 004: at the camera target, on the floor
+            const target = overlay.value?.getCameraPose().target ?? [0, 0, 0];
+            store.addAimTarget([target[0], 0, target[2]]);
+            break;
+        }
     }
 }
 
@@ -198,7 +237,7 @@ const contextMenuItems = computed<MenuItem[]>(() => {
         { label: "Duplicate", icon: "mdi mdi-content-duplicate", disabled: !hasSelection, command: () => store.duplicateSelection() },
         { label: "Copy", icon: "mdi mdi-content-copy", disabled: !hasSelection, command: () => store.copySelection() },
         { label: "Paste", icon: "mdi mdi-content-paste", disabled: !store.clipboard, command: () => store.pasteClipboard() },
-        { label: "Delete", icon: "mdi mdi-delete", disabled: !hasSelection, command: () => store.deleteSelection() },
+        { label: "Delete", icon: "mdi mdi-delete", disabled: !hasSelection, command: () => deleteSelectionConfirmed() },
         { separator: true },
         {
             label: anyVisible ? "Hide" : "Show",

@@ -27,6 +27,7 @@ const BEAM_KEYS_WITHOUT_POSITION: CapabilityKey[] = [
     "colorWheel",
     "colorWheelRotation",
     "zoom",
+    "focus",
     "goboWheel",
     "goboWheelRotation",
     "goboRotation",
@@ -114,7 +115,7 @@ export const KEY_GROUPS: KeyGroup[] = [
     },
     {
         label: "Beam",
-        keys: ["zoom", "goboWheel", "goboWheelRotation", "goboRotation", "prism", "prismRotation"],
+        keys: ["zoom", "focus", "goboWheel", "goboWheelRotation", "goboRotation", "prism", "prismRotation"],
     },
     {
         label: "Effect",
@@ -193,6 +194,8 @@ export const KEY_INFO: Record<CapabilityKey, KeyInfo> = {
     colorWheel: info("Color Wheel", "slot", 1, null, "wheelSlot"),
     colorWheelRotation: rotation("Color Wheel Rotation"),
     zoom: info("Zoom", "deg", 15, [10, 45], "linear", true),
+    // feature 004 (research R1): programming only, renderers ignore it. 0 = near, 1 = far.
+    focus: info("Focus", "ratio", 0.5, [0, 1], "linear"),
     goboWheel: info("Gobo Wheel", "slot", 1, null, "wheelSlot"),
     goboWheelRotation: rotation("Gobo Wheel Rotation"),
     goboRotation: rotation("Gobo Rotation"),

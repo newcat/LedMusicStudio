@@ -96,7 +96,7 @@ import CameraMenu from "./CameraMenu.vue";
 import EnvironmentPopover from "./EnvironmentPopover.vue";
 import DisplayPopover from "./DisplayPopover.vue";
 
-export type AddKind = "box" | "cylinder" | "plane" | "sphere" | "group" | "fixture" | "model";
+export type AddKind = "box" | "cylinder" | "plane" | "sphere" | "group" | "fixture" | "model" | "aimTarget";
 
 const props = defineProps<{
     overlay: EditorOverlay | null;
@@ -144,6 +144,8 @@ const addItems: MenuItem[] = [
     { separator: true },
     { label: "Fixture visualization…", icon: "mdi mdi-lightbulb-on-outline", command: () => emit("add", "fixture") },
     { label: "Import model (GLB)…", icon: "mdi mdi-shape-outline", command: () => emit("add", "model") },
+    { separator: true },
+    { label: "Aim target", icon: "mdi mdi-crosshairs", command: () => emit("add", "aimTarget") },
 ];
 
 function viewItem(label: string, key: string, preset: ViewPreset): MenuItem {

@@ -125,16 +125,19 @@ export type ImportedModelObject = SceneObjectBase<"importedModel"> & {
 
 export type GroupObject = SceneObjectBase<"group">;
 
+/** Named point that moving heads can aim at (feature 004, R11). Rotation/scale are ignored; editor-only gizmo. */
+export type AimTargetObject = SceneObjectBase<"aimTarget">;
+
 /**
  * Objects of kinds unknown to this version are preserved verbatim
  * (forward compatibility for kinds added by later features).
  */
 export type UnknownObject = SceneObjectBase<string> & Record<string, unknown>;
 
-export type SceneObject = ShapeObject | FixtureVisualizationObject | ImportedModelObject | GroupObject | LibraryAssetObject;
+export type SceneObject = ShapeObject | FixtureVisualizationObject | ImportedModelObject | GroupObject | LibraryAssetObject | AimTargetObject;
 export type SceneObjectKind = SceneObject["kind"];
 
-const KNOWN_KINDS: ReadonlySet<string> = new Set<SceneObjectKind>(["shape", "fixtureVisualization", "importedModel", "group", "libraryAsset"]);
+const KNOWN_KINDS: ReadonlySet<string> = new Set<SceneObjectKind>(["shape", "fixtureVisualization", "importedModel", "group", "libraryAsset", "aimTarget"]);
 
 export function isKnownKind(kind: string): kind is SceneObjectKind {
     return KNOWN_KINDS.has(kind);
@@ -150,6 +153,9 @@ export function isImportedModel(obj: { kind: string }): obj is ImportedModelObje
 }
 export function isLibraryAsset(obj: { kind: string }): obj is LibraryAssetObject {
     return obj.kind === "libraryAsset";
+}
+export function isAimTarget(obj: { kind: string }): obj is AimTargetObject {
+    return obj.kind === "aimTarget";
 }
 
 // ---------------------------------------------------------------------------

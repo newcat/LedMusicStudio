@@ -2,9 +2,10 @@
 import { VisualizationType } from "@/visualization/fixtureVisualization";
 import { buildGenericFixture } from "../builders/fixtures/generic";
 import { buildLedProfile, ledProfileSize, LED_PROFILE_HEIGHT, LED_PROFILE_WIDTH } from "../builders/fixtures/ledProfile";
-import { buildMovingHeadBeam } from "../builders/fixtures/movingHeadBeam";
-import { buildMovingHeadSpot } from "../builders/fixtures/movingHeadSpot";
-import { buildMovingHeadWash, washCellPosition, WASH_CELL_CENTERS, WASH_CELL_RADIUS, WASH_PLATE_Y } from "../builders/fixtures/movingHeadWash";
+import { buildMovingHeadBeam, MOVING_HEAD_BEAM_LAYOUT } from "../builders/fixtures/movingHeadBeam";
+import { tiltPivotOf, type MovingHeadLayout } from "../builders/fixtures/movingHeadCommon";
+import { buildMovingHeadSpot, MOVING_HEAD_SPOT_LAYOUT } from "../builders/fixtures/movingHeadSpot";
+import { buildMovingHeadWash, MOVING_HEAD_WASH_LAYOUT, washCellPosition, WASH_CELL_CENTERS, WASH_CELL_RADIUS, WASH_PLATE_Y } from "../builders/fixtures/movingHeadWash";
 import { buildParCan } from "../builders/fixtures/parCan";
 import { BLINDER_CELL_RADIUS, blinderCellPosition, buildBlinder } from "../builders/fixtures/blinder";
 import { buildCo2Jet, CO2_NOZZLE_RADIUS, CO2_NOZZLE_Y } from "../builders/fixtures/co2Jet";
@@ -16,7 +17,7 @@ import { buildLedBar, LED_BAR_CELL_SIZE, LED_BAR_CELLS, LED_BAR_FRONT_Y, ledBarC
 import { buildLedPanel, LED_PANEL_CELL_SIZE, LED_PANEL_GRID, ledPanelCellPosition } from "../builders/fixtures/ledPanel";
 import { buildPixelBar, PIXEL_BAR_CELL_SIZE, PIXEL_BAR_CELLS, pixelBarCellPosition } from "../builders/fixtures/pixelBar";
 import { buildProfileSpot, PROFILE_LENS_RADIUS, PROFILE_LENS_Y } from "../builders/fixtures/profileSpot";
-import { buildScanner, SCANNER_MIRROR_SURFACE } from "../builders/fixtures/scanner";
+import { buildScanner, SCANNER_MIRROR_SURFACE, SCANNER_MIRROR_Y } from "../builders/fixtures/scanner";
 import { buildStrobe, STROBE_WINDOW_Y } from "../builders/fixtures/strobe";
 import { buildWashFresnel, FRESNEL_LENS_RADIUS, FRESNEL_LENS_Y } from "../builders/fixtures/washFresnel";
 import type { Emitter, FixtureAssetDefinition, FixtureModelDescription, MountingPoint, Vec3 } from "../types";
@@ -57,18 +58,20 @@ function nozzleEffect(
     };
 }
 
-/** Pan/tilt limits shared by the moving head models. */
-const MOVING_HEAD_PARTS: FixtureModelDescription["movingParts"] = {
-    pan: { node: "pan", axis: "y", min: -270, max: 270 },
-    tilt: { node: "tilt", axis: "x", min: -135, max: 135 },
-};
+/** Pan/tilt limits shared by the moving head models; the tilt pivot comes from the model's layout. */
+function movingHeadParts(layout: MovingHeadLayout): FixtureModelDescription["movingParts"] {
+    return {
+        pan: { node: "pan", axis: "y", min: -270, max: 270, pivot: [0, layout.base[1], 0] },
+        tilt: { node: "tilt", axis: "x", min: -135, max: 135, pivot: tiltPivotOf(layout) },
+    };
+}
 
 /** A moving head description with the beam and one round lens emitter on the tilt node at height `lensY`. */
-function movingHead(lensY: number, lensRadius: number, extraEmitters: Emitter[] = []): FixtureModelDescription {
+function movingHead(layout: MovingHeadLayout, lensY: number, lensRadius: number, extraEmitters: Emitter[] = []): FixtureModelDescription {
     return {
         visualizationTypes: [VisualizationType.MOVING_HEAD],
         categories: ["Moving Head"],
-        movingParts: MOVING_HEAD_PARTS,
+        movingParts: movingHeadParts(layout),
         beam: { node: "tilt", position: [0, lensY, 0], direction: [0, 1, 0] },
         lensRadius,
         emitters: [
@@ -109,7 +112,7 @@ export const FIXTURE_ASSETS: FixtureAssetDefinition[] = [
         credits: PROJECT_CREDITS,
         source: { type: "procedural", build: buildMovingHeadSpot },
         materialSlots: ["body", "accent", "glass"],
-        fixture: movingHead(0.24, 0.06),
+        fixture: movingHead(MOVING_HEAD_SPOT_LAYOUT, 0.24, 0.06),
     },
     {
         id: "fixture.moving-head-beam",
@@ -121,7 +124,7 @@ export const FIXTURE_ASSETS: FixtureAssetDefinition[] = [
         credits: PROJECT_CREDITS,
         source: { type: "procedural", build: buildMovingHeadBeam },
         materialSlots: ["body", "accent", "glass"],
-        fixture: movingHead(0.18, 0.035),
+        fixture: movingHead(MOVING_HEAD_BEAM_LAYOUT, 0.18, 0.035),
     },
     {
         id: "fixture.moving-head-wash",
@@ -134,6 +137,7 @@ export const FIXTURE_ASSETS: FixtureAssetDefinition[] = [
         source: { type: "procedural", build: buildMovingHeadWash },
         materialSlots: ["body", "accent", "glass"],
         fixture: movingHead(
+            MOVING_HEAD_WASH_LAYOUT,
             WASH_PLATE_Y,
             0.13,
             WASH_CELL_CENTERS.map(
@@ -212,8 +216,8 @@ export const FIXTURE_ASSETS: FixtureAssetDefinition[] = [
             visualizationTypes: [VisualizationType.MOVING_HEAD],
             categories: ["Scanner", "Barrel Scanner"],
             movingParts: {
-                pan: { node: "pan", axis: "y", min: -90, max: 90 },
-                tilt: { node: "tilt", axis: "x", min: -45, max: 45 },
+                pan: { node: "pan", axis: "y", min: -90, max: 90, pivot: [0, SCANNER_MIRROR_Y, 0] },
+                tilt: { node: "tilt", axis: "x", min: -45, max: 45, pivot: [0, SCANNER_MIRROR_Y, 0] },
             },
             beam: { node: "tilt", position: [0, SCANNER_MIRROR_SURFACE, 0], direction: [0, 1, 0] },
             lensRadius: 0.03,

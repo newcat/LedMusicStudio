@@ -1,6 +1,7 @@
 import { CalculateFunction, Node } from "baklavajs";
 import { CheckboxInterface, NumberInterface } from "@/graph/interfaces";
 import { LmsCalculationContext } from "@/graph/types";
+import { perFixtureState } from "../perFixtureState";
 
 type Phase = "Attack" | "Decay" | "Sustain" | "Release" | "None";
 
@@ -31,77 +32,75 @@ export class AdsrNode extends Node<Inputs, Outputs> {
         value: new NumberInterface("Value", 0).setComponent(undefined),
     };
 
-    private phase: Phase = "None";
-    private value = 0;
-    private startValue = 0;
-    private startFrame = 0;
-
     constructor() {
         super();
         this.title = this.type;
         this.initializeIo();
     }
 
-    public override calculate: CalculateFunction<Inputs, Outputs, LmsCalculationContext> = (inputs, { globalValues }) => {
+    public override calculate: CalculateFunction<Inputs, Outputs, LmsCalculationContext> = (inputs, context) => {
+        const { globalValues } = context;
         const { trigger, attack, decay, sustain, release } = inputs;
+        // envelope state per fixture of a per-fixture run (feature 004)
+        const s = perFixtureState(this, context, () => ({ phase: "None" as Phase, value: 0, startValue: 0, startFrame: 0 }));
 
-        const offsetFromStartInSeconds = () => Math.max(0, (globalValues.position - this.startFrame) / globalValues.fps);
+        const offsetFromStartInSeconds = () => Math.max(0, (globalValues.position - s.startFrame) / globalValues.fps);
 
         const enterPhase = (phase: Phase) => {
-            this.phase = phase;
-            this.startFrame = globalValues.position;
-            this.startValue = this.value;
+            s.phase = phase;
+            s.startFrame = globalValues.position;
+            s.startValue = s.value;
         };
         let hasPhaseChanged = true;
         while (hasPhaseChanged) {
-            const oldPhase = this.phase;
-            if (this.phase === "None") {
+            const oldPhase = s.phase;
+            if (s.phase === "None") {
                 if (trigger) {
                     enterPhase("Attack");
                 }
-            } else if (this.phase === "Attack") {
+            } else if (s.phase === "Attack") {
                 if (!trigger) {
                     enterPhase("Release");
                 } else if (offsetFromStartInSeconds() >= attack) {
                     enterPhase("Decay");
                 }
-            } else if (this.phase === "Decay") {
+            } else if (s.phase === "Decay") {
                 if (!trigger) {
                     enterPhase("Release");
                 } else if (offsetFromStartInSeconds() >= decay) {
                     enterPhase("Sustain");
                 }
-            } else if (this.phase === "Sustain") {
+            } else if (s.phase === "Sustain") {
                 if (!trigger) {
                     enterPhase("Release");
                 }
-            } else if (this.phase === "Release") {
+            } else if (s.phase === "Release") {
                 if (trigger) {
                     enterPhase("Attack");
                 } else if (offsetFromStartInSeconds() >= release) {
                     enterPhase("None");
                 }
             }
-            hasPhaseChanged = oldPhase !== this.phase;
+            hasPhaseChanged = oldPhase !== s.phase;
         }
 
         const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
         let value = 0;
-        if (this.phase === "Attack") {
-            value = lerp(this.startValue, 1, offsetFromStartInSeconds() / attack);
-        } else if (this.phase === "Decay") {
-            value = lerp(this.startValue, sustain, offsetFromStartInSeconds() / decay);
-        } else if (this.phase === "Sustain") {
+        if (s.phase === "Attack") {
+            value = lerp(s.startValue, 1, offsetFromStartInSeconds() / attack);
+        } else if (s.phase === "Decay") {
+            value = lerp(s.startValue, sustain, offsetFromStartInSeconds() / decay);
+        } else if (s.phase === "Sustain") {
             value = sustain;
-        } else if (this.phase === "Release") {
-            value = lerp(this.startValue, 0, offsetFromStartInSeconds() / release);
+        } else if (s.phase === "Release") {
+            value = lerp(s.startValue, 0, offsetFromStartInSeconds() / release);
         }
 
         if (isNaN(value)) {
             console.warn("ADSR value is NaN");
             value = 0;
         }
-        this.value = value;
+        s.value = value;
 
         return { value };
     };

@@ -345,6 +345,8 @@ function targetOf(ctx: MapContext, cap: Cap, channel: OflResolvedChannel): CapTa
         case "Zoom":
         case "BeamAngle":
             return key(firstSupported(ctx, "zoom", "laserSize"));
+        case "Focus":
+            return key("focus");
         case "Prism":
             return key("prism");
         case "PrismRotation":
@@ -436,6 +438,22 @@ function zoomAngle(value: string | undefined, lens: [number, number]): number | 
         return lens[0] + ((lens[1] - lens[0]) * Number(m[1])) / 100;
     }
     return parseAngle(value, lens[1]);
+}
+
+/** Focus distance entity as 0..1: near 0, far 1, "%" as is; meters give null (default range). */
+function focusRatio(value: string | undefined): number | null {
+    const v = value?.trim().toLowerCase();
+    if (v === undefined) {
+        return null;
+    }
+    if (v === "near") {
+        return 0;
+    }
+    if (v === "far") {
+        return 1;
+    }
+    const p = percent(v);
+    return p === null ? null : Math.max(0, Math.min(1, p));
 }
 
 function fogLevel(value: string | undefined): number | null {
@@ -663,6 +681,11 @@ function typedSegment(ctx: MapContext, target: CapTarget, cap: Cap, positions: M
             const lens = ctx.lens ?? DEFAULT_ZOOM;
             const [a, b] = entityPair(rec, "angle");
             return linear(cap, zoomAngle(a, lens) ?? lens[0], zoomAngle(b, lens) ?? lens[1]);
+        }
+        case "focus": {
+            // feature 004 (research R1): near → 0, far → 1, percentages as is; meters keep the default range
+            const [s, e] = parsedPair(rec, "distance", focusRatio, [0, 1]);
+            return linear(cap, s, e);
         }
         case "colorWheel":
         case "goboWheel":

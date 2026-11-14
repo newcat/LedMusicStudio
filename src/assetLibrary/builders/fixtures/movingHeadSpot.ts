@@ -5,17 +5,19 @@
  */
 import type * as THREE from "three";
 import type { BuilderKit } from "../../types";
-import { buildMovingHeadFrame } from "./movingHeadCommon";
+import { buildMovingHeadFrame, type MovingHeadLayout } from "./movingHeadCommon";
 
 export const MOVING_HEAD_SPOT_LENS_Y = 0.24;
 
+export const MOVING_HEAD_SPOT_LAYOUT: MovingHeadLayout = {
+    base: [0.35, 0.14, 0.3],
+    armX: 0.15,
+    arm: [0.04, 0.3, 0.12],
+    tiltHeight: 0.24,
+};
+
 export function buildMovingHeadSpot(kit: BuilderKit): THREE.Object3D {
-    const { root, tilt } = buildMovingHeadFrame(kit, "moving-head-spot", {
-        base: [0.35, 0.14, 0.3],
-        armX: 0.15,
-        arm: [0.04, 0.3, 0.12],
-        tiltHeight: 0.24,
-    });
+    const { root, tilt } = buildMovingHeadFrame(kit, "moving-head-spot", MOVING_HEAD_SPOT_LAYOUT);
 
     // head: rounded back, cylindrical middle, slightly narrower front
     tilt.add(

@@ -45,6 +45,7 @@ export type CapabilityKey =
     | "colorWheelRotation"
     // beam
     | "zoom"
+    | "focus"
     | "goboWheel"
     | "goboWheelRotation"
     | "goboRotation"

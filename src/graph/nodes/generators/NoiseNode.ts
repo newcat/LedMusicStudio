@@ -3,6 +3,7 @@ import { CalculateFunction, Node } from "baklavajs";
 import { ColorArrayInterface, NumberInterface, SliderInterface } from "@/graph/interfaces";
 import { Color, fromChroma, chroma } from "../../colors";
 import { LmsCalculationContext } from "../../types";
+import { perFixtureState } from "../perFixtureState";
 
 interface Inputs {
     spaceFreq: number;
@@ -33,7 +34,6 @@ export class NoiseNode extends Node<Inputs, Outputs> {
 
     private hueNoise = makeNoise2D(Math.random() * 100000);
     private valueNoise = makeNoise2D(Math.random() * 100000);
-    private timer = 0;
 
     public constructor() {
         super();
@@ -50,17 +50,19 @@ export class NoiseNode extends Node<Inputs, Outputs> {
         const coloring = this.clamp(inputs.coloring, 0, 1);
 
         const result: Color[] = new Array(resolution);
+        // the time position runs per fixture of a per-fixture run (feature 004)
+        const state = perFixtureState(this, data, () => ({ timer: 0 }));
 
         for (let i = 0; i < resolution; i++) {
             const x = (i / resolution) * spaceFreq;
-            const y = this.timer;
+            const y = state.timer;
             const h = this.hueNoise(x, y) * 360;
             const v = this.valueNoise(x, y) * magnitude;
             result[i] = fromChroma(chroma(h, coloring, v, "hsv"));
         }
 
-        this.timer += timeFreq;
-        return { colors: result, value: this.valueNoise(0, this.timer) };
+        state.timer += timeFreq;
+        return { colors: result, value: this.valueNoise(0, state.timer) };
     };
 
     private clamp(v: number, min: number, max: number) {

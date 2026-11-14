@@ -6,6 +6,9 @@ import { AudioLibraryItem } from "@/audio";
 import { AutomationLibraryItem } from "@/automation";
 import { GraphLibraryItem } from "@/graph";
 import { PatternLibraryItem } from "@/pattern";
+import { LookLibraryItem } from "@/programming/look/Look.libraryItem";
+import { EffectLibraryItem } from "@/programming/effect/Effect.libraryItem";
+import { PresetLibraryItem } from "@/programming/preset/Preset.libraryItem";
 import { LibraryItem, LibraryItemType } from "./libraryItem";
 
 export interface ILibraryState {
@@ -27,6 +30,12 @@ function createItemByType(type: LibraryItemType): LibraryItem | undefined {
             return new GraphLibraryItem();
         case LibraryItemType.PATTERN:
             return new PatternLibraryItem();
+        case LibraryItemType.LOOK:
+            return new LookLibraryItem();
+        case LibraryItemType.EFFECT:
+            return new EffectLibraryItem();
+        case LibraryItemType.PRESET:
+            return new PresetLibraryItem();
         default:
             console.warn(`Unknown library type: ${type}`);
     }

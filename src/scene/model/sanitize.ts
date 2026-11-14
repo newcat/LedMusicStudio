@@ -520,6 +520,8 @@ function reorientLegacySpots(objects: Record<string, SceneObject>, spotIds: stri
 }
 
 /** Sanitizes fields common to all kinds, keeps every other property as it is. */
+const AIM_TARGET_FIELDS = new Set(["id", "name", "kind", "parentId", "children", "position", "rotation", "scale", "visible", "locked"]);
+
 function sanitizeObject(id: string, raw: Rec, ctx: SanitizeContext): SceneObject {
     const problems = ctx.problems;
     const obj: Rec = { ...raw };
@@ -567,6 +569,9 @@ function sanitizeObject(id: string, raw: Rec, ctx: SanitizeContext): SceneObject
         }
     } else if (obj.kind === "libraryAsset") {
         sanitizeLibraryAsset(obj, raw, ctx);
+    } else if (obj.kind === "aimTarget") {
+        // feature 004: base fields only; rotation and scale are not used
+        return Object.fromEntries(Object.entries(obj).filter(([key]) => AIM_TARGET_FIELDS.has(key))) as unknown as SceneObject;
     } else if (obj.kind === "importedModel") {
         obj.assetId = typeof raw.assetId === "string" ? raw.assetId : "";
         obj.originalScale = vec3(raw.originalScale, [1, 1, 1]).map((s) => Math.max(MIN_SCALE, s)) as Vec3;

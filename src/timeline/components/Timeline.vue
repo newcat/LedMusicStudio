@@ -239,6 +239,11 @@ function drop(track: Track, ev: DragEvent) {
         case LibraryItemType.SCRIPT:
             item = createItem(DEFAULT_ITEM_LENGTH, libraryItem);
             break;
+        case LibraryItemType.LOOK:
+        case LibraryItemType.EFFECT:
+            // feature 004: looks and effects start with 4 beats
+            item = createItem(DEFAULT_ITEM_LENGTH, libraryItem);
+            break;
     }
 
     if (item) {
@@ -271,6 +276,8 @@ function drop(track: Track, ev: DragEvent) {
         }
 
         item.trackId = chosenTrack.id;
+        // feature 004 (US3.4): new items inherit the track's default target
+        item.target = chosenTrack.defaultTarget ? { ...chosenTrack.defaultTarget } : null;
         timeline.addItem(reactive(item) as Item);
     }
 }

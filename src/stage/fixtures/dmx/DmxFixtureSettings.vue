@@ -35,13 +35,15 @@
                 ></Select>
             </LabelledFormField>
         </div>
+        <!-- feature 004: per-fixture attribute defaults (FR-012) -->
+        <FixtureDefaults v-if="fixture.config.mode" :fixture="fixture" />
     </template>
 
     <ChooseFixtureDialog v-model="showFixtureDialog" @set-fixture="setFixture" />
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { defineAsyncComponent, ref } from "vue";
 import Button from "primevue/button";
 import InputNumber from "primevue/inputnumber";
 import Select from "primevue/select";
@@ -50,6 +52,9 @@ import LabelledFormField from "@/components/LabelledFormField.vue";
 import { DmxFixture } from "./dmx.fixture";
 import ChooseFixtureDialog from "./ChooseFixtureDialog.vue";
 import { Fixture as OpenFixtureDefinition } from "./open-fixture";
+
+// async: the programming module imports the stage store
+const FixtureDefaults = defineAsyncComponent(() => import("@/programming/components/FixtureDefaults.vue"));
 
 const props = defineProps<{
     fixture: DmxFixture;

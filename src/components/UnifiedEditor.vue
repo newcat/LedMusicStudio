@@ -12,6 +12,9 @@
                 :automation-clip="selectedItem"
             ></AutomationEditor>
             <ScriptEditor v-if="isScript(selectedItem)" :key="'s' + selectedItem.id" :script="selectedItem" />
+            <LookEditor v-else-if="isLookLibraryItem(selectedItem)" :key="'l' + selectedItem.id" :look="selectedItem" />
+            <EffectEditor v-else-if="isEffectLibraryItem(selectedItem)" :key="'e' + selectedItem.id" :effect="selectedItem" />
+            <PresetEditor v-else-if="isPresetLibraryItem(selectedItem)" :key="'pr' + selectedItem.id" :preset="selectedItem" />
         </template>
     </Card>
 </template>
@@ -25,11 +28,15 @@ import { PatternLibraryItem } from "@/pattern";
 import { AutomationLibraryItem } from "@/automation";
 import { GraphLibraryItem } from "@/graph";
 import { ScriptLibraryItem } from "@/scripting";
+import { isEffectLibraryItem, isLookLibraryItem, isPresetLibraryItem } from "@/programming/guards";
 
 const NoteEditor = defineAsyncComponent(() => import("@/pattern/NoteEditor.vue"));
 const AutomationEditor = defineAsyncComponent(() => import("@/automation/AutomationEditor.vue"));
 const GraphEditor = defineAsyncComponent(() => import("@/graph/GraphEditor.vue"));
 const ScriptEditor = defineAsyncComponent(() => import("@/scripting/ScriptEditor.vue"));
+const LookEditor = defineAsyncComponent(() => import("@/programming/look/LookEditor.vue"));
+const EffectEditor = defineAsyncComponent(() => import("@/programming/effect/EffectEditor.vue"));
+const PresetEditor = defineAsyncComponent(() => import("@/programming/preset/PresetEditor.vue"));
 
 const library = useLibrary();
 

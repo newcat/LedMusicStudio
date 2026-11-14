@@ -4,6 +4,7 @@ import { ref } from "vue";
 export const STAGE_TAB_FIXTURES = 0;
 export const STAGE_TAB_CONTROLLERS = 1;
 export const STAGE_TAB_VISUALIZATION = 2;
+export const STAGE_TAB_GROUPS = 3;
 
 export const activeStageTab = ref(STAGE_TAB_FIXTURES);
 export const selectedFixtureId = ref<string | null>(null);

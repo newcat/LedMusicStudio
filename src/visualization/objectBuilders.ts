@@ -4,6 +4,7 @@ import type { SceneObject, ShapeDimensions, ShapeObject, Vec3 } from "@/scene/mo
 import { isLibraryAsset, isShape } from "@/scene/model/types";
 import { MATERIAL_PRESETS } from "@/assetLibrary/materials";
 import { createLedLitMaterial, type LedLitMaterialParams } from "./ledLitMaterial";
+import { EDITOR_LAYER } from "./layers";
 import type { SurfaceLighting } from "./lighting/surfaceLighting";
 
 export interface BuildContext {
@@ -105,6 +106,32 @@ export function applyTransform(o3d: THREE.Object3D, obj: Pick<SceneObject, "posi
     o3d.scale.set(obj.scale[0], obj.scale[1], obj.scale[2]);
 }
 
+/** Size of the aim target crosshair (meters, each axis). */
+const AIM_TARGET_SIZE = 0.3;
+
+/** Crosshair of an aim target: three axis lines and a small pick sphere, all on the editor layer. */
+function createAimTargetGizmo(): THREE.Object3D {
+    const group = new THREE.Group();
+    const h = AIM_TARGET_SIZE / 2;
+    const geometry = new THREE.BufferGeometry().setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute([-h, 0, 0, h, 0, 0, 0, -h, 0, 0, h, 0, 0, 0, -h, 0, 0, h], 3)
+    );
+    const material = new THREE.LineBasicMaterial({ color: 0xff3d7f, depthTest: false, transparent: true });
+    const lines = new THREE.LineSegments(geometry, material);
+    lines.renderOrder = 10;
+    const pickGeometry = new THREE.SphereGeometry(h * 0.35, 12, 8);
+    const pickMaterial = new THREE.MeshBasicMaterial({ color: 0xff3d7f, transparent: true, opacity: 0.35, depthWrite: false });
+    const pick = new THREE.Mesh(pickGeometry, pickMaterial);
+    group.add(lines, pick);
+    group.traverse((o) => o.layers.set(EDITOR_LAYER));
+    track(group, geometry);
+    track(group, material);
+    track(group, pickGeometry);
+    track(group, pickMaterial);
+    return group;
+}
+
 /**
  * Builds the Object3D for a scene object. Children are not built here: the view re-parents the Object3Ds so that
  * the scene graph mirrors `parentId`.
@@ -123,6 +150,9 @@ export function buildObject3D(obj: SceneObject, ctx: BuildContext): THREE.Object
     } else if (obj.kind === "group" || obj.kind === "fixtureVisualization") {
         // fixture visualizations get their renderer from the view
         o3d = new THREE.Group();
+    } else if (obj.kind === "aimTarget") {
+        // feature 004: crosshair gizmo on the editor layer only (the show window does not render it)
+        o3d = createAimTargetGizmo();
     } else if (isLibraryAsset(obj)) {
         // loading placeholder, replaced by the view when the asset template is ready (feature 002)
         o3d = new THREE.Group();

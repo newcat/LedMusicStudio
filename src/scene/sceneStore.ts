@@ -13,6 +13,7 @@ import {
     createDefaultScene,
     createFixtureVisualizationObject,
     createGroupObject,
+    createAimTargetObject,
     createImportedModelObject,
     createLibraryAssetObject,
     createShapeObject,
@@ -769,6 +770,15 @@ export const useScene = defineStore("scene", () => {
         return obj.id;
     }
 
+    /** feature 004: aim target "Target n" at the given point (the camera target on the floor). */
+    function addAimTarget(position: Vec3): string {
+        const obj = createAimTargetObject({ name: nextObjectName(scene.value, "Target") });
+        obj.position = [position[0], position[1], position[2]];
+        addObjects([obj], null, "Add aim target");
+        select([obj.id]);
+        return obj.id;
+    }
+
     function addGroup(placement?: Placement): string {
         const obj = createGroupObject({ name: nextObjectName(scene.value, "Group") });
         obj.position = placementPosition(placement);
@@ -1250,6 +1260,7 @@ export const useScene = defineStore("scene", () => {
         // shapes, groups, clipboard
         addShape,
         addGroup,
+        addAimTarget,
         duplicateSelection,
         copySelection,
         pasteClipboard,

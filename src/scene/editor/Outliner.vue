@@ -127,6 +127,8 @@ function iconFor(obj: SceneObject): string {
             return "mdi-folder-outline";
         case "libraryAsset":
             return "mdi-package-variant-closed";
+        case "aimTarget":
+            return "mdi-crosshairs";
         default:
             return "mdi-help-box-outline";
     }

@@ -42,6 +42,10 @@ import { AutomationLibraryItem } from "@/automation/automation.libraryItem";
 import { GraphLibraryItem } from "@/graph/graph.libraryItem";
 import { PatternLibraryItem } from "@/pattern/pattern.libraryItem";
 import { ScriptLibraryItem } from "@/scripting/script.libraryItem";
+import { LookLibraryItem } from "@/programming/look/Look.libraryItem";
+import { EffectLibraryItem } from "@/programming/effect/Effect.libraryItem";
+import { PresetLibraryItem } from "@/programming/preset/Preset.libraryItem";
+import { PRESET_KIND_LABELS, type PresetKind } from "@/programming/states";
 import { LibraryItemType, LibraryItem, LibraryItemTypeIcons, LibraryItemTypeLabels, LibraryItemTypeList } from "./libraryItem";
 
 import LibraryItemView from "./LibraryItem.vue";
@@ -55,7 +59,18 @@ const getMenuItem = (type: LibraryItemType) => ({
     icon: `mdi mdi-${LibraryItemTypeIcons[type]}`,
     command: () => addItem(type),
 });
-const addItemOptions: MenuProps["model"] = LibraryItemTypeList.map((type) => getMenuItem(type));
+const addItemOptions: MenuProps["model"] = LibraryItemTypeList.map((type) =>
+    type === LibraryItemType.PRESET
+        ? {
+              label: LibraryItemTypeLabels[type],
+              icon: `mdi mdi-${LibraryItemTypeIcons[type]}`,
+              items: (Object.keys(PRESET_KIND_LABELS) as PresetKind[]).map((kind) => ({
+                  label: `${PRESET_KIND_LABELS[kind]} preset`,
+                  command: () => library.addItem(reactive(new PresetLibraryItem(kind))),
+              })),
+          }
+        : getMenuItem(type)
+);
 
 function toggleAddItemMenu(ev: Event) {
     menu.value!.toggle(ev);
@@ -92,6 +107,15 @@ async function addItem(key: LibraryItemType) {
         case LibraryItemType.SCRIPT:
             item = ScriptLibraryItem;
             break;
+        case LibraryItemType.LOOK:
+            item = LookLibraryItem;
+            break;
+        case LibraryItemType.EFFECT:
+            item = EffectLibraryItem;
+            break;
+        case LibraryItemType.PRESET:
+            library.addItem(reactive(new PresetLibraryItem("position")));
+            return;
         default:
             return;
     }

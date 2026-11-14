@@ -153,6 +153,8 @@ export interface MovingPart {
     /** Physical limits in degrees, used as default channel mapping range. */
     min: number;
     max: number;
+    /** Pivot of the node in the model frame at rest (meters); used for aiming (feature 004, R11). Default origin. */
+    pivot?: Vec3;
 }
 
 export interface BeamDescription {

@@ -7,6 +7,9 @@ export enum LibraryItemType {
     PATTERN = "PATTERN",
     SCRIPT = "SCRIPT",
     SCRIPT_LIBRARY = "SCRIPT_LIBRARY",
+    LOOK = "LOOK",
+    EFFECT = "EFFECT",
+    PRESET = "PRESET",
 }
 
 export const LibraryItemTypeList = [
@@ -16,6 +19,9 @@ export const LibraryItemTypeList = [
     LibraryItemType.PATTERN,
     LibraryItemType.SCRIPT,
     LibraryItemType.SCRIPT_LIBRARY,
+    LibraryItemType.LOOK,
+    LibraryItemType.EFFECT,
+    LibraryItemType.PRESET,
 ] as const;
 
 export const LibraryItemTypeLabels: Record<LibraryItemType, string> = {
@@ -25,6 +31,9 @@ export const LibraryItemTypeLabels: Record<LibraryItemType, string> = {
     [LibraryItemType.PATTERN]: "Note Pattern",
     [LibraryItemType.SCRIPT]: "Script",
     [LibraryItemType.SCRIPT_LIBRARY]: "Script Library",
+    [LibraryItemType.LOOK]: "Look",
+    [LibraryItemType.EFFECT]: "Effect",
+    [LibraryItemType.PRESET]: "Preset",
 } as const;
 
 export const LibraryItemTypeIcons: Record<LibraryItemType, string> = {
@@ -34,6 +43,9 @@ export const LibraryItemTypeIcons: Record<LibraryItemType, string> = {
     [LibraryItemType.PATTERN]: "music",
     [LibraryItemType.SCRIPT]: "script-text-outline",
     [LibraryItemType.SCRIPT_LIBRARY]: "library-outline",
+    [LibraryItemType.LOOK]: "lightbulb-group-outline",
+    [LibraryItemType.EFFECT]: "sine-wave",
+    [LibraryItemType.PRESET]: "bookmark-outline",
 } as const;
 
 export abstract class LibraryItem<S = unknown> {

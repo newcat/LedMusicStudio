@@ -1,4 +1,5 @@
 import FFT from "fft.js";
+import { toRaw } from "vue";
 import { CalculationResult, applyResult } from "baklavajs";
 
 import { AudioLibraryItem } from "@/audio";
@@ -6,7 +7,7 @@ import { AutomationLibraryItem } from "@/automation";
 import { useGlobalState } from "@/globalState";
 import { GraphLibraryItem, ICalculationData } from "@/graph";
 import { INote, PatternLibraryItem } from "@/pattern";
-import { BaseFixture, useStage } from "@/stage";
+import { BaseFixture, FixtureType, useStage } from "@/stage";
 import type { Item } from "@/timeline";
 import {
     isAudioLibraryItem,
@@ -17,6 +18,22 @@ import {
     unitToSeconds,
 } from "@/utils";
 import { ScriptLibraryItem } from "@/scripting";
+import { attributeOutputTarget, processProgramming, type GraphRun } from "@/programming/processor";
+import { resolveTarget } from "@/programming/targets";
+import { programmingTimings } from "@/programming/debug";
+import type { AttributeValues } from "@/programming/attributes";
+import type { ResolvedFixture } from "@/programming/types";
+
+const FIXTURE_INPUT_NODE = "Fixture Input";
+const ATTRIBUTE_OUTPUT_NODE = "Attribute Output";
+const COMMON_TARGET_ERROR = "Per-fixture graphs need one common target";
+
+/** Outputs of one graph evaluation, split by destination. */
+interface CollectedOutputs {
+    run: GraphRun;
+    /** Non-DMX fixtures (LED strips, …) keep the old whole-fixture path (FR-015). */
+    direct: Array<{ fixture: BaseFixture; data: unknown }>;
+}
 
 const FFT_SIZE = 8192;
 interface AudioData {
@@ -72,25 +89,38 @@ export class BaseTimelineProcessor {
             trackValues,
         };
 
-        const uncontrolledFixtures = new Set(this.stage.fixtures.values());
+        // feature 004: graph outputs are collected; DMX fixtures get the merged frame of the programming engine,
+        // other fixtures keep the whole-fixture path (last writer wins, reset when uncontrolled)
+        const graphRuns = new Map<Item, GraphRun[]>();
+        const uncontrolledFixtures = new Set(Array.from(this.stage.fixtures.values()).filter((f) => f.type !== FixtureType.DMX));
+        const graphsStarted = performance.now();
+        programmingTimings.graphRuns = 0;
         const graphs = currentActiveItems.filter((i) => isGraphLibraryItem(i.libraryItem));
         for (const g of graphs) {
             try {
                 const relativeTrackItemProgress = (unit - g.start) / (g.end - g.start);
-                const results = await this.processGraph(g, unit, { ...calculationData, relativeTrackItemProgress });
-                if (g.libraryItem.error) {
-                    g.libraryItem.error = "";
+                const outputs = await this.processGraphItem(g, unit, { ...calculationData, relativeTrackItemProgress });
+                graphRuns.set(
+                    g,
+                    outputs.map((o) => o.run)
+                );
+                // LED strip and other non-DMX outputs: first run only (R7)
+                for (const { fixture, data } of outputs[0]?.direct ?? []) {
+                    uncontrolledFixtures.delete(fixture);
+                    fixture.setValue(data);
                 }
-                this.applyGraphResults(results, uncontrolledFixtures);
             } catch (err) {
                 console.error(err);
                 g.libraryItem.error = String(err);
             }
         }
+        programmingTimings.graphs = performance.now() - graphsStarted;
 
         for (const fixture of uncontrolledFixtures) {
             fixture.resetValue();
         }
+
+        processProgramming(currentActiveItems, unit, graphRuns);
 
         const scripts = currentActiveItems.filter((i) => isScriptLibraryItem(i.libraryItem));
         for (const s of scripts) {
@@ -169,26 +199,88 @@ export class BaseTimelineProcessor {
         return trackValues;
     }
 
-    private async processGraph(item: Item, unit: number, calculationData: ICalculationData): Promise<CalculationResult> {
+    /**
+     * Evaluates a graph item. Graphs with a Fixture Input node run once per fixture of their Attribute Outputs'
+     * common target (R7); all others run once. Errors of a previous frame are cleared on success.
+     */
+    private async processGraphItem(item: Item, unit: number, calculationData: ICalculationData): Promise<CollectedOutputs[]> {
         const graph = item.libraryItem as GraphLibraryItem;
         graph.keyframeManager.applyKeyframes(unit - item.start);
-        const results = (await graph.editor.enginePlugin.runOnce(calculationData))!;
-        applyResult(results, graph.editor.editor);
-        return results;
+        const editor = graph.editor.editor;
+        const nodes = Array.from(editor.graphs).flatMap((g) => g.nodes);
+
+        let fixtures: ResolvedFixture[] | null = null;
+        if (nodes.some((n) => n.type === FIXTURE_INPUT_NODE)) {
+            const lists = nodes
+                .filter((n) => n.type === ATTRIBUTE_OUTPUT_NODE)
+                .map((n) => resolveTarget(attributeOutputTarget(item, String((n.inputs as Record<string, { value: unknown }>).target?.value ?? "clip"))).fixtures);
+            const key = (list: ResolvedFixture[]) => list.map((f) => f.fixtureId).join(",");
+            if (lists.some((list) => key(list) !== key(lists[0]))) {
+                graph.error = COMMON_TARGET_ERROR;
+                return [];
+            }
+            fixtures = lists[0] ?? null;
+        }
+
+        const outputs: CollectedOutputs[] = [];
+        let results: CalculationResult | undefined;
+        if (fixtures && fixtures.length > 0) {
+            // research R7 / T031: the first run goes through runOnce (events, order refresh); the other fixtures run
+            // the graph directly on the raw engine, which skips the run events and Vue proxies (≈4× faster)
+            const engine = toRaw(graph.editor.enginePlugin);
+            const rawGraph = toRaw(editor.graph);
+            for (const f of fixtures) {
+                const data: ICalculationData = {
+                    ...calculationData,
+                    fixture: { index: f.index, normalizedIndex: f.normalizedIndex, position: f.position, groupSize: fixtures.length, fixtureId: f.fixtureId },
+                };
+                results =
+                    f === fixtures[0]
+                        ? (await graph.editor.enginePlugin.runOnce(data))!
+                        : await engine.runGraph(rawGraph, engine.getInputValues(rawGraph), data);
+                programmingTimings.graphRuns++;
+                outputs.push(this.collectOutputs(results, f));
+            }
+        } else {
+            results = (await graph.editor.enginePlugin.runOnce(calculationData))!;
+            programmingTimings.graphRuns++;
+            outputs.push(this.collectOutputs(results, null));
+        }
+        if (results) {
+            applyResult(results, editor);
+        }
+        if (graph.error) {
+            graph.error = "";
+        }
+        return outputs;
     }
 
-    private applyGraphResults(results: CalculationResult, uncontrolledFixtures: Set<BaseFixture>): void {
-        for (const nodeResults of results.values()) {
-            if (nodeResults.has("_calculationResults")) {
-                this.applyGraphResults(nodeResults.get("_calculationResults") as CalculationResult, uncontrolledFixtures);
-            } else if (nodeResults.has("fixtureId")) {
-                const fixture = this.stage.fixtures.get(nodeResults.get("fixtureId") as string);
-                if (fixture) {
-                    uncontrolledFixtures.delete(fixture);
-                    fixture.setValue(nodeResults.get("data"));
+    private collectOutputs(results: CalculationResult, fixture: ResolvedFixture | null): CollectedOutputs {
+        const collected: CollectedOutputs = { run: { fixture, raw: [], attributes: [] }, direct: [] };
+        const visit = (r: CalculationResult) => {
+            for (const nodeResults of r.values()) {
+                if (nodeResults.has("_calculationResults")) {
+                    visit(nodeResults.get("_calculationResults") as CalculationResult);
+                } else if (nodeResults.has("attributeTarget")) {
+                    collected.run.attributes.push({
+                        target: String(nodeResults.get("attributeTarget") ?? "clip"),
+                        attributes: (nodeResults.get("attributes") as AttributeValues) ?? {},
+                    });
+                } else if (nodeResults.has("fixtureId")) {
+                    const fixture = this.stage.fixtures.get(nodeResults.get("fixtureId") as string);
+                    if (!fixture) {
+                        continue;
+                    }
+                    if (fixture.type === FixtureType.DMX) {
+                        collected.run.raw.push({ fixtureId: fixture.id, data: (nodeResults.get("data") as number[]) ?? [] });
+                    } else {
+                        collected.direct.push({ fixture, data: nodeResults.get("data") });
+                    }
                 }
             }
-        }
+        };
+        visit(results);
+        return collected;
     }
 
     private getFftWindow(): Float32Array {

@@ -1,15 +1,18 @@
 import { markRaw } from "vue";
-import { BaseFixture, FixtureType } from "../base.fixture";
+import { BaseFixture, FixtureState, FixtureType } from "../base.fixture";
+import { sanitizeAttributeValues, type AttributeValues } from "@/programming/attributes";
 import { Fixture as OpenFixtureDefinition } from "./open-fixture";
 import DmxFixtureSettings from "./DmxFixtureSettings.vue";
 
 /** Name used for `null` mode channels, which occupy a DMX slot without a function. */
 export const UNUSED_CHANNEL_NAME = "(unused)";
 
-interface DmxFixtureConfiguration {
+export interface DmxFixtureConfiguration {
     definition: OpenFixtureDefinition | null;
     startChannel: number;
     mode: OpenFixtureDefinition["modes"][0] | null;
+    /** Per-fixture attribute default overrides (feature 004, FR-012), default {}. */
+    defaults?: AttributeValues;
 }
 
 export class DmxFixture extends BaseFixture<number[], DmxFixtureConfiguration> {
@@ -72,6 +75,7 @@ export class DmxFixture extends BaseFixture<number[], DmxFixtureConfiguration> {
             definition: null,
             startChannel: 1,
             mode: null,
+            defaults: {},
         });
         this.name = "DMX Fixture";
     }
@@ -79,6 +83,11 @@ export class DmxFixture extends BaseFixture<number[], DmxFixtureConfiguration> {
     public override setValue(v: number[]): void {
         const normalizedValues = v.map((val) => (isNaN(val) ? 0 : Math.max(0, Math.min(255, Math.floor(val)))));
         super.setValue(normalizedValues);
+    }
+
+    public override load(state: FixtureState<number[], DmxFixtureConfiguration>) {
+        // data-model §2: invalid default values are dropped; unsupported keys are kept
+        super.load({ ...state, config: { ...state.config, defaults: sanitizeAttributeValues(state.config?.defaults) } });
     }
 
     public override resetValue(): void {

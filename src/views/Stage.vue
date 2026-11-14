@@ -12,6 +12,7 @@
                     <Fixtures v-if="activeStageTab === 0" />
                     <Controllers v-else-if="activeStageTab === 1" />
                     <Visualization v-else-if="activeStageTab === 2" />
+                    <Groups v-else-if="activeStageTab === 3" />
                 </div>
             </div>
         </template>
@@ -32,6 +33,7 @@ import { activeStageTab } from "./stageViewState";
 import Fixtures from "@/stage/components/Fixtures.vue";
 import Controllers from "@/stage/components/Controllers.vue";
 import Visualization from "@/stage/components/Visualization.vue";
+import Groups from "@/stage/components/Groups.vue";
 
 const toast = useToast();
 const errorHandler = useErrorHandler();
@@ -42,6 +44,7 @@ const menuItems: TabMenuProps["model"] = [
     { label: "Fixtures", icon: "mdi mdi-lamp" },
     { label: "Controllers", icon: "mdi mdi-chip" },
     { label: "Visualization", icon: "mdi mdi-eye" },
+    { label: "Groups", icon: "mdi mdi-lamps" },
 ];
 
 async function importStage() {

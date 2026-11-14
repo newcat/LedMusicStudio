@@ -4,7 +4,7 @@
  */
 import type * as THREE from "three";
 import type { BuilderKit, Vec3 } from "../../types";
-import { buildMovingHeadFrame } from "./movingHeadCommon";
+import { buildMovingHeadFrame, type MovingHeadLayout } from "./movingHeadCommon";
 
 /** Front plate surface, relative to `tilt`. */
 export const WASH_PLATE_Y = 0.12;
@@ -26,13 +26,15 @@ export function washCellPosition(index: number): Vec3 {
     return [x, WASH_PLATE_Y + 0.002, z];
 }
 
+export const MOVING_HEAD_WASH_LAYOUT: MovingHeadLayout = {
+    base: [0.36, 0.14, 0.32],
+    armX: 0.18,
+    arm: [0.04, 0.32, 0.13],
+    tiltHeight: 0.285,
+};
+
 export function buildMovingHeadWash(kit: BuilderKit): THREE.Object3D {
-    const { root, tilt } = buildMovingHeadFrame(kit, "moving-head-wash", {
-        base: [0.36, 0.14, 0.32],
-        armX: 0.18,
-        arm: [0.04, 0.32, 0.13],
-        tiltHeight: 0.285,
-    });
+    const { root, tilt } = buildMovingHeadFrame(kit, "moving-head-wash", MOVING_HEAD_WASH_LAYOUT);
 
     tilt.add(
         kit.lathe(

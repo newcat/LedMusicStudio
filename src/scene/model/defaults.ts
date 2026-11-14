@@ -6,6 +6,7 @@ import { completeParams, sizeOf } from "@/assetLibrary/params";
 import type { AssetDefinition } from "@/assetLibrary/types";
 import { DEFAULT_ENVIRONMENT } from "@/visualization/environment";
 import type {
+    AimTargetObject,
     CameraPose,
     FixtureVisualizationModelFields,
     FixtureVisualizationObject,
@@ -89,6 +90,11 @@ export function createShapeObject(shape: ShapeType, partial: Partial<Omit<ShapeO
 
 export function createGroupObject(partial: Partial<GroupObject> = {}): GroupObject {
     return { ...baseFields("group", "Group"), ...partial };
+}
+
+/** Aim target (feature 004): only the base fields; rotation and scale are ignored. */
+export function createAimTargetObject(partial: Partial<AimTargetObject> = {}): AimTargetObject {
+    return { ...baseFields("aimTarget", "Target"), ...partial };
 }
 
 export function createImportedModelObject(assetId: string, name: string): ImportedModelObject {

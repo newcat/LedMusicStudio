@@ -1,5 +1,6 @@
 import { CalculateFunction, Node } from "baklavajs";
 import { LmsCalculationContext } from "../../types";
+import { perFixtureState } from "../perFixtureState";
 import { wasmInterop } from "@/wasmInterop";
 import { Color } from "@/graph/colors";
 import { CheckboxInterface, ColorArrayInterface, ColorSingleInterface, NumberInterface, SliderInterface } from "@/graph/interfaces";
@@ -43,6 +44,7 @@ export class ParticleNode extends Node<Inputs, Outputs> {
         output: new ColorArrayInterface("Output"),
     };
 
+    /** Particle system of fixture index 0 (also used outside per-fixture runs). */
     private wasmParticleNode = new wasmInterop.wasmModule.ParticleNode();
 
     constructor() {
@@ -52,8 +54,12 @@ export class ParticleNode extends Node<Inputs, Outputs> {
     }
 
     // ~4ms JS, ~0.17ms Rust with opt-level=3 and lto=true
-    public calculate: CalculateFunction<Inputs, Outputs, LmsCalculationContext> = (inputs, { globalValues }) => {
-        const { fps, resolution } = globalValues;
+    public calculate: CalculateFunction<Inputs, Outputs, LmsCalculationContext> = (inputs, context) => {
+        const { fps, resolution } = context.globalValues;
+        // one particle system per fixture of a per-fixture run (feature 004)
+        const particles = perFixtureState(this, context, () =>
+            (context.globalValues.fixture?.index ?? 0) === 0 ? this.wasmParticleNode : new wasmInterop.wasmModule.ParticleNode()
+        );
         const calculationData = new wasmInterop.wasmModule.CalculationData(
             fps,
             resolution,
@@ -69,10 +75,10 @@ export class ParticleNode extends Node<Inputs, Outputs> {
             new Uint8Array(inputs.startColor),
             new Uint8Array(inputs.endColor)
         );
-        this.wasmParticleNode.calculate(calculationData);
+        particles.calculate(calculationData);
         calculationData.free();
 
-        const flattenedOutputBuffer = this.wasmParticleNode.get_output_buffer();
+        const flattenedOutputBuffer = particles.get_output_buffer();
         const output: Color[] = [];
         for (let i = 0; i < flattenedOutputBuffer.length; i += 3) {
             output.push([flattenedOutputBuffer[i], flattenedOutputBuffer[i + 1], flattenedOutputBuffer[i + 2]]);

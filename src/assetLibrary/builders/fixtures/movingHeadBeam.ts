@@ -5,17 +5,19 @@
  */
 import type * as THREE from "three";
 import type { BuilderKit } from "../../types";
-import { buildMovingHeadFrame } from "./movingHeadCommon";
+import { buildMovingHeadFrame, type MovingHeadLayout } from "./movingHeadCommon";
 
 const LENS_Y = 0.18;
 
+export const MOVING_HEAD_BEAM_LAYOUT: MovingHeadLayout = {
+    base: [0.3, 0.12, 0.25],
+    armX: 0.105,
+    arm: [0.035, 0.25, 0.1],
+    tiltHeight: 0.2,
+};
+
 export function buildMovingHeadBeam(kit: BuilderKit): THREE.Object3D {
-    const { root, tilt } = buildMovingHeadFrame(kit, "moving-head-beam", {
-        base: [0.3, 0.12, 0.25],
-        armX: 0.105,
-        arm: [0.035, 0.25, 0.1],
-        tiltHeight: 0.2,
-    });
+    const { root, tilt } = buildMovingHeadFrame(kit, "moving-head-beam", MOVING_HEAD_BEAM_LAYOUT);
 
     tilt.add(
         kit.lathe(
