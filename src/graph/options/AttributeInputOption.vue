@@ -1,7 +1,7 @@
 <template>
     <div class="attribute-input" :title="tooltip">
-        <input v-model="enabled" type="checkbox" class="__check" />
-        <div class="__name" :class="{ '--off': !enabled }">
+        <button class="__remove" title="Remove attribute" @pointerdown.stop @click.stop="intf.onRemove?.()">×</button>
+        <div class="__name">
             {{ intf.name }}<span v-if="intf.hint" class="__hint"> {{ intf.hint }}</span>
         </div>
         <div class="__editor">
@@ -62,10 +62,6 @@ function update(patch: Partial<AttributeInputState>) {
     modelValue.value = { ...state.value, ...patch };
 }
 
-const enabled = computed({
-    get: () => state.value.enabled,
-    set: (v: boolean) => update({ enabled: v }),
-});
 const numberValue = computed({
     get: () => (typeof state.value.value === "number" ? state.value.value : 0),
     set: (v: number) => update({ value: Number.isFinite(v) ? v : 0, enabled: true }),
@@ -103,17 +99,24 @@ const tooltip = computed(() => {
     align-items: center;
     gap: 0.25rem;
 }
-.__check {
+.__remove {
     flex: none;
+    padding: 0 0.2rem;
+    border: none;
+    background: none;
+    color: inherit;
+    opacity: 0.55;
+    cursor: pointer;
+    line-height: 1;
+}
+.__remove:hover {
+    opacity: 1;
 }
 .__name {
     flex-grow: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-.__name.--off {
-    opacity: 0.55;
 }
 .__hint {
     opacity: 0.7;
