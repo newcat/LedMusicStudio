@@ -69,7 +69,7 @@ const addItemOptions: MenuProps["model"] = LibraryItemTypeList.map((type) =>
                   command: () => library.addItem(reactive(new PresetLibraryItem(kind))),
               })),
           }
-        : getMenuItem(type)
+        : getMenuItem(type),
 );
 
 function toggleAddItemMenu(ev: Event) {
@@ -135,6 +135,7 @@ async function addItem(key: LibraryItemType) {
 .menu-container {
     width: 100%;
     flex-grow: 1;
+    overflow-y: auto;
 }
 
 .items-container {
