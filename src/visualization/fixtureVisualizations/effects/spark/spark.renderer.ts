@@ -8,6 +8,11 @@
  * space to local space with the origin's world rotation (read once per frame). Sparks are therefore ballistic in
  * world space for a static nozzle; a moving nozzle carries its sparks along (an approximation, acceptable for a
  * fixture that is not moving fast).
+ *
+ * Light: a warm `omni` light while on. Its brightness is proportional to the height the sparks have visibly reached
+ * (full brightness only at `maxHeight`): after the trigger, it follows the ballistic rise of the first sparks, so it
+ * ramps up until they have reached their apex. After the trigger is released, the light fades out linearly over
+ * `LIGHT_FADE_TIME` (the longest spark life, so it goes dark when the last spark dies).
  */
 import * as THREE from "three";
 
@@ -34,6 +39,8 @@ const HORIZONTAL_SPEED = 0.3;
 const NOZZLE_JITTER = 0.02;
 const LIGHT_KELVIN = 3000;
 const LIGHT_RANGE = 4;
+/** Seconds the light takes to fade out after the trigger is released. */
+const LIGHT_FADE_TIME = LIFE_MIN + (LIFE_MAX - LIFE_MIN) / 2;
 
 interface SparkRecord {
     /** True for the trail point, false for the head. */
@@ -57,7 +64,14 @@ export class SparkRenderer extends EffectRenderer<"spark"> {
     private readonly gravity = new THREE.Vector3();
     private readonly tmp = new THREE.Vector3();
     private readonly start = new THREE.Vector3();
+    private readonly sparkLightColor = new THREE.Color();
     private emitCarry = 0;
+    /** Seconds since the trigger turned on (0 while off). */
+    private onTime = 0;
+    /** Light brightness (0..1) of the last frame while on: the starting level of the fade-out. */
+    private lightLevel = 0;
+    /** Seconds left of the fade-out after release (0 when not fading). */
+    private fadeLeft = 0;
 
     public constructor(inputs: RendererInputs) {
         super(inputs, defaultEffectOptions("spark"));
@@ -79,8 +93,43 @@ export class SparkRenderer extends EffectRenderer<"spark"> {
             this.emitCarry = 0;
         }
 
-        this.setOmniLight(state.on ? this.warm : null, null, LIGHT_RANGE);
+        this.updateLight(state, dt);
         this.particles.update(dt, (p) => this.stepParticle(p, dt));
+    }
+
+    /**
+     * Warm light while on, its brightness proportional to the height the first sparks have reached so far; fades out
+     * over `LIGHT_FADE_TIME` after release.
+     */
+    private updateLight(state: EffectStateOf<"spark">, dt: number): void {
+        if (!state.on || state.height <= 0) {
+            if (this.onTime > 0) {
+                // just released: start the fade-out from the current level
+                this.onTime = 0;
+                this.fadeLeft = LIGHT_FADE_TIME;
+            }
+            this.fadeLeft = Math.max(0, this.fadeLeft - dt);
+            const level = this.lightLevel * (this.fadeLeft / LIGHT_FADE_TIME);
+            if (level <= 0) {
+                this.lightLevel = 0;
+                this.setOmniLight(null, null, LIGHT_RANGE);
+                return;
+            }
+            this.sparkLightColor.copy(this.warm).multiplyScalar(level);
+            this.setOmniLight(this.sparkLightColor, null, LIGHT_RANGE);
+            return;
+        }
+        this.fadeLeft = 0;
+        this.onTime += dt;
+        // ballistic height of a spark launched when the trigger turned on, clamped at its apex (= state.height)
+        const v0 = Math.sqrt(2 * GRAVITY * state.height);
+        const t = Math.min(this.onTime, v0 / GRAVITY);
+        const visibleHeight = Math.min(state.height, v0 * t - 0.5 * GRAVITY * t * t);
+        const maxHeight = this.options.maxHeight;
+        const heightRatio = maxHeight > 0 ? Math.min(1, visibleHeight / maxHeight) : 1;
+        this.lightLevel = heightRatio;
+        this.sparkLightColor.copy(this.warm).multiplyScalar(heightRatio);
+        this.setOmniLight(this.sparkLightColor, null, LIGHT_RANGE);
     }
 
     public override dispose(): void {

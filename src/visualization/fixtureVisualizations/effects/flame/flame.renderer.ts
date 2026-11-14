@@ -1,6 +1,8 @@
 /**
  * Flame projector (feature 003, T063): additive orange → red → dark particles rising along the nozzle's +Z, with
- * noisy lateral jitter, and a flickering warm `omni` light at the column's middle while on.
+ * noisy lateral jitter, and a flickering warm `omni` light at the middle of the visible column while on. The light's
+ * brightness is proportional to the visible column height (full brightness only at `maxHeight`): after the trigger,
+ * the column grows at the particles' rise speed, so the light ramps up until the flame has reached its height.
  *
  * States: off → on → fading (0.3 s, no new particles, light fades out) → off.
  */
@@ -60,6 +62,8 @@ export class FlameRenderer extends EffectRenderer<"flame"> {
     private fadeLeft = 0;
     private emitRemainder = 0;
     private columnHeight = 0;
+    /** Height the particles have reached so far (m): grows at RISE_SPEED up to `columnHeight`. */
+    private visibleHeight = 0;
 
     private readonly flameLightPosition = new THREE.Vector3();
     private readonly flameLightColor = new THREE.Color();
@@ -85,7 +89,11 @@ export class FlameRenderer extends EffectRenderer<"flame"> {
             if (this.fadeLeft <= 0) {
                 this.phase = "off";
                 this.emitRemainder = 0;
+                this.visibleHeight = 0;
             }
+        }
+        if (this.phase === "on") {
+            this.visibleHeight = Math.min(this.columnHeight, this.visibleHeight + RISE_SPEED * dt);
         }
 
         // emission (only while on, and only with a column to fill)
@@ -134,14 +142,17 @@ export class FlameRenderer extends EffectRenderer<"flame"> {
 
     /** Flickering light at the column's middle while on, fading out during `fading`, removed when off. */
     private updateLight(frame: FrameContext): void {
-        if (this.phase === "off" || this.columnHeight <= 0) {
+        if (this.phase === "off" || this.visibleHeight <= 0) {
             this.setOmniLight(null, null, LIGHT_RANGE);
             return;
         }
         const flicker = 0.8 + 0.2 * noise1(frame.time * 12);
         const fade = this.phase === "fading" ? Math.max(0, this.fadeLeft / FADE_TIME) : 1;
-        this.flameLightColor.copy(FLAME_LIGHT_COLOR).multiplyScalar(flicker * fade);
-        this.flameLightPosition.set(0, 0, this.columnHeight / 2);
+        // brightness grows with the visible column: full brightness only at the maximum height
+        const maxHeight = this.options.maxHeight;
+        const heightRatio = maxHeight > 0 ? Math.min(1, this.visibleHeight / maxHeight) : 1;
+        this.flameLightColor.copy(FLAME_LIGHT_COLOR).multiplyScalar(flicker * fade * heightRatio);
+        this.flameLightPosition.set(0, 0, this.visibleHeight / 2);
         this.setOmniLight(this.flameLightColor, this.flameLightPosition, LIGHT_RANGE);
     }
 }
