@@ -11,6 +11,7 @@ import {
     type Rgb,
 } from "./attributes";
 import { lerpColor } from "./color";
+import { clampFades } from "./effects";
 import { presetValue, type LookState, type LookValue, type PresetState } from "./states";
 import type { Contribution, ItemContext, ResolvedFixture } from "./types";
 
@@ -107,12 +108,11 @@ function aimTargetOf(look: LookState, lookups: Pick<LookLookups, "preset">): str
 
 /**
  * Per-fixture fade weight with fan timing (R9): each fixture's fade lasts F·(1−f) and starts after F·f·p_i, so the
- * whole fade still fits in F (FR-029). Fades are clamped to half the item.
+ * whole fade still fits in F (FR-029). Fades are clamped by `clampFades`.
  */
 export function lookFadeWeight(x: number, length: number, fadeIn: number, fadeOut: number, fanTiming: number, p: number): number {
     const f = Math.min(1, Math.max(0, fanTiming));
-    const fi = Math.min(Math.max(0, fadeIn), length / 2);
-    const fo = Math.min(Math.max(0, fadeOut), length / 2);
+    const [fi, fo] = clampFades(length, fadeIn, fadeOut);
     let w = 1;
     if (fi > 0) {
         const start = fi * f * p;

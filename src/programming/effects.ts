@@ -40,8 +40,28 @@ export function phaseOffset(i: number, n: number, spread: number, wings: number,
     return m > 0 ? (spread * k) / m : 0;
 }
 
-/** −1..1; circle and figure-8 return [pan, tilt]. `t` in cycles. */
-export function evaluateShape(shape: EffectShape, t: number): number | [number, number] {
+/** Phase (in cycles) at which a width window starts: the shape's minimum, so a squished cycle rises from "off". */
+function windowStart(shape: EffectShape): number {
+    return shape === "sine" || shape === "triangle" ? 0.75 : 0;
+}
+
+/**
+ * −1..1; circle and figure-8 return [pan, tilt]. `t` in cycles.
+ * `width` (0..1], the duty cycle: the whole cycle of the shape is squished into the first `width` of each cycle
+ * (starting at the shape's minimum) and the rest of the cycle stays at −1. Width 1 is the plain shape; ignored for
+ * circle and figure-8.
+ */
+export function evaluateShape(shape: EffectShape, t: number, width = 1): number | [number, number] {
+    if (width < 1 && shape !== "circle" && shape !== "figure8") {
+        const w = Math.max(0.01, width);
+        const start = windowStart(shape);
+        const g = t - start - Math.floor(t - start);
+        return g >= w ? -1 : rawShape(shape, start + g / w);
+    }
+    return rawShape(shape, t);
+}
+
+function rawShape(shape: EffectShape, t: number): number | [number, number] {
     const f = t - Math.floor(t);
     const a = 2 * Math.PI * t;
     switch (shape) {
@@ -63,10 +83,20 @@ export function evaluateShape(shape: EffectShape, t: number): number | [number, 
     return 0;
 }
 
-/** Fade weight at item position `x` of length `L` (R9); fades are clamped to L/2, a fade of 0 counts as 1. */
+/**
+ * Effective fade lengths of an item of length `L`: each fade may span the whole item, but together they never exceed
+ * `L` (the fade in takes precedence).
+ */
+export function clampFades(length: number, fadeIn: number, fadeOut: number): [number, number] {
+    const l = Math.max(0, length);
+    const fi = Math.min(Math.max(0, fadeIn), l);
+    const fo = Math.min(Math.max(0, fadeOut), l - fi);
+    return [fi, fo];
+}
+
+/** Fade weight at item position `x` of length `L` (R9); fades are clamped by `clampFades`, a fade of 0 counts as 1. */
 export function fadeWeight(x: number, length: number, fadeIn: number, fadeOut: number): number {
-    const fi = Math.min(Math.max(0, fadeIn), length / 2);
-    const fo = Math.min(Math.max(0, fadeOut), length / 2);
+    const [fi, fo] = clampFades(length, fadeIn, fadeOut);
     let w = 1;
     if (fi > 0) {
         w = Math.min(w, x / fi);
@@ -111,7 +141,7 @@ export function evaluateEffect(effect: EffectState, ctx: ItemContext, getProfile
             continue;
         }
         const t = effectTime(effect, ctx.localPosition, f.index, n);
-        const raw = evaluateShape(effect.shape, t);
+        const raw = evaluateShape(effect.shape, t, effect.width);
         const contribution: Contribution = { fixtureId: f.fixtureId, priority: ctx.priority, attributes: {}, raw: null };
         const put = (key: AttributeKey, offset: number, base: number) => {
             if (!profile.supported.has(key)) {

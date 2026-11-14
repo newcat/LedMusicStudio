@@ -67,6 +67,7 @@ import EffectPreview from "@/programming/effect/EffectPreview.vue";
 import LookPreview from "@/programming/look/LookPreview.vue";
 import TargetSelect, { type TargetSelectValue } from "@/programming/components/TargetSelect.vue";
 import { programmingWarnings } from "@/programming/processor";
+import { clampFades } from "@/programming/effects";
 import { snap } from "@/utils";
 
 const ITEM_COMPONENT_MAPPING: Partial<Record<LibraryItemType, ComponentOptions<any>>> = markRaw({
@@ -135,9 +136,10 @@ const warnings = computed(() => programmingWarnings.get(props.item.id) ?? []);
 // --- fades -------------------------------------------------------------------------------------------------------
 
 const hasFades = computed(() => FADE_TYPES.includes(props.item.libraryItem.type));
-const halfLength = computed(() => (props.item.end - props.item.start) / 2);
-const fadeInPx = computed(() => Math.min(props.item.fadeIn, halfLength.value) * props.unitWidth);
-const fadeOutPx = computed(() => Math.min(props.item.fadeOut, halfLength.value) * props.unitWidth);
+const itemLength = computed(() => props.item.end - props.item.start);
+const effectiveFades = computed(() => clampFades(itemLength.value, props.item.fadeIn, props.item.fadeOut));
+const fadeInPx = computed(() => effectiveFades.value[0] * props.unitWidth);
+const fadeOutPx = computed(() => effectiveFades.value[1] * props.unitWidth);
 /** The overlay covers the item below the header; percentages in the SVG need a number. */
 const overlayHeight = 100;
 
@@ -145,14 +147,20 @@ let stopDrag: (() => void) | null = null;
 
 function startFadeDrag(which: "in" | "out", event: MouseEvent) {
     const startX = event.clientX;
-    const startValue = which === "in" ? props.item.fadeIn : props.item.fadeOut;
+    const [startIn, startOut] = effectiveFades.value;
+    const startValue = which === "in" ? startIn : startOut;
     const onMove = (e: MouseEvent) => {
         const deltaUnits = (e.clientX - startX) / props.unitWidth;
         const raw = which === "in" ? startValue + deltaUnits : startValue - deltaUnits;
-        const value = Math.min(halfLength.value, Math.max(0, e.shiftKey ? Math.round(raw) : snap(raw)));
+        // each fade may span the whole item, limited by the other fade so they never overlap
+        const [fi, fo] = effectiveFades.value;
+        const max = Math.max(0, itemLength.value - (which === "in" ? fo : fi));
+        const value = Math.min(max, Math.max(0, e.shiftKey ? Math.round(raw) : snap(raw)));
         if (which === "in") {
             props.item.fadeIn = value;
+            props.item.fadeOut = fo;
         } else {
+            props.item.fadeIn = fi;
             props.item.fadeOut = value;
         }
     };

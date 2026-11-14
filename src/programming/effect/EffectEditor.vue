@@ -48,6 +48,9 @@
             <LabelledFormField label="Phase spread">
                 <InputNumber v-model="spread" :min="0" :max="720" suffix=" °" show-buttons :step="45" size="small" input-class="w-24" />
             </LabelledFormField>
+            <LabelledFormField v-if="!isPairShape" label="Width (duty cycle)">
+                <InputNumber v-model="widthPercent" :min="1" :max="100" suffix=" %" show-buttons :step="5" size="small" input-class="w-24" />
+            </LabelledFormField>
             <LabelledFormField label="Wings">
                 <InputNumber v-model="wings" :min="1" show-buttons size="small" input-class="w-20" />
             </LabelledFormField>
@@ -144,7 +147,12 @@ const spread = numberModel(
     () => state.value.spread,
     (v) => (state.value.spread = Math.min(720, Math.max(0, v)))
 );
-const intModel = (key: "wings" | "blocks" | "interleave") =>
+const widthPercent = numberModel(
+    () => Math.round(state.value.width * 1000) / 10,
+    (v) => (state.value.width = Math.min(1, Math.max(0.01, v / 100)))
+);
+const isPairShape = computed(() => state.value.shape === "circle" || state.value.shape === "figure8");
+const intModel =(key: "wings" | "blocks" | "interleave") =>
     numberModel(
         () => state.value[key],
         (v) => (state.value[key] = Math.max(1, Math.round(v)))
@@ -189,7 +197,7 @@ const dots = computed(() => {
     const result: Array<Record<string, string>> = [];
     for (let i = 0; i < n; i++) {
         const offset = phaseOffset(i, n, s.spread, s.wings, s.blocks, s.interleave, s.direction === "backward");
-        const raw = evaluateShape(s.shape, beats / s.rateBeats + offset / 360);
+        const raw = evaluateShape(s.shape, beats / s.rateBeats + offset / 360, s.width);
         const [a, b] = Array.isArray(raw) ? raw : [raw, raw];
         const style: Record<string, string> = {};
         if (s.attribute === "color") {

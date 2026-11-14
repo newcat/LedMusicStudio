@@ -131,6 +131,8 @@ export interface EffectState {
     rateBeats: number;
     /** degrees 0..720, default 360 */
     spread: number;
+    /** duty cycle 0.01..1, default 1: the shape runs in this fraction of each cycle, the rest stays at its minimum */
+    width: number;
     /** integers ≥ 1, default 1 */
     wings: number;
     blocks: number;
@@ -167,6 +169,7 @@ export function defaultEffectState(): EffectState {
         ],
         rateBeats: 1,
         spread: 360,
+        width: 1,
         wings: 1,
         blocks: 1,
         interleave: 1,
@@ -196,7 +199,7 @@ function sizeValue(attribute: EffectAttribute, raw: unknown, fallback: number | 
     return finite(raw, fallback as number);
 }
 
-/** Validation (data-model §7): rateBeats > 0, spread 0..720, integers ≥ 1, circle/figure8 only with panTilt, color forces absolute. */
+/** Validation (data-model §7): rateBeats > 0, spread 0..720, width 0.01..1, integers ≥ 1, circle/figure8 only with panTilt, color forces absolute. */
 export function sanitizeEffectState(raw: unknown): EffectState {
     const d = defaultEffectState();
     if (typeof raw !== "object" || raw === null) {
@@ -221,6 +224,7 @@ export function sanitizeEffectState(raw: unknown): EffectState {
         colors: [color(colors[0], d.colors[0]), color(colors[1], d.colors[1])],
         rateBeats: rateBeats > 0 ? rateBeats : 1,
         spread: Math.min(720, Math.max(0, finite(r.spread, 360))),
+        width: Math.min(1, Math.max(0.01, finite(r.width, 1))),
         wings: intAtLeast1(r.wings),
         blocks: intAtLeast1(r.blocks),
         interleave: intAtLeast1(r.interleave),

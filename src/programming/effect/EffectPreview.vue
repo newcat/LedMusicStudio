@@ -30,7 +30,7 @@ const effect = computed(() => ((props.item?.libraryItem ?? props.libraryItem) as
 const points = computed(() => {
     const result: string[] = [];
     for (let i = 0; i <= 40; i++) {
-        const v = evaluateShape(effect.value.shape, i / 40);
+        const v = evaluateShape(effect.value.shape, i / 40, effect.value.width);
         const y = Array.isArray(v) ? v[1] : v;
         result.push(`${i},${10 - y * 8}`);
     }
