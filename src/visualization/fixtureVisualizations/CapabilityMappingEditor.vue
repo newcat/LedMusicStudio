@@ -1,215 +1,157 @@
 <template>
     <div class="capability-mapping">
-        <div v-if="channels === null" class="text-sm opacity-70">Select a fixture and mode in the fixture settings to map channels.</div>
+        <div v-if="channels === null" class="note">Choose a profile and mode in the Fixture section to map channels.</div>
         <template v-else>
-            <div class="capability-header">
-                <Button icon="pi pi-sparkles" label="Auto-Assign" size="small" outlined @click="onAutoAssign($event)" />
-                <Message v-if="modeChanged" severity="warn" size="small" :closable="false">⚠ Fixture mode changed – mapping may be outdated</Message>
-            </div>
+            <Message v-if="modeChanged" severity="warn" size="small" :closable="false">Fixture mode changed – mapping may be outdated</Message>
             <ConfirmPopup :group="confirmGroup" />
 
-            <section v-for="group in groups" :key="group.label" class="capability-group">
-                <div class="capability-group-label">{{ group.label }}</div>
-                <div v-for="key in group.keys" :key="key" class="capability-key">
-                    <div class="capability-row">
-                        <div class="capability-label">{{ KEY_INFO[key].label }}</div>
-                        <Select
-                            :model-value="entryOf(key)?.channel ?? -1"
-                            :options="channelOptions"
-                            option-label="label"
-                            option-value="value"
-                            size="small"
-                            class="capability-channel"
-                            @update:model-value="setChannel(key, $event)"
-                        />
-                        <template v-if="KEY_INFO[key].hasFine">
-                            <span class="text-sm opacity-70">fine</span>
+            <section v-for="group in visibleGroups" :key="group.label" class="capability-group">
+                <div class="group-label">{{ group.label }}</div>
+                <div v-for="key in group.keys" :key="key" class="capability">
+                    <PropertyRow :label="KEY_INFO[key].label" :hint="summaryOf(key) || undefined">
+                        <div class="channel-row">
+                            <Select
+                                :model-value="entryOf(key)?.channel ?? -1"
+                                :options="channelOptions"
+                                option-label="label"
+                                option-value="value"
+                                size="small"
+                                fluid
+                                class="channel-select"
+                                :aria-label="`${KEY_INFO[key].label} channel`"
+                                @update:model-value="setChannel(key, $event)"
+                            />
+                            <span
+                                v-if="entryOf(key)"
+                                v-tooltip.top="entryOf(key)!.source === 'manual' ? 'Edited manually' : 'Auto-assigned'"
+                                class="source-dot"
+                                :class="entryOf(key)!.source"
+                            ></span>
+                            <Button
+                                v-if="hasDetails(key)"
+                                text
+                                rounded
+                                size="small"
+                                severity="secondary"
+                                :icon="expanded.has(key) ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
+                                :aria-label="expanded.has(key) ? 'Hide details' : 'Show details'"
+                                :aria-expanded="expanded.has(key)"
+                                @click="toggle(key)"
+                            />
+                        </div>
+                    </PropertyRow>
+
+                    <div v-if="expanded.has(key)" class="details">
+                        <PropertyRow v-if="KEY_INFO[key].hasFine" label="Fine">
                             <Select
                                 :model-value="entryOf(key)?.fine ?? -1"
                                 :options="fineOptions(key)"
                                 option-label="label"
                                 option-value="value"
                                 size="small"
-                                class="capability-channel"
+                                fluid
                                 :disabled="!isMapped(key)"
+                                :aria-label="`${KEY_INFO[key].label} fine channel`"
                                 @update:model-value="setFine(key, $event)"
                             />
-                        </template>
-
+                        </PropertyRow>
                         <template v-if="KEY_INFO[key].segmentKind === 'linear'">
-                            <template v-if="!isMapped(key)">
-                                <span class="text-sm opacity-70">Default</span>
+                            <PropertyRow v-if="!isMapped(key)" label="Default">
                                 <InputNumber
                                     :model-value="entryOf(key)?.defaultValue ?? KEY_INFO[key].defaultValue"
                                     :max-fraction-digits="3"
                                     size="small"
-                                    input-class="capability-number"
+                                    fluid
                                     :suffix="unitSuffix(key)"
+                                    :aria-label="`${KEY_INFO[key].label} default`"
                                     @update:model-value="setDefault(key, $event)"
                                 />
-                            </template>
+                            </PropertyRow>
                             <template v-else-if="rangeOf(key)">
-                                <InputNumber
-                                    :model-value="rangeOf(key)![0]"
-                                    :max-fraction-digits="3"
-                                    size="small"
-                                    input-class="capability-number"
-                                    :suffix="unitSuffix(key)"
-                                    @update:model-value="setRange(key, 0, $event)"
-                                />
-                                <span>…</span>
-                                <InputNumber
-                                    :model-value="rangeOf(key)![1]"
-                                    :max-fraction-digits="3"
-                                    size="small"
-                                    input-class="capability-number"
-                                    :suffix="unitSuffix(key)"
-                                    @update:model-value="setRange(key, 1, $event)"
-                                />
+                                <PropertyRow label="Range from">
+                                    <InputNumber
+                                        :model-value="rangeOf(key)![0]"
+                                        :max-fraction-digits="3"
+                                        size="small"
+                                        fluid
+                                        :suffix="unitSuffix(key)"
+                                        :aria-label="`${KEY_INFO[key].label} range from`"
+                                        @update:model-value="setRange(key, 0, $event)"
+                                    />
+                                </PropertyRow>
+                                <PropertyRow label="Range to">
+                                    <InputNumber
+                                        :model-value="rangeOf(key)![1]"
+                                        :max-fraction-digits="3"
+                                        size="small"
+                                        fluid
+                                        :suffix="unitSuffix(key)"
+                                        :aria-label="`${KEY_INFO[key].label} range to`"
+                                        @update:model-value="setRange(key, 1, $event)"
+                                    />
+                                </PropertyRow>
                             </template>
                         </template>
-
-                        <template v-if="KEY_INFO[key].segmentKind === 'wheelSlot' && wheelNames.length > 0">
+                        <PropertyRow v-if="KEY_INFO[key].segmentKind === 'wheelSlot' && wheelNames.length > 0" label="Wheel">
                             <Select
                                 :model-value="entryOf(key)?.wheel ?? null"
                                 :options="wheelNames"
-                                placeholder="Wheel"
+                                placeholder="No wheel"
                                 show-clear
                                 size="small"
-                                class="capability-channel"
+                                fluid
+                                :aria-label="`${KEY_INFO[key].label} wheel`"
                                 @update:model-value="setWheel(key, $event)"
                             />
-                        </template>
-                        <div v-if="wheelOf(key)" class="wheel-preview">
-                            <template v-for="(slot, i) in wheelOf(key)!.slots" :key="i">
-                                <img v-if="goboSrc(slot)" :src="goboSrc(slot)!" :title="slotName(slot, i)" class="gobo-thumb" alt="" />
-                                <span v-else-if="isGenericGobo(slot)" :title="slotName(slot, i)" class="gobo-thumb gobo-generic pi pi-th-large"></span>
-                                <span v-else :title="slotName(slot, i)" class="slot-swatch" :style="swatchStyle(slot)"></span>
+                            <template #hint>
+                                <div v-if="wheelOf(key)" class="wheel-preview">
+                                    <template v-for="(slot, i) in wheelOf(key)!.slots" :key="i">
+                                        <img v-if="goboSrc(slot)" :src="goboSrc(slot)!" :title="slotName(slot, i)" class="gobo-thumb" alt="" />
+                                        <span v-else-if="isGenericGobo(slot)" :title="slotName(slot, i)" class="gobo-thumb gobo-generic pi pi-th-large"></span>
+                                        <span v-else :title="slotName(slot, i)" class="slot-swatch" :style="swatchStyle(slot)"></span>
+                                    </template>
+                                </div>
                             </template>
+                        </PropertyRow>
+                        <div v-if="KEY_INFO[key].segmentKind" class="detail-actions">
+                            <Button text size="small" icon="pi pi-table" :label="`Edit ranges… (${segmentCount(key)})`" @click="openRanges(key)" />
                         </div>
-
-                        <Button
-                            v-if="KEY_INFO[key].segmentKind"
-                            :label="`${segmentCount(key)} ranges ${expanded.has(key) ? '▾' : '▸'}`"
-                            text
-                            size="small"
-                            @click="toggle(key)"
-                        />
-                        <Tag v-if="entryOf(key)" :value="entryOf(key)!.source" :severity="entryOf(key)!.source === 'manual' ? 'info' : 'secondary'" class="ml-auto" />
                     </div>
-
-                    <table v-if="expanded.has(key)" class="segment-table">
-                        <thead>
-                            <tr>
-                                <th>From</th>
-                                <th>To</th>
-                                <th>Kind</th>
-                                <th>Values</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="(segment, i) in entryOf(key)?.segments ?? []" :key="i">
-                                <td>
-                                    <InputNumber :model-value="segment.from" :min="0" :max="255" size="small" input-class="capability-dmx" @update:model-value="setSegmentField(key, i, 'from', $event)" />
-                                </td>
-                                <td>
-                                    <InputNumber :model-value="segment.to" :min="0" :max="255" size="small" input-class="capability-dmx" @update:model-value="setSegmentField(key, i, 'to', $event)" />
-                                </td>
-                                <td>
-                                    <Select :model-value="segment.kind" :options="SEGMENT_KINDS" size="small" @update:model-value="setSegmentKind(key, i, $event)" />
-                                </td>
-                                <td>
-                                    <div class="flex gap-1 items-center">
-                                        <template v-for="field in NUMERIC_FIELDS[segment.kind]" :key="field">
-                                            <InputNumber
-                                                v-tooltip.top="field"
-                                                :model-value="numberField(segment, field)"
-                                                :max-fraction-digits="3"
-                                                size="small"
-                                                input-class="capability-number"
-                                                :placeholder="field"
-                                                @update:model-value="setSegmentField(key, i, field, $event)"
-                                            />
-                                        </template>
-                                        <Select
-                                            v-if="segment.kind === 'shutter'"
-                                            :model-value="segment.effect"
-                                            :options="SHUTTER_EFFECTS"
-                                            size="small"
-                                            @update:model-value="setSegmentValue(key, i, 'effect', $event)"
-                                        />
-                                        <Select
-                                            v-if="segment.kind === 'pattern'"
-                                            :model-value="segment.pattern"
-                                            :options="LASER_PATTERNS"
-                                            size="small"
-                                            @update:model-value="setSegmentValue(key, i, 'pattern', $event)"
-                                        />
-                                        <template v-if="segment.kind === 'color'">
-                                            <InputText
-                                                :model-value="segment.colors.join(', ')"
-                                                placeholder="#ff0000, #0000ff"
-                                                size="small"
-                                                @update:model-value="setColors(key, i, $event ?? '')"
-                                            />
-                                            <InputNumber
-                                                :model-value="segment.temperature"
-                                                placeholder="K"
-                                                suffix=" K"
-                                                size="small"
-                                                input-class="capability-number"
-                                                @update:model-value="setSegmentValue(key, i, 'temperature', $event)"
-                                            />
-                                        </template>
-                                    </div>
-                                </td>
-                                <td>
-                                    <Button icon="pi pi-trash" text severity="danger" size="small" aria-label="Remove range" @click="removeSegment(key, i)" />
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <Button v-if="expanded.has(key)" icon="pi pi-plus" label="Add range" text size="small" @click="addSegment(key)" />
                 </div>
             </section>
 
-            <section v-if="mapping.cells.length > 0" class="capability-group">
-                <Button :label="`Cells (${mapping.cells.length}) ${cellsExpanded ? '▾' : '▸'}`" text size="small" @click="cellsExpanded = !cellsExpanded" />
-                <table v-if="cellsExpanded" class="segment-table">
-                    <thead>
-                        <tr>
-                            <th>Emitter</th>
-                            <th>Pixel</th>
-                            <th v-for="field in CELL_FIELDS" :key="field.key">{{ field.label }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="(cell, i) in mapping.cells" :key="i">
-                            <td>{{ cell.emitter }}</td>
-                            <td>{{ cell.pixelKey }}</td>
-                            <td v-for="field in CELL_FIELDS" :key="field.key">
-                                <Select
-                                    :model-value="cell[field.key]"
-                                    :options="channelOptions"
-                                    option-label="label"
-                                    option-value="value"
-                                    size="small"
-                                    class="capability-cell-channel"
-                                    @update:model-value="setCellChannel(i, field.key, $event)"
-                                />
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div v-if="emitterCount !== undefined && mapping.cells.length !== emitterCount" class="text-sm opacity-70">
-                    {{ mapping.cells.length }} pixels are spread over {{ emitterCount }} model cells.
-                </div>
-            </section>
-
-            <div v-if="unmapped.length > 0" class="text-sm opacity-70">
-                Unmapped channels: {{ unmapped.map((c) => `${c.index + 1}: ${c.key}`).join(", ") }}
+            <div class="list-actions">
+                <Button
+                    v-if="unmappedKeyCount > 0"
+                    text
+                    size="small"
+                    :icon="showUnmapped ? 'pi pi-eye-slash' : 'pi pi-eye'"
+                    :label="showUnmapped ? 'Hide unmapped' : `Show ${unmappedKeyCount} unmapped`"
+                    @click="showUnmapped = !showUnmapped"
+                />
+                <Button v-if="mapping.cells.length > 0" text size="small" icon="pi pi-th-large" :label="`Edit cells… (${mapping.cells.length})`" @click="cellsOpen = true" />
             </div>
+            <div v-if="mapping.cells.length > 0 && emitterCount !== undefined && mapping.cells.length !== emitterCount" class="note">
+                {{ mapping.cells.length }} pixels are spread over {{ emitterCount }} model cells.
+            </div>
+            <div v-if="unmapped.length > 0" class="note">Unmapped channels: {{ unmapped.map((c) => `${c.index + 1}: ${c.key}`).join(", ") }}</div>
+            <div v-if="note" class="note">{{ note }}</div>
+
+            <CapabilityRangesDialog
+                v-if="rangesKey"
+                v-model:visible="rangesOpen"
+                :title="KEY_INFO[rangesKey].label"
+                :segments="entryOf(rangesKey)?.segments ?? []"
+                :default-kind="KEY_INFO[rangesKey].segmentKind ?? 'linear'"
+                @update:segments="setSegments(rangesKey, $event)"
+            />
+            <CapabilityCellsDialog
+                v-model:visible="cellsOpen"
+                :cells="mapping.cells"
+                :channel-options="channelOptions"
+                :emitter-count="emitterCount"
+                @update:cells="setCells"
+            />
         </template>
     </div>
 </template>
@@ -219,16 +161,18 @@
  * Capability mapping editor (contracts/rendering-ui.md, FR-011). Emits a new mapping object on every edit; any
  * edit of an entry marks it `source: "manual"`. Auto-Assign regenerates the mapping from the fixture's OFL mode
  * (US2); the mapping is never changed automatically.
+ *
+ * Compact layout (feature 006, contracts/inspector-ui.md → Channel mapping section): mapped capabilities as property
+ * rows with a summary line, unmapped ones behind a filter, range and cell tables in dialogs. Auto-Assign and the
+ * mapped count live in the section header; they are exposed (`onAutoAssign`, `mappedCount`, `totalCount`).
  */
 import { computed, ref } from "vue";
 import Button from "primevue/button";
 import ConfirmPopup from "primevue/confirmpopup";
 import { useConfirm } from "primevue/useconfirm";
 import InputNumber from "primevue/inputnumber";
-import InputText from "primevue/inputtext";
 import Message from "primevue/message";
 import Select from "primevue/select";
-import Tag from "primevue/tag";
 
 import { emitSceneToast } from "@/scene/toastBus";
 import type { DmxFixture } from "@/stage/fixtures";
@@ -245,12 +189,14 @@ import type {
     CapabilityMapping,
     CapabilitySegment,
     CellMapping,
-    LaserPattern,
-    ShutterEffect,
     WheelDefinition,
     WheelSlot,
 } from "../capabilities/types";
 import { fixtureModelOf } from "./defaultMapping";
+import PropertyRow from "@/scene/editor/inspector/PropertyRow.vue";
+import CapabilityRangesDialog from "./CapabilityRangesDialog.vue";
+import CapabilityCellsDialog from "./CapabilityCellsDialog.vue";
+import { capabilitySummary, mappedChannelCount } from "./capabilitySummary";
 
 const props = defineProps<{
     mapping: CapabilityMapping;
@@ -260,42 +206,22 @@ const props = defineProps<{
     modelId?: string;
     /** Number of `cell-*` emitters of the model; shows the cell-spread hint when it differs from the pixel count. */
     emitterCount?: number;
+    /** muted note at the end, e.g. the fallbacks of the type */
+    note?: string;
 }>();
 
 const emit = defineEmits<{
     "update:mapping": [mapping: CapabilityMapping];
 }>();
 
-type SegmentKind = CapabilitySegment["kind"];
-type CellChannelField = Exclude<keyof CellMapping, "emitter" | "pixelKey">;
-
-const SEGMENT_KINDS: SegmentKind[] = ["linear", "shutter", "wheelSlot", "rotation", "angle", "color", "pattern", "none"];
-const SHUTTER_EFFECTS: ShutterEffect[] = ["open", "closed", "strobe", "pulse", "rampUp", "rampDown", "rampUpDown", "random"];
-const LASER_PATTERNS: LaserPattern[] = ["beam", "fan", "cone", "sheet", "dots"];
-/** Numeric value fields per segment kind (besides from/to). */
-const NUMERIC_FIELDS: Record<SegmentKind, string[]> = {
-    linear: ["start", "end"],
-    shutter: ["rateStart", "rateEnd"],
-    wheelSlot: ["slotStart", "slotEnd"],
-    rotation: ["speedStart", "speedEnd"],
-    angle: ["start", "end"],
-    color: [],
-    pattern: [],
-    none: [],
-};
-const CELL_FIELDS: Array<{ key: CellChannelField; label: string }> = [
-    { key: "red", label: "R" },
-    { key: "green", label: "G" },
-    { key: "blue", label: "B" },
-    { key: "white", label: "W" },
-    { key: "amber", label: "A" },
-    { key: "uv", label: "UV" },
-    { key: "dimmer", label: "Dimmer" },
-];
 const UNIT_SUFFIX: Partial<Record<string, string>> = { deg: "°", K: " K", rps: " rps" };
 
 const expanded = ref(new Set<CapabilityKey>());
-const cellsExpanded = ref(false);
+/** unmapped capabilities are hidden by default (per editor instance) */
+const showUnmapped = ref(false);
+const rangesKey = ref<CapabilityKey | null>(null);
+const rangesOpen = ref(false);
+const cellsOpen = ref(false);
 
 // ------------------------------------------------------------------------------------------------------------
 // Fixture channels
@@ -327,6 +253,19 @@ const groups = computed(() => {
     const supported = new Set(KEYS_BY_TYPE[props.type]);
     return KEY_GROUPS.map((g) => ({ label: g.label, keys: g.keys.filter((k) => supported.has(k)) })).filter((g) => g.keys.length > 0);
 });
+
+/** Mapped capabilities first; unmapped ones only with the filter off. Empty groups are hidden. */
+const visibleGroups = computed(() =>
+    groups.value
+        .map((g) => ({ label: g.label, keys: g.keys.filter((k) => showUnmapped.value || isMapped(k)) }))
+        .filter((g) => g.keys.length > 0)
+);
+
+const unmappedKeyCount = computed(() => groups.value.reduce((n, g) => n + g.keys.filter((k) => !isMapped(k)).length, 0));
+
+/** Header badge: distinct mapped channels / channels of the mode. */
+const totalCount = computed(() => props.controller.fixture.channelNames.length);
+const mappedCount = computed(() => mappedChannelCount(props.mapping, totalCount.value));
 
 const wheelNames = computed(() => Object.keys(props.mapping.wheels));
 
@@ -372,9 +311,14 @@ function wheelOf(key: CapabilityKey): WheelDefinition | null {
     return name ? (props.mapping.wheels[name] ?? null) : null;
 }
 
-function numberField(segment: CapabilitySegment, field: string): number | null {
-    const value = (segment as unknown as Record<string, unknown>)[field];
-    return typeof value === "number" ? value : null;
+function summaryOf(key: CapabilityKey): string {
+    return capabilitySummary(entryOf(key), KEY_INFO[key], props.mapping.wheels);
+}
+
+/** Whether the row has an expandable detail area. */
+function hasDetails(key: CapabilityKey): boolean {
+    const info = KEY_INFO[key];
+    return info.hasFine || info.segmentKind !== null;
 }
 
 // ------------------------------------------------------------------------------------------------------------
@@ -532,138 +476,95 @@ function toggle(key: CapabilityKey) {
     expanded.value = next;
 }
 
-function newSegment(kind: SegmentKind, from: number, to: number): CapabilitySegment {
-    switch (kind) {
-        case "linear":
-        case "angle":
-            return { kind, from, to, start: 0, end: 1 };
-        case "shutter":
-            return { kind, from, to, effect: "open", rateStart: 0, rateEnd: 0 };
-        case "wheelSlot":
-            return { kind, from, to, slotStart: 1, slotEnd: 1 };
-        case "rotation":
-            return { kind, from, to, speedStart: 0, speedEnd: 0 };
-        case "color":
-            return { kind, from, to, colors: ["#ffffff"], temperature: null };
-        case "pattern":
-            return { kind, from, to, pattern: "beam" };
-        case "none":
-            return { kind, from, to };
-    }
+function openRanges(key: CapabilityKey) {
+    rangesKey.value = key;
+    rangesOpen.value = true;
 }
 
-function addSegment(key: CapabilityKey) {
-    updateEntry(key, (entry) => {
-        const last = entry.segments[entry.segments.length - 1];
-        const from = last ? Math.min(255, last.to + 1) : 0;
-        entry.segments.push(newSegment(KEY_INFO[key].segmentKind ?? "linear", from, 255));
-    });
+function setSegments(key: CapabilityKey, segments: CapabilitySegment[]) {
+    updateEntry(key, (entry) => (entry.segments = segments));
 }
 
-function removeSegment(key: CapabilityKey, index: number) {
-    updateEntry(key, (entry) => entry.segments.splice(index, 1));
+function setCells(cells: CellMapping[]) {
+    update((mapping) => (mapping.cells = cells));
 }
 
-function setSegmentKind(key: CapabilityKey, index: number, kind: SegmentKind) {
-    updateEntry(key, (entry) => {
-        const old = entry.segments[index];
-        entry.segments[index] = newSegment(kind, old.from, old.to);
-    });
-}
-
-function setSegmentValue(key: CapabilityKey, index: number, field: string, value: unknown) {
-    updateEntry(key, (entry) => {
-        (entry.segments[index] as unknown as Record<string, unknown>)[field] = value;
-    });
-}
-
-function setSegmentField(key: CapabilityKey, index: number, field: string, value: number | null) {
-    if (value !== null) {
-        setSegmentValue(key, index, field, value);
-    }
-}
-
-function setColors(key: CapabilityKey, index: number, text: string) {
-    const colors = text
-        .split(",")
-        .map((c) => c.trim())
-        .filter((c) => /^#[0-9a-fA-F]{6}$/.test(c));
-    setSegmentValue(key, index, "colors", colors);
-}
-
-function setCellChannel(index: number, field: CellChannelField, channel: number) {
-    update((mapping) => (mapping.cells[index][field] = channel));
-}
+defineExpose({ onAutoAssign, mappedCount, totalCount });
 </script>
 
 <style scoped>
 .capability-mapping {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-}
-
-.capability-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
+    gap: var(--insp-gap-2, 8px);
+    min-width: 0;
 }
 
 .capability-group {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: var(--insp-gap-2, 8px);
 }
 
-.capability-group-label {
-    font-weight: bold;
+.group-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--p-text-muted-color);
+    margin-top: var(--insp-gap-1, 4px);
 }
 
-.capability-row {
+.channel-row {
+    display: flex;
+    align-items: center;
+    gap: var(--insp-gap-1, 4px);
+    min-width: 0;
+}
+
+.channel-select {
+    flex: 1;
+    min-width: 0;
+}
+
+.source-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--p-text-muted-color);
+}
+
+.source-dot.manual {
+    background: var(--p-primary-color);
+}
+
+.details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--insp-gap-2, 8px);
+    margin: var(--insp-gap-1, 4px) 0 var(--insp-gap-1, 4px) var(--insp-gap-2, 8px);
+    padding-left: var(--insp-gap-2, 8px);
+    border-left: 2px solid var(--p-content-border-color);
+}
+
+.detail-actions,
+.list-actions {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
+    gap: var(--insp-gap-1, 4px);
 }
 
-.capability-label {
-    width: 9rem;
-}
-
-.capability-channel {
-    width: 11rem;
-}
-
-.capability-cell-channel {
-    width: 8rem;
-}
-
-.capability-row :deep(.capability-number),
-.segment-table :deep(.capability-number) {
-    width: 5.5rem;
-}
-
-.segment-table :deep(.capability-dmx) {
-    width: 4rem;
-}
-
-.segment-table {
-    margin-left: 9.5rem;
-    font-size: 0.875rem;
-}
-
-.segment-table th {
-    text-align: left;
-    font-weight: normal;
-    opacity: 0.7;
-    padding-right: 0.5rem;
+.note {
+    font-size: 0.75rem;
+    color: var(--p-text-muted-color);
 }
 
 .wheel-preview {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.25rem;
     align-items: center;
+    margin-top: 2px;
 }
 
 .slot-swatch {
@@ -675,8 +576,8 @@ function setCellChannel(index: number, field: CellChannelField, channel: number)
 }
 
 .gobo-thumb {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     background: #000;
 }
@@ -686,6 +587,6 @@ function setCellChannel(index: number, field: CellChannelField, channel: number)
     align-items: center;
     justify-content: center;
     color: #fff;
-    font-size: 14px;
+    font-size: 12px;
 }
 </style>

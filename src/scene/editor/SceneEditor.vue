@@ -12,10 +12,10 @@
                     </pane>
                 </splitpanes>
             </pane>
-            <pane size="62" min-size="20">
+            <pane size="58" min-size="20">
                 <Viewport ref="viewport" @contextmenu="showContextMenu" />
             </pane>
-            <pane size="20" min-size="12">
+            <pane size="24" :min-size="inspectorMinSize">
                 <Inspector />
             </pane>
         </splitpanes>
@@ -33,7 +33,7 @@ import ContextMenu from "primevue/contextmenu";
 import ConfirmDialog from "primevue/confirmdialog";
 import { useConfirm } from "primevue/useconfirm";
 import type { MenuItem } from "primevue/menuitem";
-import { useFocusWithin } from "@vueuse/core";
+import { useElementSize, useFocusWithin } from "@vueuse/core";
 
 import { useStage } from "@/stage/stage";
 import { FixtureType, type DmxFixture } from "@/stage/fixtures";
@@ -96,6 +96,13 @@ const profileFixtureId = ref<string | null>(null);
 const showCredits = ref(false);
 
 const overlay = computed(() => viewport.value?.overlay ?? null);
+
+/** research R13: splitpanes sizes are percentages; the inspector never gets narrower than 320 px. */
+const INSPECTOR_MIN_WIDTH = 320;
+const { width: editorWidth } = useElementSize(root);
+const inspectorMinSize = computed(() =>
+    editorWidth.value > 0 ? Math.min(50, Math.max(12, (INSPECTOR_MIN_WIDTH / editorWidth.value) * 100)) : 20
+);
 const { focused } = useFocusWithin(root);
 // shortcuts work while the pointer is over the viewport or focus is inside the editor
 const isActive = computed(() => focused.value || !!viewport.value?.hovered);

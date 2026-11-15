@@ -1,17 +1,23 @@
 <template>
-    <div class="imported-model-properties">
-        <div v-if="asset" class="info">
-            <div>File: {{ asset.name }}</div>
-            <div>Size: {{ sizeLabel }}</div>
-        </div>
-        <div v-else class="info">The model data is missing.</div>
-        <Button outlined label="Restore original scale" icon="mdi mdi-arrow-expand-all" @click="restoreScale" />
-    </div>
+    <template v-if="asset">
+        <PropertyRow label="File">
+            <span class="value-text" :title="asset.name">{{ asset.name }}</span>
+        </PropertyRow>
+        <PropertyRow label="Size">
+            <span class="value-text">{{ sizeLabel }}</span>
+        </PropertyRow>
+    </template>
+    <PropertyRow v-else label="File" warning="The model data is missing." />
+    <PropertyRow label="Scale">
+        <Button outlined size="small" fluid severity="secondary" label="Restore original" icon="mdi mdi-arrow-expand-all" @click="restoreScale" />
+    </PropertyRow>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 import Button from "primevue/button";
+
+import PropertyRow from "./PropertyRow.vue";
 
 import { useScene } from "../../sceneStore";
 import type { ImportedModelObject } from "../../model/types";
@@ -35,14 +41,12 @@ function restoreScale() {
 </script>
 
 <style scoped>
-.imported-model-properties {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.info {
-    font-size: 0.85rem;
-    opacity: 0.85;
+.value-text {
+    display: block;
+    font-size: 0.875rem;
+    line-height: 2rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 </style>

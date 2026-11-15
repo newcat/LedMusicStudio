@@ -1,63 +1,51 @@
 <template>
-    <div class="effect-settings">
-        <Message v-if="triggerMissing" severity="warn" size="small" :closable="false">No trigger channel mapped – the effect stays off.</Message>
+    <Message v-if="triggerMissing" severity="warn" size="small" :closable="false">No trigger channel mapped – the effect stays off.</Message>
 
-        <template v-if="laser">
-            <div class="row">
-                <LabelledFormField label="Pattern">
-                    <Select v-model="laser.pattern" :options="PATTERN_OPTIONS" option-label="label" option-value="value" size="small" />
-                </LabelledFormField>
-                <LabelledFormField label="Color">
-                    <ColorPicker :model-value="laser.color.slice(1)" format="hex" aria-label="Laser color" @update:model-value="setLaserColor" />
-                </LabelledFormField>
+    <template v-if="laser">
+        <PropertyRow label="Pattern">
+            <Select v-model="laser.pattern" :options="PATTERN_OPTIONS" option-label="label" option-value="value" size="small" fluid />
+        </PropertyRow>
+        <PropertyRow label="Color" hint="Pattern and color apply while no pattern or color channel is mapped.">
+            <div class="color-row">
+                <ColorPicker :model-value="laser.color.slice(1)" format="hex" aria-label="Laser color" @update:model-value="setLaserColor" />
             </div>
-            <div class="row">
-                <LabelledFormField label="Beams">
-                    <InputNumber v-model="laser.beams" :min="1" :max="64" />
-                </LabelledFormField>
-                <LabelledFormField label="Spread">
-                    <InputNumber v-model="laser.spread" :min="1" :max="180" :max-fraction-digits="1" suffix="°" />
-                </LabelledFormField>
-            </div>
-            <div class="text-sm opacity-70">Pattern and color apply while no pattern or color channel is mapped.</div>
-        </template>
+        </PropertyRow>
+        <PropertyRow label="Beams">
+            <InputNumber v-model="laser.beams" :min="1" :max="64" size="small" fluid />
+        </PropertyRow>
+        <PropertyRow label="Spread">
+            <InputNumber v-model="laser.spread" :min="1" :max="180" :max-fraction-digits="1" suffix="°" size="small" fluid />
+        </PropertyRow>
+    </template>
 
-        <LabelledFormField v-if="heightOptions" :label="isMapped('height') ? 'Maximum height' : 'Height'">
-            <InputNumber v-model="heightOptions.maxHeight" :min="0.5" :max="15" :max-fraction-digits="1" suffix=" m" />
-        </LabelledFormField>
+    <PropertyRow v-if="heightOptions" :label="isMapped('height') ? 'Maximum height' : 'Height'">
+        <InputNumber v-model="heightOptions.maxHeight" :min="0.5" :max="15" :max-fraction-digits="1" suffix=" m" size="small" fluid />
+    </PropertyRow>
 
-        <template v-if="fog">
-            <LabelledFormField label="Type">
-                <SelectButton v-model="fog.fogType" :options="FOG_TYPE_OPTIONS" option-label="label" option-value="value" :allow-empty="false" />
-            </LabelledFormField>
-            <LabelledFormField :label="`Haze contribution (${fog.hazeContribution.toFixed(2)})`">
-                <Slider v-model="fog.hazeContribution" :min="0" :max="1" :step="0.01" class="slider" />
-            </LabelledFormField>
-            <div class="text-sm opacity-70">Raises the scene haze while the machine runs, when hazer coupling is on in the environment.</div>
-        </template>
-
-        <Fieldset legend="Capability Mapping" toggleable>
-            <CapabilityMappingEditor v-model:mapping="config.mapping" :type="controller.type" :controller="controller" :model-id="modelId" />
-        </Fieldset>
-    </div>
+    <template v-if="fog">
+        <PropertyRow label="Type">
+            <SelectButton v-model="fog.fogType" :options="FOG_TYPE_OPTIONS" option-label="label" option-value="value" :allow-empty="false" size="small" fluid />
+        </PropertyRow>
+        <PropertyRow label="Haze" hint="Raises the scene haze while the machine runs, when hazer coupling is on in the environment.">
+            <SliderField v-model="fog.hazeContribution" :min="0" :max="1" :step="0.01" />
+        </PropertyRow>
+    </template>
 </template>
 
 <script setup lang="ts">
 import { computed, watch } from "vue";
 import ColorPicker from "primevue/colorpicker";
-import Fieldset from "primevue/fieldset";
 import InputNumber from "primevue/inputnumber";
 import Message from "primevue/message";
 import Select from "primevue/select";
 import SelectButton from "primevue/selectbutton";
-import Slider from "primevue/slider";
 
-import LabelledFormField from "@/components/LabelledFormField.vue";
+import PropertyRow from "@/scene/editor/inspector/PropertyRow.vue";
+import SliderField from "@/scene/editor/inspector/SliderField.vue";
 import { DmxFixture } from "@/stage";
 import type { CapabilityKey } from "@/visualization/capabilities/types";
 import { FixtureVisualizationController } from "@/visualization/fixtureVisualizationController";
 import { useLiveConfig } from "../useLiveConfig";
-import CapabilityMappingEditor from "../CapabilityMappingEditor.vue";
 import { defaultEffectOptions, effectKindOf, type EffectVisualizationConfig, type FlameOptions, type FogOptions, type JetOptions, type LaserOptions, type SparkOptions } from "./types";
 
 /** Settings of the effect visualizations: Laser, Flame, CO2 Jet, Cold Spark, Fog / Haze (feature 003, T061). */
@@ -132,18 +120,9 @@ function setLaserColor(value: unknown) {
 </script>
 
 <style scoped>
-.effect-settings {
+.color-row {
     display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.row {
-    display: flex;
-    gap: 0.75rem;
-}
-
-.slider {
-    margin: 0.75rem 0.5rem;
+    align-items: center;
+    min-height: 2rem;
 }
 </style>

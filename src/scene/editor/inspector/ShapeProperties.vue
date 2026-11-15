@@ -1,33 +1,31 @@
 <template>
-    <div class="shape-properties">
-        <LabelledFormField label="Shape">
-            <InputText :model-value="object.shape" disabled />
-        </LabelledFormField>
-        <div class="dimensions">
-            <LabelledFormField v-for="dimension in dimensionKeys" :key="dimension" :label="`${capitalize(dimension)} (m)`">
-                <InputNumber
-                    :model-value="dimensionValue(dimension)"
-                    :min="0.01"
-                    :min-fraction-digits="0"
-                    :max-fraction-digits="3"
-                    :step="0.1"
-                    size="small"
-                    fluid
-                    @update:model-value="setDimension(dimension, $event)"
-                />
-            </LabelledFormField>
-        </div>
-        <MaterialField :material="object.material" :color="object.color" @update:material="setMaterial" @update:color="setColor" />
-        <div class="world-size">World size: {{ worldSize }} m</div>
-    </div>
+    <PropertyRow label="Shape">
+        <span class="value-text">{{ capitalize(object.shape) }}</span>
+    </PropertyRow>
+    <PropertyRow v-for="dimension in dimensionKeys" :key="dimension" :label="`${capitalize(dimension)} (m)`">
+        <InputNumber
+            :model-value="dimensionValue(dimension)"
+            :min="0.01"
+            :min-fraction-digits="0"
+            :max-fraction-digits="3"
+            :step="0.1"
+            size="small"
+            fluid
+            :aria-label="`${capitalize(dimension)} (m)`"
+            @update:model-value="setDimension(dimension, $event)"
+        />
+    </PropertyRow>
+    <MaterialField :material="object.material" :color="object.color" @update:material="setMaterial" @update:color="setColor" />
+    <PropertyRow label="World size">
+        <span class="value-text">{{ worldSize }} m</span>
+    </PropertyRow>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import InputText from "primevue/inputtext";
 import InputNumber from "primevue/inputnumber";
 
-import LabelledFormField from "@/components/LabelledFormField.vue";
+import PropertyRow from "./PropertyRow.vue";
 import MaterialField from "./MaterialField.vue";
 import type { MaterialPresetId } from "@/assetLibrary/types";
 import { useScene } from "../../sceneStore";
@@ -85,20 +83,8 @@ const worldSize = computed(() => {
 </script>
 
 <style scoped>
-.shape-properties {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.dimensions {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
-    gap: 0.5rem;
-}
-
-.world-size {
-    font-size: 0.8rem;
-    opacity: 0.7;
+.value-text {
+    font-size: 0.875rem;
+    line-height: 2rem;
 }
 </style>

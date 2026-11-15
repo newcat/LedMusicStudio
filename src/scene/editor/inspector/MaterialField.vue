@@ -1,35 +1,36 @@
 <template>
-    <div class="material-field">
-        <LabelledFormField label="Material">
-            <Select
-                :model-value="material ?? NONE"
-                :options="options"
-                option-label="label"
-                option-value="value"
-                size="small"
-                fluid
-                aria-label="Material"
-                @update:model-value="onMaterial"
-            >
-                <template #option="{ option }">
-                    <span class="option">
-                        <span class="swatch" :style="{ background: option.color ?? 'transparent' }"></span>
-                        {{ option.label }}
-                    </span>
-                </template>
-            </Select>
-        </LabelledFormField>
-        <LabelledFormField label="Color">
+    <PropertyRow label="Material">
+        <Select
+            :model-value="material ?? NONE"
+            :options="options"
+            option-label="label"
+            option-value="value"
+            size="small"
+            fluid
+            aria-label="Material"
+            @update:model-value="onMaterial"
+        >
+            <template #option="{ option }">
+                <span class="option">
+                    <span class="swatch" :style="{ background: option.color ?? 'transparent' }"></span>
+                    {{ option.label }}
+                </span>
+            </template>
+        </Select>
+    </PropertyRow>
+    <PropertyRow label="Color">
+        <div class="color-row">
             <ColorPicker :model-value="color.slice(1)" format="hex" aria-label="Color" @update:model-value="onColor" />
-        </LabelledFormField>
-    </div>
+            <span class="color-text">{{ color }}</span>
+        </div>
+    </PropertyRow>
 </template>
 
 <script setup lang="ts">
 import Select from "primevue/select";
 import ColorPicker from "primevue/colorpicker";
 
-import LabelledFormField from "@/components/LabelledFormField.vue";
+import PropertyRow from "./PropertyRow.vue";
 import { MATERIAL_PRESETS, isMaterialPresetId } from "@/assetLibrary/materials";
 import type { MaterialPresetId } from "@/assetLibrary/types";
 
@@ -64,10 +65,16 @@ function onColor(value: unknown) {
 </script>
 
 <style scoped>
-.material-field {
+.color-row {
     display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    align-items: center;
+    gap: var(--insp-gap-2, 8px);
+    min-height: 2rem;
+}
+
+.color-text {
+    font-size: 0.8125rem;
+    color: var(--p-text-muted-color);
 }
 
 .option {

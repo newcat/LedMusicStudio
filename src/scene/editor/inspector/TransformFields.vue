@@ -1,7 +1,6 @@
 <template>
-    <div class="transform-fields">
-        <template v-for="row in visibleRows" :key="row.key">
-            <div class="row-label">{{ row.label }}</div>
+    <PropertyRow v-for="row in visibleRows" :key="row.key" :label="row.label">
+        <div class="axes">
             <InputNumber
                 v-for="axis in [0, 1, 2]"
                 :key="axis"
@@ -20,17 +19,16 @@
                 @blur="commit"
                 @keydown.enter="commit"
             />
-        </template>
-        <template v-if="scaleHidden">
-            <div class="row-label">Scale</div>
-            <div class="scale-hint">Size is set by the parameters</div>
-        </template>
-    </div>
+        </div>
+    </PropertyRow>
+    <PropertyRow v-if="scaleHidden" label="Scale" hint="Size is set by the parameters" />
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, watch } from "vue";
 import InputNumber from "primevue/inputnumber";
+
+import PropertyRow from "./PropertyRow.vue";
 
 import { useScene, type ObjectStates } from "../../sceneStore";
 import { MIN_SCALE } from "../../model/transformMath";
@@ -100,22 +98,9 @@ onBeforeUnmount(commit);
 </script>
 
 <style scoped>
-.transform-fields {
+.axes {
     display: grid;
-    grid-template-columns: auto repeat(3, minmax(0, 1fr));
-    gap: 0.25rem 0.4rem;
-    align-items: center;
-}
-
-.scale-hint {
-    grid-column: span 3;
-    font-size: 0.8rem;
-    opacity: 0.7;
-}
-
-.row-label {
-    font-size: 0.8rem;
-    opacity: 0.8;
-    white-space: nowrap;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--insp-gap-1);
 }
 </style>

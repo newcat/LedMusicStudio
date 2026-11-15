@@ -1,49 +1,47 @@
 <template>
-    <div class="library-asset-properties">
-        <div class="asset">
-            <div class="thumb">
-                <img v-if="definition && !imageFailed" :src="definition.preview" :alt="definition.name" @error="imageFailed = true" />
-                <i v-else class="pi pi-box"></i>
-            </div>
-            <div class="info">
-                <div class="name">{{ definition?.name ?? object.assetId }}</div>
-                <div class="size">{{ sizeLabel }}</div>
-            </div>
+    <div class="asset">
+        <div class="thumb">
+            <img v-if="definition && !imageFailed" :src="definition.preview" :alt="definition.name" @error="imageFailed = true" />
+            <i v-else class="pi pi-box"></i>
         </div>
-        <div v-if="!definition" class="notice">This asset is not available in this version ({{ object.assetId }}).</div>
-        <template v-if="definition && isParametric">
-            <div class="section-title">Parameters</div>
-            <ParameterFields :definition="definition" :params="object.params" @update="setParams" />
-        </template>
-        <LabelledFormField v-if="variantOptions" label="Variant">
-            <Select
-                :model-value="variantValue"
-                :options="variantOptions"
-                option-label="label"
-                option-value="value"
-                size="small"
-                fluid
-                aria-label="Variant"
-                @update:model-value="setVariant"
-            />
-        </LabelledFormField>
-        <MaterialField
-            v-if="showMaterial"
-            :material="object.material"
-            :color="effectiveColor"
-            @update:material="setMaterial"
-            @update:color="setColorValue"
+        <div class="info">
+            <div class="name" :title="definition?.name ?? object.assetId">{{ definition?.name ?? object.assetId }}</div>
+            <div class="size">{{ sizeLabel }}</div>
+        </div>
+        <Button
+            v-tooltip.bottom="'Replace asset…'"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            icon="pi pi-sync"
+            aria-label="Replace asset…"
+            @click="showPicker = true"
         />
-        <LabelledFormField v-else-if="showColor" label="Color">
-            <div class="color-row">
-                <ColorPicker :model-value="effectiveColor.slice(1)" format="hex" aria-label="Color" @update:model-value="setColor" />
-                <span class="color-value">{{ object.color ?? "Asset default" }}</span>
-                <Button text size="small" label="Reset" :disabled="object.color === null" @click="resetColor" />
-            </div>
-        </LabelledFormField>
-        <Button outlined size="small" label="Replace asset…" icon="pi pi-sync" @click="showPicker = true" />
-        <AssetPicker v-model:visible="showPicker" :category="pickerCategory" @pick="replace" />
     </div>
+    <div v-if="!definition" class="notice">This asset is not available in this version ({{ object.assetId }}).</div>
+    <ParameterFields v-if="definition && isParametric" :definition="definition" :params="object.params" @update="setParams" />
+    <PropertyRow v-if="variantOptions" label="Variant">
+        <Select
+            :model-value="variantValue"
+            :options="variantOptions"
+            option-label="label"
+            option-value="value"
+            size="small"
+            fluid
+            aria-label="Variant"
+            @update:model-value="setVariant"
+        />
+    </PropertyRow>
+    <MaterialField v-if="showMaterial" :material="object.material" :color="effectiveColor" @update:material="setMaterial" @update:color="setColorValue" />
+    <PropertyRow v-else-if="showColor" label="Color">
+        <div class="color-row">
+            <ColorPicker :model-value="effectiveColor.slice(1)" format="hex" aria-label="Color" @update:model-value="setColor" />
+            <span class="color-value">{{ object.color ?? "Asset default" }}</span>
+            <Button text size="small" label="Reset" :disabled="object.color === null" @click="resetColor" />
+        </div>
+    </PropertyRow>
+    <AssetPicker v-model:visible="showPicker" :category="pickerCategory" @pick="replace" />
 </template>
 
 <script setup lang="ts">
@@ -52,7 +50,7 @@ import Button from "primevue/button";
 import ColorPicker from "primevue/colorpicker";
 import Select from "primevue/select";
 
-import LabelledFormField from "@/components/LabelledFormField.vue";
+import PropertyRow from "./PropertyRow.vue";
 import { assetCatalog } from "@/assetLibrary/catalog";
 import { resolveSlotStyle } from "@/assetLibrary/materials";
 import type { ParamValues } from "@/assetLibrary/types";
@@ -159,21 +157,16 @@ function replace(assetId: string) {
 </script>
 
 <style scoped>
-.library-asset-properties {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
 .asset {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--insp-gap-3);
     align-items: center;
+    min-width: 0;
 }
 
 .thumb {
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
     flex: none;
     display: flex;
     align-items: center;
@@ -187,38 +180,48 @@ function replace(assetId: string) {
 }
 
 .thumb .pi {
-    font-size: 2rem;
+    font-size: 1.5rem;
     opacity: 0.6;
+}
+
+.info {
+    flex: 1;
+    min-width: 0;
 }
 
 .name {
     font-weight: 600;
+    font-size: 0.875rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.size {
+    font-size: 0.75rem;
+    color: var(--p-text-muted-color);
 }
 
 .color-row {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--insp-gap-2);
+    min-height: 2rem;
+    min-width: 0;
 }
 
 .color-value {
     flex: 1;
-    font-size: 0.85rem;
-    opacity: 0.85;
-}
-
-.section-title {
-    font-weight: 600;
-    font-size: 0.85rem;
-}
-
-.size,
-.notice {
-    font-size: 0.85rem;
-    opacity: 0.85;
+    min-width: 0;
+    font-size: 0.8125rem;
+    color: var(--p-text-muted-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .notice {
-    color: var(--p-orange-400, #fb923c);
+    font-size: 0.75rem;
+    color: var(--p-orange-400);
 }
 </style>

@@ -7,10 +7,12 @@
         option-disabled="disabled"
         :disabled="disabled"
         placeholder="Choose a model"
+        size="small"
+        fluid
         @update:model-value="(v: string) => emit('update:modelValue', v)"
     >
         <template #value="{ value, placeholder }">
-            <div v-if="value" class="model-option">
+            <div v-if="value" class="model-option model-value">
                 <img v-if="previewOf(value)" :src="previewOf(value)" alt="" class="model-preview" @error="hidePreview" />
                 <span>{{ labelOf(value) }}</span>
             </div>
@@ -80,6 +82,21 @@ function hidePreview(event: Event) {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+.model-value {
+    min-width: 0;
+}
+
+.model-value span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.model-value .model-preview {
+    width: 24px;
+    height: 24px;
 }
 
 .model-preview {

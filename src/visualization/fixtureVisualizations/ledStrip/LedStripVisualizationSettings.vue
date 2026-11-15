@@ -1,46 +1,41 @@
 <template>
-    <div class="led-strip-settings">
-        <LabelledFormField label="Path">
-            <div class="path-row">
-                <span>{{ pathInfo }}</span>
-                <div v-if="tool && objectId" class="path-buttons">
-                    <Button
-                        size="small"
-                        icon="mdi mdi-draw"
-                        label="Draw path"
-                        :outlined="activeMode !== 'drawing'"
-                        @click="toggle('drawing')"
-                    />
-                    <Button
-                        size="small"
-                        icon="mdi mdi-vector-polyline-edit"
-                        label="Edit path"
-                        :outlined="activeMode !== 'editing'"
-                        @click="toggle('editing')"
-                    />
-                </div>
-            </div>
-        </LabelledFormField>
-
-        <div class="row">
-            <LabelledFormField label="Interpolation">
-                <Select v-model="interpolation" :options="INTERPOLATION_OPTIONS" option-label="label" option-value="value" />
-            </LabelledFormField>
-            <div class="closed">
-                <Checkbox v-model="closed" input-id="led-strip-closed" binary />
-                <label for="led-strip-closed">Closed loop</label>
-            </div>
+    <PropertyRow label="Path" :hint="pixelInfo">
+        <div class="path-row">
+            <span class="path-info">{{ pathInfo }}</span>
+            <template v-if="tool && objectId">
+                <Button
+                    v-tooltip.bottom="'Draw path'"
+                    size="small"
+                    icon="mdi mdi-draw"
+                    aria-label="Draw path"
+                    :outlined="activeMode !== 'drawing'"
+                    @click="toggle('drawing')"
+                />
+                <Button
+                    v-tooltip.bottom="'Edit path'"
+                    size="small"
+                    icon="mdi mdi-vector-polyline-edit"
+                    aria-label="Edit path"
+                    :outlined="activeMode !== 'editing'"
+                    @click="toggle('editing')"
+                />
+            </template>
         </div>
-
-        <LabelledFormField :label="`Pixel size (${config.pixelSize.toFixed(2)})`">
-            <Slider v-model="config.pixelSize" :min="0.2" :max="1" :step="0.05" class="slider" />
-        </LabelledFormField>
-        <LabelledFormField :label="`Intensity (${Math.round(config.intensity * 100)} %)`">
-            <Slider v-model="config.intensity" :min="0" :max="1" :step="0.01" class="slider" />
-        </LabelledFormField>
-
-        <div class="hint">{{ pixelInfo }}</div>
-    </div>
+    </PropertyRow>
+    <PropertyRow label="Interpolation">
+        <Select v-model="interpolation" :options="INTERPOLATION_OPTIONS" option-label="label" option-value="value" size="small" fluid />
+    </PropertyRow>
+    <PropertyRow label="Closed loop" for="led-strip-closed">
+        <div class="checkbox-row">
+            <Checkbox v-model="closed" input-id="led-strip-closed" binary />
+        </div>
+    </PropertyRow>
+    <PropertyRow label="Pixel size">
+        <SliderField v-model="config.pixelSize" :min="0.2" :max="1" :step="0.05" />
+    </PropertyRow>
+    <PropertyRow label="Intensity">
+        <SliderField v-model="config.intensity" :min="0" :max="1" :step="0.01" />
+    </PropertyRow>
 </template>
 
 <script setup lang="ts">
@@ -48,9 +43,9 @@ import { computed, inject } from "vue";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
 import Select from "primevue/select";
-import Slider from "primevue/slider";
 
-import LabelledFormField from "@/components/LabelledFormField.vue";
+import PropertyRow from "@/scene/editor/inspector/PropertyRow.vue";
+import SliderField from "@/scene/editor/inspector/SliderField.vue";
 import type { LedStripFixture } from "@/stage/fixtures";
 import type { FixtureVisualizationController } from "@/visualization/fixtureVisualizationController";
 import { useLiveConfig } from "../useLiveConfig";
@@ -114,9 +109,9 @@ const pixelInfo = computed(() => {
     const linked = props.controller?.fixture.config.numLeds;
     if (linked !== undefined) {
         const perMeter = length.value > 0 ? Math.round(linked / length.value) : 0;
-        return `${linked} pixels, ${perMeter} per meter`;
+        return `${linked} pixels, ${perMeter} per metre`;
     }
-    return `${unlinkedPixelCount(length.value)} pixels (not linked: 30 per meter)`;
+    return `${unlinkedPixelCount(length.value)} pixels (30 per metre)`;
 });
 
 /** Path changes go through `setStripPath` (one undo step); without the editor, through the config. */
@@ -141,44 +136,25 @@ const closed = computed({
 </script>
 
 <style scoped>
-.led-strip-settings {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
 .path-row {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
+    gap: var(--insp-gap-1, 4px);
+    min-width: 0;
 }
 
-.path-buttons {
-    display: flex;
-    gap: 0.35rem;
+.path-info {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.8125rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.row {
-    display: flex;
-    align-items: flex-end;
-    gap: 0.75rem;
-}
-
-.closed {
+.checkbox-row {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding-bottom: 0.5rem;
-}
-
-.slider {
-    margin: 0.75rem 0.5rem;
-}
-
-.hint {
-    font-size: 0.85rem;
-    opacity: 0.7;
+    min-height: 2rem;
 }
 </style>

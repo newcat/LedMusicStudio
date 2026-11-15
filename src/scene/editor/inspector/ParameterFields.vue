@@ -1,40 +1,37 @@
 <template>
-    <div class="parameter-fields">
-        <LabelledFormField v-for="spec in specs" :key="spec.key" :label="spec.label">
-            <template v-if="spec.type === 'number'">
-                <InputNumber
-                    :key="`${spec.key}:${resetToken}`"
-                    :model-value="numberValue(spec.key)"
-                    :min="spec.min"
-                    :max="spec.max"
-                    :step="spec.step"
-                    :min-fraction-digits="0"
-                    :max-fraction-digits="fractionDigits(spec.step)"
-                    :suffix="suffix(spec.unit)"
-                    show-buttons
-                    button-layout="stacked"
-                    size="small"
-                    fluid
-                    :aria-label="spec.label"
-                    @update:model-value="onNumberInput(spec, $event)"
-                    @blur="onNumberBlur(spec)"
-                    @keydown.enter="onNumberBlur(spec)"
-                />
-                <small class="help">{{ rangeText(spec) }}</small>
-            </template>
-            <Select
-                v-else
-                :model-value="params[spec.key]"
-                :options="spec.options"
-                option-label="label"
-                option-value="value"
+    <PropertyRow v-for="spec in specs" :key="spec.key" :label="spec.label" :hint="spec.type === 'number' ? rangeText(spec) : undefined">
+        <template v-if="spec.type === 'number'">
+            <InputNumber
+                :key="`${spec.key}:${resetToken}`"
+                :model-value="numberValue(spec.key)"
+                :min="spec.min"
+                :max="spec.max"
+                :step="spec.step"
+                :min-fraction-digits="0"
+                :max-fraction-digits="fractionDigits(spec.step)"
+                :suffix="suffix(spec.unit)"
+                show-buttons
+                button-layout="stacked"
                 size="small"
                 fluid
                 :aria-label="spec.label"
-                @update:model-value="emit('update', { [spec.key]: $event })"
+                @update:model-value="onNumberInput(spec, $event)"
+                @blur="onNumberBlur(spec)"
+                @keydown.enter="onNumberBlur(spec)"
             />
-        </LabelledFormField>
-    </div>
+        </template>
+        <Select
+            v-else
+            :model-value="params[spec.key]"
+            :options="spec.options"
+            option-label="label"
+            option-value="value"
+            size="small"
+            fluid
+            :aria-label="spec.label"
+            @update:model-value="emit('update', { [spec.key]: $event })"
+        />
+    </PropertyRow>
 </template>
 
 <script setup lang="ts">
@@ -47,7 +44,7 @@ import { computed, ref } from "vue";
 import InputNumber from "primevue/inputnumber";
 import Select from "primevue/select";
 
-import LabelledFormField from "@/components/LabelledFormField.vue";
+import PropertyRow from "./PropertyRow.vue";
 import { completeParams } from "@/assetLibrary/params";
 import type { AssetDefinition, ParamSpec, ParamValues } from "@/assetLibrary/types";
 
@@ -120,18 +117,3 @@ function onNumberBlur(spec: NumberSpec) {
     resetToken.value++;
 }
 </script>
-
-<style scoped>
-.parameter-fields {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
-    gap: 0.5rem;
-}
-
-.help {
-    display: block;
-    margin-top: 0.15rem;
-    font-size: 0.75rem;
-    opacity: 0.65;
-}
-</style>
