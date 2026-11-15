@@ -1,7 +1,7 @@
 <template>
     <div class="asset-library-panel">
         <div class="header">
-            <span class="title">Asset library</span>
+            <slot name="header"><span class="title">Asset library</span></slot>
             <Button
                 icon="pi pi-ellipsis-v"
                 text
@@ -50,14 +50,17 @@ const menuItems: MenuItem[] = [{ label: "Asset credits", icon: "pi pi-info-circl
     flex-direction: column;
     height: 100%;
     min-height: 0;
-    padding: 0.5rem;
-    gap: 0.25rem;
+    padding: 0 0.75rem 0.75rem;
 }
 
+/* same geometry as the outliner header, so the sidebar switch does not jump */
 .header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.5rem;
+    min-height: 2rem;
+    padding: 0.75rem 0 0.5rem;
 }
 
 .title {

@@ -1,9 +1,7 @@
 <template>
     <div class="outliner-panel">
         <div class="header">
-            <span class="title">Scene</span>
-            <Button v-tooltip.bottom="'Add'" icon="pi pi-plus" text rounded size="small" aria-label="Add" aria-haspopup="true" @click="addMenu?.toggle($event)" />
-            <Menu ref="addMenu" :model="addItems" popup />
+            <slot name="header"><span class="title">Scene</span></slot>
         </div>
         <div class="outliner" @dragover.prevent="onRootDragOver" @drop.prevent="onRootDrop" @click.self="store.clearSelection()">
             <Tree
@@ -67,18 +65,14 @@
 import { computed, nextTick, ref, watch } from "vue";
 import Tree from "primevue/tree";
 import InputText from "primevue/inputtext";
-import Button from "primevue/button";
-import Menu from "primevue/menu";
 import type { TreeNode } from "primevue/treenode";
 
 import { useScene } from "../sceneStore";
 import { wouldCreateCycle } from "../model/transformMath";
 import { iconFor } from "./objectIcons";
-import { addMenuItems, type AddKind } from "./addMenu";
 
 const emit = defineEmits<{
     contextmenu: [MouseEvent];
-    add: [kind: AddKind];
 }>();
 
 type DropZone = "before" | "into" | "after";
@@ -126,8 +120,6 @@ watch(
     { immediate: true }
 );
 
-const addMenu = ref<InstanceType<typeof Menu>>();
-const addItems = addMenuItems((kind) => emit("add", kind));
 
 /** Tree pass-through: no padding/background, and leaf nodes are marked so their toggle can be hidden. */
 const treePt = {
@@ -243,12 +235,13 @@ defineExpose({ startRename });
     min-height: 0;
 }
 
-/* like the asset library header */
+/* same geometry as the asset library header, so the sidebar switch does not jump */
 .header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0.5rem 0.5rem 0.25rem;
+    gap: 0.5rem;
+    min-height: 2rem;
+    padding: 0.75rem 0.75rem 0.5rem;
 }
 
 .title {
@@ -260,7 +253,7 @@ defineExpose({ startRename });
     flex: 1;
     min-height: 0;
     overflow: auto;
-    padding: 0 0.25rem 0.25rem;
+    padding: 0 0.25rem 0.75rem;
 }
 
 /* leaf rows get no toggle placeholder; children are indented by a fixed step */
@@ -300,12 +293,16 @@ defineExpose({ startRename });
     background: rgba(255, 255, 255, 0.06);
 }
 
+/* the theme's highlight colours: selected rows are tinted, the active row is stronger */
 .row.selected {
-    background: rgba(79, 195, 247, 0.25);
+    background: var(--p-highlight-background);
+    color: var(--p-highlight-color);
 }
 
 .row.active {
-    background: rgba(255, 204, 0, 0.25);
+    background: color-mix(in srgb, var(--p-primary-color) 30%, transparent);
+    box-shadow: inset 3px 0 0 var(--p-primary-color);
+    color: var(--p-highlight-focus-color, var(--p-highlight-color));
 }
 
 .row.hidden .name {
@@ -313,15 +310,15 @@ defineExpose({ startRename });
 }
 
 .row.drop-into {
-    border-color: #4fc3f7;
+    border-color: var(--p-primary-color);
 }
 
 .row.drop-before {
-    border-top-color: #4fc3f7;
+    border-top-color: var(--p-primary-color);
 }
 
 .row.drop-after {
-    border-bottom-color: #4fc3f7;
+    border-bottom-color: var(--p-primary-color);
 }
 
 .name {

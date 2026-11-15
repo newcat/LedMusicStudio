@@ -3,14 +3,18 @@
         <EditorToolbar :overlay="overlay" @add="onAdd" @draw-strip="drawNewStrip" @undo="undo" @redo="redo" />
         <splitpanes class="panes">
             <pane size="18" min-size="10">
-                <splitpanes horizontal class="left-column">
-                    <pane size="50" min-size="15">
-                        <Outliner ref="outliner" @contextmenu="showContextMenu" @add="onAdd" />
-                    </pane>
-                    <pane size="50" min-size="15">
-                        <AssetLibraryPanel @add="addAssetAtCenter" @show-credits="showCredits = true" />
-                    </pane>
-                </splitpanes>
+                <div class="left-column">
+                    <Outliner v-show="leftTab === 'scene'" ref="outliner" @contextmenu="showContextMenu">
+                        <template #header>
+                            <SelectButton v-model="leftTab" :options="LEFT_TABS" option-label="label" option-value="value" :allow-empty="false" size="small" aria-label="Sidebar" />
+                        </template>
+                    </Outliner>
+                    <AssetLibraryPanel v-show="leftTab === 'assets'" @add="addAssetAtCenter" @show-credits="showCredits = true">
+                        <template #header>
+                            <SelectButton v-model="leftTab" :options="LEFT_TABS" option-label="label" option-value="value" :allow-empty="false" size="small" aria-label="Sidebar" />
+                        </template>
+                    </AssetLibraryPanel>
+                </div>
             </pane>
             <pane size="58" min-size="20">
                 <Viewport ref="viewport" @contextmenu="showContextMenu" />
@@ -30,6 +34,7 @@
 import { computed, nextTick, provide, ref, toRaw, watch } from "vue";
 import { Splitpanes, Pane } from "splitpanes";
 import ContextMenu from "primevue/contextmenu";
+import SelectButton from "primevue/selectbutton";
 import ConfirmDialog from "primevue/confirmdialog";
 import { useConfirm } from "primevue/useconfirm";
 import type { MenuItem } from "primevue/menuitem";
@@ -90,6 +95,14 @@ function deleteSelectionConfirmed() {
 const root = ref<HTMLElement>();
 const viewport = ref<InstanceType<typeof Viewport>>();
 const outliner = ref<InstanceType<typeof Outliner>>();
+
+/** The left sidebar shows either the scene outliner or the asset library. */
+type LeftTab = "scene" | "assets";
+const LEFT_TABS: Array<{ label: string; value: LeftTab }> = [
+    { label: "Scene", value: "scene" },
+    { label: "Assets", value: "assets" },
+];
+const leftTab = ref<LeftTab>("scene");
 const contextMenu = ref<InstanceType<typeof ContextMenu>>();
 const showProfileDialog = ref(false);
 /** Fixture the profile dialog applies its choice to (Add → DMX fixture, inspector "Choose profile…"). */
@@ -146,7 +159,10 @@ useEditorShortcuts(isActive, {
             store.clearSelection();
         }
     },
-    rename: () => outliner.value?.startRename(),
+    rename: () => {
+        leftTab.value = "scene";
+        void nextTick(() => outliner.value?.startRename());
+    },
 });
 
 // --- add -------------------------------------------------------------------------------------------------------
@@ -318,6 +334,10 @@ const contextMenuItems = computed<MenuItem[]>(() => {
 .panes {
     flex: 1;
     min-height: 0;
+}
+
+.left-column {
+    height: 100%;
 }
 
 .panes :deep(.splitpanes__pane) {

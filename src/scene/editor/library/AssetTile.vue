@@ -73,31 +73,34 @@ function onDragEnd() {
 .asset-tile {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.35rem;
-    border-radius: 6px;
+    align-items: stretch;
+    gap: 0.375rem;
+    min-width: 0;
     cursor: grab;
     user-select: none;
     outline: none;
-    border: 1px solid transparent;
 }
 
-.asset-tile:hover {
-    background: var(--p-content-hover-background, rgba(255, 255, 255, 0.06));
-}
-
-.asset-tile:focus-visible,
-.asset-tile.selected {
-    border-color: var(--p-primary-color, #38bdf8);
-}
-
+/* the thumbnail sits on a soft tile, so dark models read against the dark panel */
 .thumb {
-    width: 64px;
-    height: 64px;
     display: flex;
     align-items: center;
     justify-content: center;
+    aspect-ratio: 1;
+    padding: 0.5rem;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--p-text-color) 5%, transparent);
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.asset-tile:hover .thumb {
+    background: color-mix(in srgb, var(--p-text-color) 10%, transparent);
+}
+
+.asset-tile:focus-visible .thumb,
+.asset-tile.selected .thumb {
+    border-color: var(--p-primary-color, #38bdf8);
 }
 
 .thumb img {
@@ -111,13 +114,25 @@ function onDragEnd() {
     opacity: 0.6;
 }
 
+/* two lines instead of an ellipsis; the fixed height keeps the rows aligned */
 .name {
-    font-size: 0.75rem;
-    text-align: center;
-    line-height: 1.15;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    height: calc(2 * 1.25em);
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    width: 100%;
+    padding: 0 0.125rem;
+    color: var(--p-text-muted-color);
+    font-size: 0.75rem;
+    line-height: 1.25;
+    text-align: center;
+    overflow-wrap: break-word;
+    transition: color 0.15s;
+}
+
+.asset-tile:hover .name,
+.asset-tile.selected .name {
+    color: var(--p-text-color);
 }
 </style>

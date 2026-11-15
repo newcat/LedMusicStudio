@@ -128,6 +128,9 @@ function toggle(category: AssetCategory) {
     flex: 1;
     min-height: 0;
     overflow: auto;
+    /* keep the scrollbar off the tiles and section counts */
+    scrollbar-gutter: stable;
+    padding-right: 0.25rem;
 }
 
 .empty {
@@ -136,20 +139,30 @@ function toggle(category: AssetCategory) {
     padding: 0.5rem 0.25rem;
 }
 
+.section + .section {
+    margin-top: 0.5rem;
+}
+
 .section-header {
     display: flex;
     align-items: center;
     gap: 0.4rem;
     width: 100%;
-    padding: 0.3rem 0.25rem;
+    padding: 0.375rem 0.25rem;
     background: none;
     border: none;
-    color: inherit;
+    color: var(--p-text-muted-color);
     font: inherit;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     cursor: pointer;
     text-align: left;
+}
+
+.section-header:hover {
+    color: var(--p-text-color);
 }
 
 .section-header.static {
@@ -169,8 +182,8 @@ function toggle(category: AssetCategory) {
 
 .tiles {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-    gap: 0.25rem;
-    padding: 0.25rem 0 0.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: 0.75rem 0.5rem;
+    padding: 0.25rem 0.25rem 0.5rem;
 }
 </style>

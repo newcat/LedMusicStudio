@@ -11,8 +11,22 @@
                         </TabList>
                     </Tabs>
                     <div class="stage-actions">
-                        <Button v-tooltip.bottom="'Import stage…'" text size="small" label="Import" icon="mdi mdi-upload" @click="importStage" />
-                        <Button v-tooltip.bottom="'Export stage…'" text size="small" label="Export" icon="mdi mdi-content-save" @click="exportStage" />
+                        <Button
+                            v-tooltip.bottom="'Import stage…'"
+                            text
+                            size="small"
+                            label="Import"
+                            icon="mdi mdi-upload"
+                            @click="importStage"
+                        />
+                        <Button
+                            v-tooltip.bottom="'Export stage…'"
+                            text
+                            size="small"
+                            label="Export"
+                            icon="mdi mdi-content-save"
+                            @click="exportStage"
+                        />
                     </div>
                 </div>
 
@@ -49,8 +63,8 @@ const stage = useStage();
 const nativeAdapter = getNativeAdapter();
 
 const tabs = [
-    { label: "Controllers", icon: "mdi mdi-chip", value: STAGE_TAB_CONTROLLERS },
     { label: "Visualization", icon: "mdi mdi-eye", value: STAGE_TAB_VISUALIZATION },
+    { label: "Controllers", icon: "mdi mdi-chip", value: STAGE_TAB_CONTROLLERS },
     { label: "Groups", icon: "mdi mdi-lamps", value: STAGE_TAB_GROUPS },
 ];
 

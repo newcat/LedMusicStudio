@@ -1,6 +1,6 @@
 <template>
     <div class="camera-menu">
-        <Button outlined size="small" icon="mdi mdi-camera" label="Cameras" @click="popover?.toggle($event)" />
+        <Button v-tooltip.bottom="'Saved cameras'" text severity="secondary" size="small" icon="mdi mdi-camera" aria-label="Saved cameras" @click="popover?.toggle($event)" />
         <Popover ref="popover">
             <div class="camera-list">
                 <div v-if="store.scene.cameras.length === 0" class="empty">No saved camera positions.</div>

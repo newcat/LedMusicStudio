@@ -33,8 +33,33 @@ export type ViewPreset = "top" | "front" | "side" | "perspective";
 const CLICK_THRESHOLD_PX = 4;
 const CAMERA_ANIMATION_MS = 250;
 const MIN_FOCUS_RADIUS = 0.25;
-const ACTIVE_COLOR = 0xffcc00;
-const SELECTED_COLOR = 0x4fc3f7;
+
+/** Reads a colour from the PrimeVue theme (CSS variable), so the 3D highlight matches the UI. */
+function themeColor(variable: string, fallback: number): THREE.Color {
+    const value = typeof document === "undefined" ? "" : getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+    const color = new THREE.Color(fallback);
+    if (value) {
+        try {
+            color.setStyle(value);
+        } catch {
+            // keep the fallback when the theme value is not a plain CSS colour
+        }
+    }
+    return color;
+}
+
+/**
+ * Active object: the primary colour; other selected objects: a darker primary shade.
+ * Read on first use, because the theme variables are injected after this module is loaded.
+ */
+let highlightColors: { active: THREE.Color; selected: THREE.Color } | undefined;
+function getHighlightColors() {
+    highlightColors ??= {
+        active: themeColor("--p-primary-color", 0x38bdf8),
+        selected: themeColor("--p-primary-600", 0x0284c7),
+    };
+    return highlightColors;
+}
 
 interface SelectionVisual {
     box: THREE.Box3;
@@ -687,7 +712,7 @@ export class EditorOverlay {
                 continue;
             }
             const box = new THREE.Box3();
-            const helper = new THREE.Box3Helper(box, SELECTED_COLOR);
+            const helper = new THREE.Box3Helper(box, getHighlightColors().selected);
             helper.layers.set(EDITOR_LAYER);
             helper.userData.editorHelper = true;
             (helper.material as THREE.Material).depthTest = false;
@@ -707,6 +732,7 @@ export class EditorOverlay {
 
     private updateSelectionVisuals() {
         const active = this.store.activeId;
+        const colors = getHighlightColors();
         for (const [id, visual] of this.selectionVisuals) {
             const o3d = this.view.getObject3D(id);
             if (!o3d) {
@@ -714,7 +740,7 @@ export class EditorOverlay {
             }
             computeObjectBounds(o3d, visual.box);
             visual.helper.visible = !visual.box.isEmpty();
-            (visual.helper.material as THREE.LineBasicMaterial).color.setHex(id === active ? ACTIVE_COLOR : SELECTED_COLOR);
+            (visual.helper.material as THREE.LineBasicMaterial).color.copy(id === active ? colors.active : colors.selected);
         }
     }
 

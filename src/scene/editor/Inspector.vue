@@ -1,6 +1,14 @@
 <template>
     <div class="inspector">
-        <div v-if="!active" class="empty">Nothing selected</div>
+        <div v-if="!active" class="empty-state">
+            <div class="empty-icon"><i class="mdi mdi-cursor-default-click-outline" aria-hidden="true"></i></div>
+            <div class="empty-title">Nothing selected</div>
+            <p class="empty-text">Select an object in the viewport or in the scene list to edit its properties.</p>
+            <ul class="empty-tips">
+                <li><i class="mdi mdi-plus" aria-hidden="true"></i><span>Use <strong>Add</strong> in the toolbar or drag an asset into the viewport</span></li>
+                <li><i class="mdi mdi-gesture-tap" aria-hidden="true"></i><span><kbd>Shift</kbd>/<kbd>Ctrl</kbd> + click to select several objects</span></li>
+            </ul>
+        </div>
         <template v-else>
             <div class="header">
                 <i :class="['mdi', iconFor(active), 'kind-icon']" :title="kindLabel" aria-hidden="true"></i>
@@ -173,7 +181,69 @@ function commitName() {
     height: 100%;
 }
 
-.empty,
+.empty-state {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--insp-gap-2);
+    padding: var(--insp-gap-4) 1.5rem;
+    text-align: center;
+    color: var(--p-text-muted-color);
+}
+
+.empty-icon {
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: var(--insp-gap-1);
+    border: 1px solid var(--p-content-border-color);
+    border-radius: 50%;
+    font-size: 1.5rem;
+}
+
+.empty-title {
+    color: var(--p-text-color);
+    font-weight: 600;
+    font-size: 0.9375rem;
+}
+
+.empty-text {
+    max-width: 18rem;
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+}
+
+.empty-tips {
+    display: flex;
+    flex-direction: column;
+    gap: var(--insp-gap-2);
+    max-width: 18rem;
+    margin: var(--insp-gap-3) 0 0;
+    padding: var(--insp-gap-3) 0 0;
+    border-top: 1px solid var(--p-content-border-color);
+    list-style: none;
+    font-size: 0.75rem;
+    text-align: left;
+}
+
+.empty-tips li {
+    display: flex;
+    align-items: baseline;
+    gap: var(--insp-gap-2);
+}
+
+.empty-tips kbd {
+    padding: 0 0.3em;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 0.6875rem;
+}
+
 .hint,
 .multi {
     padding: var(--insp-gap-2) var(--insp-gap-3);
