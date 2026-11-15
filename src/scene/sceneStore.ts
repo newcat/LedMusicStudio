@@ -2,6 +2,8 @@ import { computed, markRaw, ref, shallowRef, toRaw } from "vue";
 import { defineStore } from "pinia";
 
 import { useStage } from "@/stage/stage";
+import { FixtureType, type FixtureSnapshot } from "@/stage/fixtures/base.fixture";
+import { createFixture } from "@/stage/fixtures/factory";
 import { VisualizationType } from "@/visualization/fixtureVisualization";
 import { getVisualizationByType } from "@/visualization/fixtureVisualizations/factory";
 import { assetCatalog } from "@/assetLibrary/catalog";
@@ -23,7 +25,15 @@ import {
     nextObjectName,
     SHAPE_LABELS,
 } from "./model/defaults";
-import { applyObjectStates, cloneObject, cloneStates, MERGE_WINDOW_MS, SceneHistory } from "./model/history";
+import {
+    applyObjectStates,
+    cloneObject,
+    cloneStates,
+    mergeFixtureStates,
+    MERGE_WINDOW_MS,
+    SceneHistory,
+    type FixtureStates,
+} from "./model/history";
 import {
     alignToActive,
     distributeEvenly,
@@ -39,7 +49,17 @@ import {
     type LocalTransform,
 } from "./model/transformMath";
 import type { SceneSink } from "./sceneSink";
-import { hasPlausibleDimensions, modelForType, modelScaleForFixture, withModelRanges } from "./fixtureModels";
+import {
+    compatibleVisualizationTypes,
+    DEFAULT_DMX_VISUALIZATION,
+    hasPlausibleDimensions,
+    modelForType,
+    modelScaleForFixture,
+    preselectionOf,
+    usesDefaultModel,
+    withModelRanges,
+} from "./fixtureModels";
+import type { CapabilityMapping } from "@/visualization/capabilities/types";
 import type {
     CameraPose,
     FixtureVisualizationModelFields,
@@ -55,7 +75,7 @@ import type {
 } from "./model/types";
 import { sanitizeEnvironment, validateStripPath } from "./model/sanitize";
 import type { LedStripVisualizationConfig, StripPath } from "@/visualization/fixtureVisualizations/ledStrip/types";
-import { emitSceneToast } from "./toastBus";
+import { stripPathLedCount } from "@/visualization/fixtureVisualizations/ledStrip/stripPath";
 import { isFixtureVisualization, isLibraryAsset, isShape } from "./model/types";
 
 export type TransformMode = "translate" | "rotate" | "scale";
@@ -67,6 +87,8 @@ interface Clipboard {
     /** states of the copied subtrees, parent links inside the copy are kept */
     objects: SceneObject[];
     rootIds: string[];
+    /** feature 006: snapshots of the fixtures of all copied fixture objects, keyed by source fixture id */
+    fixtures: Record<string, FixtureSnapshot>;
 }
 
 function unique<T>(values: Iterable<T>): T[] {
@@ -103,6 +125,39 @@ function clampPatch(patch: Partial<SceneObject>): Partial<SceneObject> {
 export interface AddAssetOptions {
     parentId?: string | null;
     worldTransform?: { position: Vec3; rotation: Vec3; scale?: Vec3 };
+}
+
+/** Surface point (and normal) a new object is placed on; null/undefined = scene origin. */
+export type Placement = { point: Vec3; normal: Vec3 } | null | undefined;
+
+/** Options of `addFixture` (feature 006, contracts/fixture-commands.md). */
+export interface AddFixtureOptions extends AddAssetOptions {
+    placement?: Placement;
+    /** model of the fixture object; its first visualization type compatible with the fixture type is used */
+    modelId?: string;
+    visualizationType?: VisualizationType;
+    /** name of fixture and object, default "DMX fixture N" / "LED strip N" */
+    name?: string;
+    /** history label, default "Add DMX fixture" / "Add LED strip" */
+    label?: string;
+}
+
+/** Patch of `updateFixture` (feature 006). */
+export interface FixturePatch {
+    name?: string;
+    config?: object;
+    controllerId?: string | null;
+}
+
+/** Profile fields of a DMX fixture config, compared by `updateFixture` (research R8). */
+interface DmxProfileFields {
+    definition?: unknown;
+    mode?: unknown;
+}
+
+/** "Spot 1" -> "Spot", for naming copies with the next free number (research R6). */
+function baseNameOf(name: string): string {
+    return name.replace(/\s+\d+$/, "") || name;
 }
 
 export const useScene = defineStore("scene", () => {
@@ -177,29 +232,66 @@ export const useScene = defineStore("scene", () => {
         return parentId ? scene.value.objects[parentId].children : scene.value.rootOrder;
     }
 
+    function captureFixtures(ids: Iterable<string>): FixtureStates {
+        const stage = useStage();
+        const result: FixtureStates = {};
+        for (const id of ids) {
+            result[id] = stage.snapshotFixture(id);
+        }
+        return result;
+    }
+
     /**
      * Runs a mutation as one history entry. `affected` lists every object that exists before the mutation and may be
-     * changed by it (including parents whose `children` change); `mutate` returns the ids of newly created objects.
+     * changed by it (including parents whose `children` change); `options.fixtures` lists existing fixtures the
+     * mutation may change or delete (feature 006). `mutate` returns the ids of newly created objects (`string[]`), or
+     * `{ objects, fixtures }` with the ids of newly created objects and fixtures.
      */
-    function runCommand(label: string, affected: Iterable<string>, mutate: () => unknown, recordHistory = true, mergeKey?: string) {
+    function runCommand(
+        label: string,
+        affected: Iterable<string>,
+        mutate: () => unknown,
+        recordHistory = true,
+        mergeKey?: string,
+        options?: { fixtures?: Iterable<string> }
+    ) {
+        const stage = useStage();
         const affectedIds = unique(affected).filter((id) => rawObject(id));
         const before = captureStates(affectedIds);
+        const affectedFixtures = unique(options?.fixtures ?? []).filter((id) => stage.fixtures.has(id));
+        const fixturesBefore = captureFixtures(affectedFixtures);
         const rootOrderBefore = [...rawScene().rootOrder];
         const environmentBefore = rawScene().environment;
         const result = mutate();
         // commands replace the environment object instead of mutating it, so a reference check finds changes
         const environmentChanged = rawScene().environment !== environmentBefore;
         const environmentAfter = rawScene().environment;
-        const created = Array.isArray(result) ? (result as string[]) : [];
+        let created: string[] = [];
+        let createdFixtures: string[] = [];
+        if (Array.isArray(result)) {
+            created = result as string[];
+        } else if (result && typeof result === "object") {
+            const r = result as { objects?: string[]; fixtures?: string[] };
+            created = r.objects ?? [];
+            createdFixtures = r.fixtures ?? [];
+        }
         for (const id of created) {
             if (!(id in before)) {
                 before[id] = null;
             }
         }
+        for (const id of createdFixtures) {
+            if (!(id in fixturesBefore)) {
+                fixturesBefore[id] = null;
+            }
+        }
         const allIds = unique([...affectedIds, ...created]);
+        const allFixtures = unique([...affectedFixtures, ...createdFixtures]);
+        const fixturesChanged = allFixtures.length > 0;
         if (recordHistory) {
             const now = Date.now();
             const top = history.top;
+            const fixturesAfter = fixturesChanged ? captureFixtures(allFixtures) : undefined;
             if (mergeKey && top && top.mergeKey === mergeKey && top.time !== undefined && now - top.time < MERGE_WINDOW_MS) {
                 for (const [id, state] of Object.entries(before)) {
                     if (!(id in top.before)) {
@@ -212,6 +304,10 @@ export const useScene = defineStore("scene", () => {
                     top.environmentBefore ??= structuredClone(environmentBefore);
                     top.environmentAfter = structuredClone(environmentAfter);
                 }
+                if (fixturesAfter) {
+                    top.fixturesBefore = mergeFixtureStates(top.fixturesBefore, fixturesBefore, "older");
+                    top.fixturesAfter = mergeFixtureStates(top.fixturesAfter, fixturesAfter, "newer");
+                }
                 top.time = now;
             } else {
                 history.push({
@@ -223,6 +319,7 @@ export const useScene = defineStore("scene", () => {
                     ...(environmentChanged
                         ? { environmentBefore: structuredClone(environmentBefore), environmentAfter: structuredClone(environmentAfter) }
                         : {}),
+                    ...(fixturesAfter ? { fixturesBefore, fixturesAfter } : {}),
                     mergeKey,
                     time: now,
                 });
@@ -287,10 +384,11 @@ export const useScene = defineStore("scene", () => {
      * Adds objects. Objects whose `parentId` is not part of the batch become children of `parentId` (root if null).
      * `children` of the given objects are rebuilt from the batch.
      */
-    function addObjects(objects: SceneObject[], parentId?: string | null, label = "Add") {
+    function addObjects(objects: SceneObject[], parentId?: string | null, label = "Add", fixtures: Record<string, FixtureSnapshot> = {}) {
         if (objects.length === 0) {
             return [];
         }
+        const stage = useStage();
         const batchIds = new Set(objects.map((o) => o.id));
         const rootsOfBatch = objects.filter((o) => !o.parentId || !batchIds.has(o.parentId));
         const targetParentOf = (obj: SceneObject): string | null => {
@@ -299,6 +397,10 @@ export const useScene = defineStore("scene", () => {
         };
         const affectedParents = rootsOfBatch.map(targetParentOf).filter((p): p is string => p !== null);
         runCommand(label, affectedParents, () => {
+            // fixtures first, so the visualization server finds them for the new objects
+            for (const [fixtureId, snapshot] of Object.entries(fixtures)) {
+                stage.applyFixtureSnapshot(fixtureId, snapshot);
+            }
             for (const obj of objects) {
                 const copy = cloneObject(obj);
                 copy.children = [];
@@ -311,7 +413,7 @@ export const useScene = defineStore("scene", () => {
                 const copy = scene.value.objects[obj.id];
                 siblingsOf(copy.parentId).push(copy.id);
             }
-            return objects.map((o) => o.id);
+            return { objects: objects.map((o) => o.id), fixtures: Object.keys(fixtures) };
         });
         return objects.map((o) => o.id);
     }
@@ -356,6 +458,11 @@ export const useScene = defineStore("scene", () => {
         }
         const removedSet = new Set(all);
         const roots = all.filter((id) => !removedSet.has(rawObject(id)!.parentId ?? ""));
+        // FR-004: deleting a fixture object deletes its fixture in the same entry
+        const stage = useStage();
+        const fixtureIds = unique(
+            all.map((id) => rawObject(id)).flatMap((obj) => (obj && isFixtureVisualization(obj) && obj.fixtureId ? [obj.fixtureId] : []))
+        );
         runCommand(
             label,
             [...all, ...parentsOf(roots)],
@@ -368,14 +475,14 @@ export const useScene = defineStore("scene", () => {
                 for (const id of all) {
                     Reflect.deleteProperty(scene.value.objects, id);
                 }
+                for (const fixtureId of fixtureIds) {
+                    stage.applyFixtureSnapshot(fixtureId, null);
+                }
             },
-            recordHistory
+            recordHistory,
+            undefined,
+            { fixtures: fixtureIds }
         );
-    }
-
-    /** Used when a fixture is deleted: its visualization object disappears without an undo step (invariant 5). */
-    function removeObjectsWithoutHistory(ids: string[]) {
-        removeObjects(ids, false);
     }
 
     function reparent(ids: string[], newParentId: string | null, index?: number) {
@@ -423,11 +530,28 @@ export const useScene = defineStore("scene", () => {
         updateObjects(Object.fromEntries(ids.map((id) => [id, { locked }])), locked ? "Lock" : "Unlock");
     }
 
+    /** Renames an object; a fixture object's fixture gets the same name in the same entry (data-model I2). */
     function rename(id: string, name: string) {
-        if (name.trim().length === 0 || scene.value.objects[id]?.name === name.trim()) {
+        const trimmed = name.trim();
+        const obj = rawObject(id);
+        if (!obj || trimmed.length === 0 || obj.name === trimmed) {
             return;
         }
-        updateObjects({ [id]: { name } }, "Rename");
+        const stage = useStage();
+        const fixtureId = isFixtureVisualization(obj) && obj.fixtureId && stage.fixtures.has(obj.fixtureId) ? obj.fixtureId : null;
+        runCommand(
+            "Rename",
+            [id],
+            () => {
+                scene.value.objects[id].name = trimmed;
+                if (fixtureId) {
+                    stage.fixtures.get(fixtureId)!.name = trimmed;
+                }
+            },
+            true,
+            undefined,
+            { fixtures: fixtureId ? [fixtureId] : [] }
+        );
     }
 
     // fixture visualizations ---------------------------------------------------------------------------------
@@ -437,55 +561,140 @@ export const useScene = defineStore("scene", () => {
         return Object.values(scene.value.objects).find((o): o is FixtureVisualizationObject => isFixtureVisualization(o) && o.fixtureId === fixtureId);
     }
 
-    function warnAlreadyLinked(fixtureId: string) {
-        const name = useStage().fixtures.get(fixtureId)?.name ?? "Fixture";
-        emitSceneToast({ severity: "error", summary: "Cannot assign fixture", detail: `${name} already has a visualization.`, life: 4000 });
+    /**
+     * Creates a fixture and its fixture object in one history entry (feature 006, contracts/fixture-commands.md).
+     * The visualization type is the given one, else the model's first type that fits the fixture type, else the
+     * default type; the model is the given one, else the type's preselection/default. A new LED strip gets its LED
+     * count from the path length (30 per meter). Selects the object and returns its id.
+     */
+    function addFixture(type: FixtureType, options: AddFixtureOptions = {}): string {
+        const stage = useStage();
+        const types = compatibleVisualizationTypes(type);
+        const model = options.modelId ? assetCatalog.get(options.modelId) : undefined;
+        const modelTypes = model?.category === "fixtures" ? model.fixture.visualizationTypes.filter((t) => types.includes(t)) : [];
+        const visualizationType =
+            options.visualizationType && types.includes(options.visualizationType)
+                ? options.visualizationType
+                : (modelTypes[0] ?? (type === FixtureType.LED_STRIP ? VisualizationType.LED_STRIP : DEFAULT_DMX_VISUALIZATION));
+        const modelId = model?.category === "fixtures" && model.fixture.visualizationTypes.includes(visualizationType) ? model.id : undefined;
+        const baseName = type === FixtureType.LED_STRIP ? "LED strip" : "DMX fixture";
+        const name = options.name?.trim() || nextObjectName(scene.value, baseName);
+        const parentId = options.parentId && scene.value.objects[options.parentId] ? options.parentId : null;
+        const fixtureId = crypto.randomUUID() as string;
+        let objectId = "";
+        runCommand(options.label ?? `Add ${baseName}`, parentId ? [parentId] : [], () => {
+            const template = createFixture(type);
+            stage.applyFixtureSnapshot(fixtureId, { state: { id: fixtureId, type, name, config: template.config }, controllerId: null, groups: [] });
+            const fixture = stage.fixtures.get(fixtureId)!;
+            const fallback = modelForType(fixture, visualizationType, true);
+            const modelFields: FixtureVisualizationModelFields = {
+                modelId: modelId ?? fallback.modelId,
+                modelScale: modelId ? modelScaleForFixture(fixture, modelId) : fallback.modelScale,
+            };
+            const config = withModelRanges(
+                visualizationType,
+                getVisualizationByType(visualizationType).defaultConfig(fixture as never, modelFields.modelId) as FixtureVisualizationObject["config"],
+                modelFields.modelId
+            );
+            const obj = createFixtureVisualizationObject(fixtureId, visualizationType, config, name, modelFields);
+            obj.position = placementPosition(options.placement);
+            if (visualizationType === VisualizationType.LED_STRIP) {
+                // strips emit along local +Y: new ones point down so they light the floor below them
+                obj.rotation = [180, 0, 0];
+            }
+            applyWorldTransform(obj, options);
+            obj.parentId = parentId;
+            if (type === FixtureType.LED_STRIP) {
+                const numLeds = stripPathLedCount((config as LedStripVisualizationConfig).path);
+                fixture.setConfig({ ...(toRaw(fixture.config) as object), numLeds });
+            }
+            scene.value.objects[obj.id] = obj;
+            siblingsOf(parentId).push(obj.id);
+            objectId = obj.id;
+            return { objects: [obj.id], fixtures: [fixtureId] };
+        });
+        select([objectId]);
+        return objectId;
+    }
+
+
+    /** Research R8: a mapping that was never generated (no profile at creation) and never edited by hand. */
+    function isPristineMapping(config: unknown): boolean {
+        const mapping = (config as { mapping?: CapabilityMapping } | null)?.mapping;
+        return !!mapping && mapping.mappedMode === null && !Object.values(mapping.channels).some((entry) => entry?.source === "manual");
     }
 
     /**
-     * Creates the visualization object of a fixture with the default config of `type`. Returns its id.
-     * Without `model`, the category preselection is used if its type is `type`, otherwise the type's default model.
+     * Changes a fixture's name, config or controller as one undoable entry (feature 006, research R7). The name also
+     * renames the fixture object (I2); controllers that cannot control the fixture type are ignored (I4). When a DMX
+     * fixture's profile or mode changes and its object's mapping is pristine, the object gets the category
+     * preselection (only if it still shows the default type and model) and a freshly auto-mapped config (R8).
      */
-    function addFixtureVisualization(
-        fixtureId: string,
-        type: VisualizationType,
-        placement?: { position: Vec3 },
-        model?: Partial<FixtureVisualizationModelFields>
-    ): string | null {
-        const fixture = useStage().fixtures.get(fixtureId);
-        if (!fixture) {
-            return null;
+    function updateFixture(fixtureId: string, patch: FixturePatch, label: string, mergeKey?: string) {
+        const stage = useStage();
+        const current = stage.snapshotFixture(fixtureId);
+        if (!current) {
+            return;
         }
-        if (findObjectByFixture(fixtureId)) {
-            warnAlreadyLinked(fixtureId);
-            return null;
+        const next: FixtureSnapshot = structuredClone(current);
+        const name = patch.name?.trim();
+        if (name) {
+            next.state.name = name;
         }
-        const visualization = getVisualizationByType(type);
-        if (!visualization.compatibleFixtures.includes(fixture.type)) {
-            emitSceneToast({ severity: "error", summary: "Incompatible visualization", detail: `${fixture.name} cannot use the ${type} visualization.`, life: 4000 });
-            return null;
+        if (patch.config) {
+            next.state.config = JSON.parse(JSON.stringify(patch.config));
         }
-        const fallback = modelForType(fixture, type, true);
-        const modelFields: FixtureVisualizationModelFields = {
-            modelId: model?.modelId ?? fallback.modelId,
-            modelScale: model?.modelScale ?? (model?.modelId ? modelScaleForFixture(fixture, model.modelId) : fallback.modelScale),
-        };
-        const config = withModelRanges(
-            type,
-            visualization.defaultConfig(fixture as never, modelFields.modelId) as FixtureVisualizationObject["config"],
-            modelFields.modelId
+        if (patch.controllerId !== undefined) {
+            const controller = patch.controllerId ? stage.controllers.get(patch.controllerId) : undefined;
+            if (patch.controllerId && !controller?.compatibleFixtures.includes(current.state.type)) {
+                return;
+            }
+            next.controllerId = patch.controllerId;
+        }
+        if (JSON.stringify(next) === JSON.stringify(current)) {
+            return;
+        }
+
+        const raw = Object.values(rawScene().objects).find((o): o is FixtureVisualizationObject => isFixtureVisualization(o) && o.fixtureId === fixtureId);
+        const before = current.state.config as DmxProfileFields;
+        const after = next.state.config as DmxProfileFields;
+        const profileChanged =
+            current.state.type === FixtureType.DMX &&
+            (JSON.stringify(before?.mode ?? null) !== JSON.stringify(after?.mode ?? null) ||
+                JSON.stringify(before?.definition ?? null) !== JSON.stringify(after?.definition ?? null));
+        const remap = !!raw && profileChanged && isPristineMapping(raw.config);
+
+        runCommand(
+            label,
+            raw ? [raw.id] : [],
+            () => {
+                stage.applyFixtureSnapshot(fixtureId, next);
+                if (!raw) {
+                    return;
+                }
+                const obj = scene.value.objects[raw.id] as FixtureVisualizationObject;
+                if (name) {
+                    obj.name = name;
+                }
+                if (remap) {
+                    const fixture = stage.fixtures.get(fixtureId)!;
+                    let { visualizationType, modelId, modelScale } = raw;
+                    const preselection = preselectionOf(fixture);
+                    if (preselection && visualizationType === DEFAULT_DMX_VISUALIZATION && usesDefaultModel(raw)) {
+                        ({ visualizationType, modelId, modelScale } = preselection);
+                    }
+                    const config = withModelRanges(
+                        visualizationType,
+                        getVisualizationByType(visualizationType).defaultConfig(fixture as never, modelId) as FixtureVisualizationObject["config"],
+                        modelId
+                    );
+                    Object.assign(obj, { visualizationType, modelId, modelScale, config });
+                }
+            },
+            true,
+            mergeKey,
+            { fixtures: [fixtureId] }
         );
-        const obj = createFixtureVisualizationObject(fixtureId, type, config, fixture.name, modelFields);
-        if (placement) {
-            obj.position = [...placement.position];
-        }
-        if (type === VisualizationType.LED_STRIP) {
-            // strips emit along local +Y: new ones point down so they light the floor below them
-            obj.rotation = [180, 0, 0];
-        }
-        addObjects([obj], null, "Add fixture visualization");
-        select([obj.id]);
-        return obj.id;
     }
 
     /**
@@ -532,26 +741,18 @@ export const useScene = defineStore("scene", () => {
         updateObjects({ [objectId]: { modelScale: 1 } as Partial<SceneObject> }, "Reset model size");
     }
 
-    /** Links an object to a fixture (or unlinks with null). Returns false if the fixture is already linked elsewhere. */
-    function linkFixture(objectId: string, fixtureId: string | null): boolean {
-        if (fixtureId) {
-            const other = findObjectByFixture(fixtureId);
-            if (other && other.id !== objectId) {
-                warnAlreadyLinked(fixtureId);
-                return false;
-            }
-        }
-        updateObjects({ [objectId]: { fixtureId } as Partial<SceneObject> }, "Link fixture");
-        return true;
-    }
-
     /**
      * Sets the path of an LED strip visualization (feature 003, T049). The path is validated per data-model §3
      * (finite coordinates, normalized normals, at least 2 distinct points); an invalid path changes nothing and
      * returns false. With `preview`, the change is applied without a history entry (drags: `captureBeforeStates`,
      * then `setStripPath(..., { preview: true })` per move, then `commitPreview(before, label)`).
      */
-    function setStripPath(objectId: string, path: StripPath, label = "Edit LED strip path", options?: { preview?: boolean }): boolean {
+    function setStripPath(
+        objectId: string,
+        path: StripPath,
+        label = "Edit LED strip path",
+        options?: { preview?: boolean; syncLedCount?: boolean }
+    ): boolean {
         const obj = scene.value.objects[objectId];
         if (!obj || !isFixtureVisualization(obj) || obj.visualizationType !== VisualizationType.LED_STRIP) {
             return false;
@@ -562,31 +763,27 @@ export const useScene = defineStore("scene", () => {
         }
         const config: LedStripVisualizationConfig = { ...(toRaw(obj.config) as LedStripVisualizationConfig), path: valid };
         const patches = { [objectId]: { config } as Partial<SceneObject> };
+        const fixture = obj.fixtureId ? useStage().fixtures.get(obj.fixtureId) : undefined;
         if (options?.preview) {
             previewPatches(patches);
+        } else if (options?.syncLedCount && fixture?.type === FixtureType.LED_STRIP) {
+            // a new strip drawn with the strip tool: the LED count follows the drawn length (30 per meter)
+            const numLeds = stripPathLedCount(valid);
+            runCommand(
+                label,
+                [objectId],
+                () => {
+                    (scene.value.objects[objectId] as FixtureVisualizationObject).config = structuredClone(config);
+                    fixture.setConfig({ ...(toRaw(fixture.config) as object), numLeds });
+                },
+                true,
+                undefined,
+                { fixtures: [fixture.id] }
+            );
         } else {
             updateObjects(patches, label);
         }
         return true;
-    }
-
-    /**
-     * Creates an unlinked fixture visualization of `type` with the type's default model, named after the type
-     * ("LED strip N" for strips), at the scene origin (feature 003, T052). Selects it and returns its id.
-     */
-    function addUnlinkedFixtureVisualization(type: VisualizationType): string {
-        const visualization = getVisualizationByType(type);
-        const modelFields = modelForType(undefined, type, false);
-        const config = withModelRanges(
-            type,
-            visualization.defaultConfig(undefined as never, modelFields.modelId) as FixtureVisualizationObject["config"],
-            modelFields.modelId
-        );
-        const baseName = type === VisualizationType.LED_STRIP ? "LED strip" : type;
-        const obj = createFixtureVisualizationObject(null, type, config, nextObjectName(scene.value, baseName), modelFields);
-        addObjects([obj], null, `Add ${baseName}`);
-        select([obj.id]);
-        return obj.id;
     }
 
     /** True if the most recent history entry created `objectId`. */
@@ -595,15 +792,15 @@ export const useScene = defineStore("scene", () => {
     }
 
     /**
-     * Cancels the creation of an object (strip drawing tool, Esc on a new strip): the object is removed without a
-     * history entry, and its add entry is dropped from the history if it is the most recent one.
+     * Cancels the creation of an object (strip drawing tool, Esc on a new strip): the object and its fixture are
+     * removed without a history entry, and its add entry is dropped from the history if it is the most recent one.
      */
     function discardAddedObject(objectId: string) {
         if (isAddEntry(history.top, objectId)) {
             history.discardTop();
             bumpHistory();
         }
-        removeObjectsWithoutHistory([objectId]);
+        removeObjects([objectId], false);
     }
 
     /**
@@ -727,9 +924,21 @@ export const useScene = defineStore("scene", () => {
         }
     }
 
+    /** Fixtures are applied before the object states, so the link repair in `applyHistoryStates` sees them (R5). */
+    function applyHistoryFixtures(states: FixtureStates | undefined) {
+        if (!states) {
+            return;
+        }
+        const stage = useStage();
+        for (const [id, snapshot] of Object.entries(states)) {
+            stage.applyFixtureSnapshot(id, snapshot);
+        }
+    }
+
     function undo() {
         const entry = history.undo();
         if (entry) {
+            applyHistoryFixtures(entry.fixturesBefore);
             applyHistoryStates(entry.before, entry.rootOrderBefore);
             applyHistoryEnvironment(entry.environmentBefore);
             bumpHistory();
@@ -740,6 +949,7 @@ export const useScene = defineStore("scene", () => {
     function redo() {
         const entry = history.redo();
         if (entry) {
+            applyHistoryFixtures(entry.fixturesAfter);
             applyHistoryStates(entry.after, entry.rootOrderAfter);
             applyHistoryEnvironment(entry.environmentAfter);
             bumpHistory();
@@ -748,8 +958,6 @@ export const useScene = defineStore("scene", () => {
     }
 
     // shapes, groups, duplicate, clipboard --------------------------------------------------------------------
-
-    type Placement = { point: Vec3; normal: Vec3 } | null | undefined;
 
     function placementPosition(placement: Placement, liftBy = 0): Vec3 {
         if (!placement) {
@@ -787,8 +995,18 @@ export const useScene = defineStore("scene", () => {
         return obj.id;
     }
 
-    /** Deep copies of the subtrees below `rootIds` with new ids and the internal hierarchy preserved. */
-    function cloneSubtrees(states: Record<string, SceneObject>, rootIds: string[], nameSuffix: string, offsetX: number) {
+    /**
+     * Deep copies of the subtrees below `rootIds` with new ids and the internal hierarchy preserved. Every copied
+     * fixture object gets a new fixture from `fixtureSources` (new id, same config and controller, no groups) named
+     * with the next free number (research R6); returned in `fixtures`, keyed by the new fixture id.
+     */
+    function cloneSubtrees(
+        states: Record<string, SceneObject>,
+        rootIds: string[],
+        nameSuffix: string,
+        offsetX: number,
+        fixtureSources: Record<string, FixtureSnapshot>
+    ) {
         const subtree: string[] = [];
         for (const rootId of rootIds) {
             subtree.push(rootId, ...getDescendantIds({ objects: states }, rootId));
@@ -796,6 +1014,9 @@ export const useScene = defineStore("scene", () => {
         const idMap = new Map<string, string>(unique(subtree).map((id) => [id, crypto.randomUUID() as string]));
         const copies: SceneObject[] = [];
         const newRootIds: string[] = [];
+        const fixtures: Record<string, FixtureSnapshot> = {};
+        // names already in use, including the copies named so far
+        const named: Record<string, SceneObject> = { ...rawScene().objects };
         for (const [oldId, newId] of idMap) {
             const source = states[oldId];
             if (!source) continue;
@@ -809,13 +1030,25 @@ export const useScene = defineStore("scene", () => {
             } else {
                 copy.parentId = source.parentId ? idMap.get(source.parentId) ?? null : null;
             }
-            // data-model invariant 3 / FR-034: copies are not linked to a fixture
             if (isFixtureVisualization(copy)) {
-                copy.fixtureId = null;
+                const source = copy.fixtureId ? fixtureSources[copy.fixtureId] : undefined;
+                if (source) {
+                    const fixtureId = crypto.randomUUID() as string;
+                    copy.name = nextObjectName({ objects: named }, baseNameOf(source.state.name));
+                    copy.fixtureId = fixtureId;
+                    fixtures[fixtureId] = {
+                        state: { ...source.state, id: fixtureId, name: copy.name, config: structuredClone(source.state.config) },
+                        controllerId: source.controllerId && useStage().controllers.has(source.controllerId) ? source.controllerId : null,
+                        groups: [],
+                    };
+                } else {
+                    copy.fixtureId = null;
+                }
             }
+            named[copy.id] = copy;
             copies.push(copy);
         }
-        return { copies, newRootIds };
+        return { copies, newRootIds, fixtures };
     }
 
     function statesOf(ids: string[]): Record<string, SceneObject> {
@@ -838,26 +1071,41 @@ export const useScene = defineStore("scene", () => {
         return unique(roots.flatMap((id) => [id, ...getDescendantIds(rawScene(), id)]));
     }
 
+    /** Snapshots of the fixtures of all fixture objects in `states`, keyed by fixture id. */
+    function fixtureSnapshotsOf(states: Record<string, SceneObject>): Record<string, FixtureSnapshot> {
+        const stage = useStage();
+        const result: Record<string, FixtureSnapshot> = {};
+        for (const obj of Object.values(states)) {
+            if (isFixtureVisualization(obj) && obj.fixtureId) {
+                const snapshot = stage.snapshotFixture(obj.fixtureId);
+                if (snapshot) result[obj.fixtureId] = snapshot;
+            }
+        }
+        return result;
+    }
+
     function duplicateSelection() {
         const roots = selectionRoots();
         if (roots.length === 0) return;
-        const { copies, newRootIds } = cloneSubtrees(statesOf(subtreeIds(roots)), roots, " copy", 0.25);
-        addObjects(copies, undefined, "Duplicate");
+        const states = statesOf(subtreeIds(roots));
+        const { copies, newRootIds, fixtures } = cloneSubtrees(states, roots, " copy", 0.25, fixtureSnapshotsOf(states));
+        addObjects(copies, undefined, "Duplicate", fixtures);
         select(newRootIds);
     }
 
     function copySelection() {
         const roots = selectionRoots();
         if (roots.length === 0) return;
-        clipboard.value = { objects: Object.values(statesOf(subtreeIds(roots))), rootIds: roots };
+        const states = statesOf(subtreeIds(roots));
+        clipboard.value = { objects: Object.values(states), rootIds: roots, fixtures: fixtureSnapshotsOf(states) };
     }
 
     function pasteClipboard() {
         const content = clipboard.value;
         if (!content) return;
         const states = Object.fromEntries(content.objects.map((o) => [o.id, o]));
-        const { copies, newRootIds } = cloneSubtrees(states, content.rootIds, " copy", 0.25);
-        addObjects(copies, undefined, "Paste");
+        const { copies, newRootIds, fixtures } = cloneSubtrees(states, content.rootIds, " copy", 0.25, content.fixtures);
+        addObjects(copies, undefined, "Paste", fixtures);
         select(newRootIds);
     }
 
@@ -994,25 +1242,22 @@ export const useScene = defineStore("scene", () => {
     }
 
     /**
-     * A fixture model from the library becomes an unlinked fixture visualization of the model's first type
-     * (contracts/library-ui.md → Placement, item 4). Selects it.
+     * A fixture model from the library becomes a new fixture with a fixture object of that model (feature 006):
+     * LED strip models create an LED strip fixture, all others an unpatched DMX fixture. Selects it.
      */
     function addFixtureModel(modelId: string, placement?: Placement, options?: AddAssetOptions): string | null {
         const definition = assetCatalog.get(modelId);
         if (definition?.category !== "fixtures" || definition.fixture.visualizationTypes.length === 0) {
             return null;
         }
-        const type = definition.fixture.visualizationTypes[0];
-        const config = withModelRanges(type, getVisualizationByType(type).defaultConfig(undefined as never, modelId), modelId);
-        const obj = createFixtureVisualizationObject(null, type, config as FixtureVisualizationObject["config"], nextObjectName(scene.value, definition.name), {
+        const type = definition.fixture.visualizationTypes.includes(VisualizationType.LED_STRIP) ? FixtureType.LED_STRIP : FixtureType.DMX;
+        return addFixture(type, {
+            ...options,
+            placement,
             modelId,
-            modelScale: 1,
+            name: nextObjectName(scene.value, definition.name),
+            label: `Add ${definition.name}`,
         });
-        obj.position = placementPosition(placement);
-        const parentId = applyWorldTransform(obj, options);
-        addObjects([obj], parentId, `Add ${definition.name}`);
-        select([obj.id]);
-        return obj.id;
     }
 
     /**
@@ -1234,7 +1479,6 @@ export const useScene = defineStore("scene", () => {
         addObjects,
         updateObjects,
         removeObjects,
-        removeObjectsWithoutHistory,
         reparent,
         setVisible,
         setLocked,
@@ -1248,13 +1492,12 @@ export const useScene = defineStore("scene", () => {
         redo,
         // fixture visualizations
         findObjectByFixture,
-        addFixtureVisualization,
+        addFixture,
+        updateFixture,
         setVisualizationType,
         setFixtureModel,
         resetModelScale,
-        linkFixture,
         setStripPath,
-        addUnlinkedFixtureVisualization,
         discardAddedObject,
         mergeWithAddEntry,
         // shapes, groups, clipboard

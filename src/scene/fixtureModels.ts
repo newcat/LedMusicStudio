@@ -7,6 +7,7 @@ import { defaultChannelRanges, modelScaleFor, plausibleDimensions, preselectForF
 import type { FixtureAssetDefinition, FixturePreselection } from "@/assetLibrary/types";
 import { FixtureType, type BaseFixture, type DmxFixture } from "@/stage/fixtures";
 import { VisualizationType } from "@/visualization/fixtureVisualization";
+import { getVisualizationByType } from "@/visualization/fixtureVisualizations/factory";
 import type { LinearSegment } from "@/visualization/capabilities/types";
 import type { BeamVisualizationConfig } from "@/visualization/fixtureVisualizations/beam/types";
 import type { GenericVisualizationConfig } from "@/visualization/fixtureVisualizations/generic/types";
@@ -98,4 +99,17 @@ export function withModelRanges<C>(type: VisualizationType, config: C, modelId: 
         generic.lightAngle = genericLightAngleFor(modelId);
     }
     return config;
+}
+
+/** Visualization types that can show a fixture of `type` (data-model I3), in enum order. */
+export function compatibleVisualizationTypes(type: FixtureType): VisualizationType[] {
+    return Object.values(VisualizationType).filter((t) => getVisualizationByType(t).compatibleFixtures.includes(type));
+}
+
+/** Visualization type of a new DMX fixture that has no model and no profile yet (feature 006, Add → DMX fixture). */
+export const DEFAULT_DMX_VISUALIZATION = VisualizationType.GENERIC;
+
+/** True if the object still shows the default model of its visualization type (research R8). */
+export function usesDefaultModel(object: { visualizationType: VisualizationType; modelId: string }): boolean {
+    return object.modelId === assetCatalog.defaultModelFor(object.visualizationType).id;
 }

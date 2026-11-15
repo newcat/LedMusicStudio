@@ -1,4 +1,3 @@
-import { Component } from "vue";
 import { v4 as uuidv4 } from "uuid";
 import { BaklavaEvent } from "@baklavajs/events";
 
@@ -15,11 +14,20 @@ export interface FixtureState<V = unknown, C = unknown> {
     config: C;
 }
 
+/**
+ * Undoable state of a fixture (feature 006, research R2): deep copies of name, type and config, plus its controller
+ * assignment and group memberships. The output value is not part of it (runtime output, recomputed every frame).
+ */
+export interface FixtureSnapshot {
+    state: { id: string; type: FixtureType; name: string; config: unknown };
+    controllerId: string | null;
+    groups: Array<{ groupId: string; index: number }>;
+}
+
 export abstract class BaseFixture<V = unknown, C = unknown> {
     public id = uuidv4();
     public abstract readonly type: FixtureType;
     public name = "Fixture";
-    public readonly settingsComponent: Component | null = null;
 
     public readonly events = {
         valueChanged: new BaklavaEvent<void, undefined>(undefined),

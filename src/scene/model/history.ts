@@ -1,4 +1,15 @@
+import type { FixtureSnapshot } from "@/stage/fixtures/base.fixture";
 import type { SceneEnvironment, SceneObject, SceneState } from "./types";
+
+export type FixtureStates = Record<string, FixtureSnapshot | null>;
+
+/** Merges fixture maps of two entries: the older `before` and the newer `after` win per fixture id (like objects). */
+export function mergeFixtureStates(older: FixtureStates | undefined, newer: FixtureStates | undefined, keep: "older" | "newer"): FixtureStates | undefined {
+    if (!older && !newer) {
+        return undefined;
+    }
+    return keep === "older" ? { ...newer, ...older } : { ...older, ...newer };
+}
 
 export interface HistoryEntry {
     label: string;
@@ -9,6 +20,9 @@ export interface HistoryEntry {
     /** Set only when the command changed the scene environment (feature 003). */
     environmentBefore?: SceneEnvironment;
     environmentAfter?: SceneEnvironment;
+    /** Set only when the command changed fixtures (feature 006): `null` = the fixture did not exist / was deleted. */
+    fixturesBefore?: FixtureStates;
+    fixturesAfter?: FixtureStates;
     /** Consecutive entries with the same key within `MERGE_WINDOW_MS` are merged into one (live field edits). */
     mergeKey?: string;
     time?: number;
@@ -83,6 +97,8 @@ export class SceneHistory {
                 before[id] = state;
             }
         }
+        const fixturesBefore = mergeFixtureStates(older.fixturesBefore, newer.fixturesBefore, "older");
+        const fixturesAfter = mergeFixtureStates(older.fixturesAfter, newer.fixturesAfter, "newer");
         this.undoStack.push({
             label,
             before,
@@ -95,6 +111,7 @@ export class SceneHistory {
                       environmentAfter: newer.environmentAfter ?? older.environmentAfter,
                   }
                 : {}),
+            ...(fixturesBefore && fixturesAfter ? { fixturesBefore, fixturesAfter } : {}),
             time: newer.time,
         });
     }

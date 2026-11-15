@@ -9,10 +9,9 @@
                 </div>
 
                 <div class="content">
-                    <Fixtures v-if="activeStageTab === 0" />
-                    <Controllers v-else-if="activeStageTab === 1" />
-                    <Visualization v-else-if="activeStageTab === 2" />
-                    <Groups v-else-if="activeStageTab === 3" />
+                    <Controllers v-if="activeStageTab === STAGE_TAB_CONTROLLERS" />
+                    <Visualization v-else-if="activeStageTab === STAGE_TAB_VISUALIZATION" />
+                    <Groups v-else-if="activeStageTab === STAGE_TAB_GROUPS" />
                 </div>
             </div>
         </template>
@@ -28,9 +27,8 @@ import { useToast } from "primevue/usetoast";
 import { getNativeAdapter } from "@/native";
 import { useStage } from "@/stage";
 import { useErrorHandler } from "@/utils";
-import { activeStageTab } from "./stageViewState";
+import { activeStageTab, STAGE_TAB_CONTROLLERS, STAGE_TAB_GROUPS, STAGE_TAB_VISUALIZATION } from "./stageViewState";
 
-import Fixtures from "@/stage/components/Fixtures.vue";
 import Controllers from "@/stage/components/Controllers.vue";
 import Visualization from "@/stage/components/Visualization.vue";
 import Groups from "@/stage/components/Groups.vue";
@@ -41,7 +39,6 @@ const stage = useStage();
 const nativeAdapter = getNativeAdapter();
 
 const menuItems: TabMenuProps["model"] = [
-    { label: "Fixtures", icon: "mdi mdi-lamp" },
     { label: "Controllers", icon: "mdi mdi-chip" },
     { label: "Visualization", icon: "mdi mdi-eye" },
     { label: "Groups", icon: "mdi mdi-lamps" },

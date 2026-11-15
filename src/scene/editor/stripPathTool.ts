@@ -440,7 +440,8 @@ export class StripPathTool {
             closed: current.closed,
         };
         const store = this.host.store;
-        if (!store.setStripPath(this.objectIdValue, path, "Draw LED strip")) {
+        // a new strip gets its LED count from the drawn length (feature 006)
+        if (!store.setStripPath(this.objectIdValue, path, "Draw LED strip", { syncLedCount: this.isNew })) {
             this.cancel();
             return;
         }

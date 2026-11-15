@@ -96,7 +96,7 @@ import CameraMenu from "./CameraMenu.vue";
 import EnvironmentPopover from "./EnvironmentPopover.vue";
 import DisplayPopover from "./DisplayPopover.vue";
 
-export type AddKind = "box" | "cylinder" | "plane" | "sphere" | "group" | "fixture" | "model" | "aimTarget";
+export type AddKind = "box" | "cylinder" | "plane" | "sphere" | "group" | "dmxFixture" | "ledStrip" | "model" | "aimTarget";
 
 const props = defineProps<{
     overlay: EditorOverlay | null;
@@ -142,7 +142,8 @@ const addItems: MenuItem[] = [
     { label: "Sphere", icon: "mdi mdi-circle-outline", command: () => emit("add", "sphere") },
     { label: "Group", icon: "mdi mdi-folder-outline", command: () => emit("add", "group") },
     { separator: true },
-    { label: "Fixture visualization…", icon: "mdi mdi-lightbulb-on-outline", command: () => emit("add", "fixture") },
+    { label: "DMX fixture", icon: "mdi mdi-spotlight-beam", command: () => emit("add", "dmxFixture") },
+    { label: "LED strip", icon: "mdi mdi-led-strip-variant", command: () => emit("add", "ledStrip") },
     { label: "Import model (GLB)…", icon: "mdi mdi-shape-outline", command: () => emit("add", "model") },
     { separator: true },
     { label: "Aim target", icon: "mdi mdi-crosshairs", command: () => emit("add", "aimTarget") },

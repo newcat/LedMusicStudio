@@ -1,8 +1,6 @@
-import { markRaw } from "vue";
 import { BaseFixture, FixtureState, FixtureType } from "../base.fixture";
 import { sanitizeAttributeValues, type AttributeValues } from "@/programming/attributes";
 import { Fixture as OpenFixtureDefinition } from "./open-fixture";
-import DmxFixtureSettings from "./DmxFixtureSettings.vue";
 
 /** Name used for `null` mode channels, which occupy a DMX slot without a function. */
 export const UNUSED_CHANNEL_NAME = "(unused)";
@@ -17,7 +15,6 @@ export interface DmxFixtureConfiguration {
 
 export class DmxFixture extends BaseFixture<number[], DmxFixtureConfiguration> {
     public override readonly type = FixtureType.DMX;
-    public override readonly settingsComponent = markRaw(DmxFixtureSettings);
 
     public get validationErrors(): string[] {
         if (!this.config.definition) {

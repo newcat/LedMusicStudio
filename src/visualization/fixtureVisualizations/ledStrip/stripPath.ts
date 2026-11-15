@@ -154,3 +154,14 @@ export function pixelPositions(
 function lerp(a: number, b: number, f: number): number {
     return a + (b - a) * f;
 }
+
+/** LED count of a strip fixture created for `path` (feature 006): 30 per meter of path length, at least 1. */
+export function stripPathLedCount(path: StripPath): number {
+    let length = 0;
+    try {
+        length = new StripPathSampler(path).length;
+    } catch {
+        length = 0;
+    }
+    return Math.max(1, unlinkedPixelCount(length));
+}

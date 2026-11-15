@@ -1,4 +1,4 @@
-import { markRaw, toRaw, watch } from "vue";
+import { markRaw, toRaw } from "vue";
 
 import { ExtendedMap } from "@/utils";
 import { BaseFixture } from "@/stage";
@@ -13,6 +13,8 @@ import type { FixtureSnapshot } from "./protocol";
 interface ControllerEntry {
     controller: FixtureVisualizationController;
     fixtureId: string;
+    /** The fixture instance the controller was created for; a fixture restored by undo is a new instance. */
+    fixture: BaseFixture;
     type: string;
     /** The controller's current value in wire encoding (protocol v3). */
     wire: Uint8Array;
@@ -62,10 +64,6 @@ export class VisualizationServer {
     }
 
     public constructor(private readonly fixtures: Map<string, BaseFixture>) {
-        watch(
-            () => fixtures.values(),
-            () => this.removeObjectsOfDeletedFixtures()
-        );
         // a sink that becomes active gets the full fixture state (research R15)
         useScene().onSinkRegistered((sink) => sink.onActivated(() => this.sendStateTo(sink)));
     }
@@ -81,7 +79,7 @@ export class VisualizationServer {
 
         for (const [objectId, entry] of [...this.entries]) {
             const obj = wanted.get(objectId);
-            if (!obj || obj.fixtureId !== entry.fixtureId || obj.visualizationType !== entry.type) {
+            if (!obj || obj.fixtureId !== entry.fixtureId || obj.visualizationType !== entry.type || this.fixtures.get(obj.fixtureId) !== entry.fixture) {
                 this.removeController(objectId);
             }
         }
@@ -138,7 +136,7 @@ export class VisualizationServer {
             return;
         }
         const type = obj.visualizationType;
-        const entry: ControllerEntry = { controller, fixtureId: fixture.id, type, wire: toWireValue(type, toRaw(controller.value)) };
+        const entry: ControllerEntry = { controller, fixtureId: fixture.id, fixture, type, wire: toWireValue(type, toRaw(controller.value)) };
         this.entries.set(objectId, entry);
         this._controllers.set(objectId, controller);
 
@@ -169,19 +167,5 @@ export class VisualizationServer {
         entry.controller.dispose();
         this.entries.delete(objectId);
         this._controllers.delete(objectId);
-    }
-
-    /** Data-model invariant 5: deleting a fixture removes its visualization object, outside the history. */
-    private removeObjectsOfDeletedFixtures() {
-        const scene = useScene();
-        const toRemove: string[] = [];
-        for (const obj of Object.values(scene.rawScene().objects)) {
-            if (isFixtureVisualization(obj) && obj.fixtureId && !this.fixtures.has(obj.fixtureId)) {
-                toRemove.push(obj.id);
-            }
-        }
-        if (toRemove.length > 0) {
-            scene.removeObjectsWithoutHistory(toRemove);
-        }
     }
 }

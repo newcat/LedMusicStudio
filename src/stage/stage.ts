@@ -1,4 +1,4 @@
-import { Ref, ref, watch } from "vue";
+import { reactive, Ref, ref, toRaw, watch } from "vue";
 import { defineStore } from "pinia";
 import { v4 as uuidv4 } from "uuid";
 
@@ -11,7 +11,7 @@ import { isFixtureVisualization, type LegacyStageVisualization, type PersistedSc
 import { BroadcastSceneSink } from "@/scene/sceneSink";
 import { useScene } from "@/scene/sceneStore";
 import { emitSceneToast } from "@/scene/toastBus";
-import { BaseFixture, FixtureState } from "./fixtures";
+import { BaseFixture, FixtureState, type DmxFixture, type FixtureSnapshot } from "./fixtures";
 import { BaseController, ControllerState } from "./controllers";
 import { createFixture } from "./fixtures/factory";
 import { createController } from "./controllers/factory";
@@ -148,6 +148,127 @@ export const useStage = defineStore("stage", () => {
         groups.value = result;
     }
 
+    // fixture primitives (feature 006, research R3): history-free, used by the scene commands, undo/redo and load
+
+    /** Plain deep copy of a fixture config; configs are JSON (they are saved as such) and may contain Vue proxies. */
+    function cloneConfig<T>(config: T): T {
+        return config === undefined ? config : (JSON.parse(JSON.stringify(config)) as T);
+    }
+
+    function controllerOf(fixtureId: string): BaseController | undefined {
+        return controllers.value.getArray().find((c) => c.controlledFixtures.some((f) => f.id === fixtureId));
+    }
+
+    function snapshotFixture(id: string): FixtureSnapshot | null {
+        const fixture = fixtures.value.get(id);
+        if (!fixture) {
+            return null;
+        }
+        const memberships: FixtureSnapshot["groups"] = [];
+        for (const group of groups.value) {
+            const index = group.fixtureIds.indexOf(id);
+            if (index !== -1) {
+                memberships.push({ groupId: group.id, index });
+            }
+        }
+        return {
+            state: { id, type: fixture.type, name: fixture.name, config: cloneConfig(toRaw(fixture.config)) },
+            controllerId: controllerOf(id)?.id ?? null,
+            groups: memberships,
+        };
+    }
+
+    /**
+     * Creates, updates or deletes a fixture so that it matches `snapshot` (`null` = deleted). Deleting also removes
+     * the fixture from its controller and its groups (data-model I4); restoring puts it back into both.
+     */
+    function applyFixtureSnapshot(id: string, snapshot: FixtureSnapshot | null) {
+        const existing = fixtures.value.get(id);
+        if (!snapshot) {
+            if (!existing) {
+                return;
+            }
+            controllerOf(id)?.removeFixture(existing);
+            for (const group of groups.value) {
+                if (group.fixtureIds.includes(id)) {
+                    group.fixtureIds = group.fixtureIds.filter((f) => f !== id);
+                }
+            }
+            fixtures.value.delete(id);
+            return;
+        }
+
+        const config = cloneConfig(snapshot.state.config);
+        let fixture = existing;
+        if (!fixture || fixture.type !== snapshot.state.type) {
+            if (fixture) {
+                applyFixtureSnapshot(id, null);
+            }
+            const created = reactive(createFixture(snapshot.state.type)) as BaseFixture;
+            created.load({ id, type: snapshot.state.type, name: snapshot.state.name, value: created.value, config });
+            created.resetValue();
+            fixtures.value.set(id, created);
+            fixture = fixtures.value.get(id)!;
+        } else {
+            fixture.name = snapshot.state.name;
+            fixture.setConfig(config);
+        }
+
+        const current = controllerOf(id);
+        if ((current?.id ?? null) !== snapshot.controllerId) {
+            current?.removeFixture(fixture);
+            const next = snapshot.controllerId ? controllers.value.get(snapshot.controllerId) : undefined;
+            if (next && next.compatibleFixtures.includes(fixture.type)) {
+                try {
+                    next.addFixture(fixture);
+                } catch (err) {
+                    // e.g. a WLED controller that already controls another strip
+                    console.warn(`Could not assign ${fixture.name} to ${next.name}`, err);
+                }
+            }
+        }
+
+        const wanted = new Map(snapshot.groups.map((g) => [g.groupId, g.index]));
+        for (const group of groups.value) {
+            const isMember = group.fixtureIds.includes(id);
+            const index = wanted.get(group.id);
+            if (index === undefined) {
+                if (isMember) {
+                    group.fixtureIds = group.fixtureIds.filter((f) => f !== id);
+                }
+            } else if (!isMember && fixture.type === FixtureType.DMX) {
+                const ids = group.fixtureIds.slice();
+                ids.splice(Math.min(index, ids.length), 0, id);
+                group.fixtureIds = ids;
+            }
+        }
+    }
+
+    function channelRangeOf(fixture: BaseFixture | undefined): [number, number] | null {
+        if (!fixture || fixture.type !== FixtureType.DMX) {
+            return null;
+        }
+        const dmx = fixture as DmxFixture;
+        const count = dmx.channelNames.length;
+        return count > 0 ? [dmx.config.startChannel, dmx.config.startChannel + count - 1] : null;
+    }
+
+    /** Channel range, overlapping fixtures on the same controller and universe overflow of a DMX fixture. */
+    function fixtureChannelInfo(id: string): { range: [number, number] | null; overlaps: string[]; exceedsUniverse: boolean } {
+        const range = channelRangeOf(fixtures.value.get(id));
+        if (!range) {
+            return { range: null, overlaps: [], exceedsUniverse: false };
+        }
+        const overlaps = (controllerOf(id)?.controlledFixtures ?? [])
+            .filter((other) => other.id !== id)
+            .filter((other) => {
+                const otherRange = channelRangeOf(other);
+                return !!otherRange && otherRange[0] <= range[1] && range[0] <= otherRange[1];
+            })
+            .map((other) => other.name);
+        return { range, overlaps, exceedsUniverse: range[1] > 512 };
+    }
+
     function afterFrame() {
         for (const controller of controllers.value.values()) {
             void controller.send();
@@ -270,5 +391,9 @@ export const useStage = defineStore("stage", () => {
         setGroupMembers,
         setGroupOrdering,
         moveGroupMember,
+        snapshotFixture,
+        applyFixtureSnapshot,
+        fixtureChannelInfo,
+        controllerOf,
     };
 });

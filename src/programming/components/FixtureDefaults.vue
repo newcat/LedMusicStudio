@@ -1,34 +1,44 @@
 <template>
     <div v-if="profile" class="fixture-defaults">
-        <h3 class="font-bold">Defaults</h3>
-        <p class="text-sm opacity-70">Values used when no clip controls an attribute. Override them per fixture.</p>
-        <div class="rows">
-            <template v-for="key in keys" :key="key">
-                <div class="label">{{ ATTRIBUTES[key].label }}</div>
-                <ToggleSwitch v-tooltip.top="'Override'" :model-value="isOverridden(key)" @update:model-value="setOverride(key, $event)" />
-                <AttributeValueEditor
-                    v-if="isOverridden(key)"
-                    :attribute-key="key"
-                    :model-value="valueOf(key)"
-                    :profiles="profiles"
-                    @update:model-value="setValue(key, $event)"
+        <p class="intro">Values used when no clip controls an attribute.</p>
+        <PropertyRow v-for="key in keys" :key="key" :label="ATTRIBUTES[key].label">
+            <div class="default-row">
+                <ToggleSwitch
+                    v-tooltip.top="'Override'"
+                    class="toggle"
+                    :model-value="isOverridden(key)"
+                    :aria-label="`Override ${ATTRIBUTES[key].label}`"
+                    @update:model-value="setOverride(key, $event)"
                 />
-                <div v-else class="text-sm opacity-70">{{ describe(key, profile.builtInDefaults[key]) }}</div>
-            </template>
-        </div>
+                <div class="value">
+                    <AttributeValueEditor
+                        v-if="isOverridden(key)"
+                        :attribute-key="key"
+                        :model-value="valueOf(key)"
+                        :profiles="profiles"
+                        @update:model-value="setValue(key, $event)"
+                    />
+                    <span v-else class="built-in">{{ describe(key, profile.builtInDefaults[key]) }}</span>
+                </div>
+            </div>
+        </PropertyRow>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, toRaw } from "vue";
 import ToggleSwitch from "primevue/toggleswitch";
 import type { DmxFixture } from "@/stage";
+import { useScene } from "@/scene/sceneStore";
+import PropertyRow from "@/scene/editor/inspector/PropertyRow.vue";
 import { ATTRIBUTE_KEYS, ATTRIBUTES, cloneValue, omitKey, isSlotAttribute, slotLabel, type AttributeKey, type AttributeValue, type AttributeValues, type Rgb, type ShutterValue } from "../attributes";
 import { rgbToHex } from "../color";
 import { getProfile, profileOptions } from "../profile";
 import AttributeValueEditor from "./AttributeValueEditor.vue";
 
 const props = defineProps<{ fixture: DmxFixture }>();
+
+const scene = useScene();
 
 const profile = computed(() => {
     // re-read on config changes (definition, mode)
@@ -51,8 +61,9 @@ function valueOf(key: AttributeKey): AttributeValue {
     return (overrides.value[key] ?? profile.value!.builtInDefaults[key]) as AttributeValue;
 }
 
+/** Undoable (feature 006): through the scene store, merged while the same fixture's defaults are edited. */
 function write(next: AttributeValues) {
-    props.fixture.setConfig({ ...props.fixture.config, defaults: next });
+    scene.updateFixture(props.fixture.id, { config: { ...toRaw(props.fixture.config), defaults: next } }, "Change default", `fixture:${props.fixture.id}:defaults`);
 }
 
 function setOverride(key: AttributeKey, on: boolean) {
@@ -100,13 +111,50 @@ function describe(key: AttributeKey, value: AttributeValue): string {
 .fixture-defaults {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    margin-top: 1rem;
+    gap: var(--insp-gap-2, 8px);
 }
-.rows {
-    display: grid;
-    grid-template-columns: max-content min-content 1fr;
-    gap: 0.5rem 1rem;
+
+.intro {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--p-text-muted-color);
+}
+
+.default-row {
+    display: flex;
     align-items: center;
+    gap: var(--insp-gap-2, 8px);
+    min-height: 2rem;
+    min-width: 0;
+}
+
+.toggle {
+    flex-shrink: 0;
+}
+
+.value {
+    flex: 1;
+    min-width: 0;
+}
+
+/* the shared value editor uses fixed widths; let it wrap and shrink inside the inspector */
+.value :deep(.attribute-value-editor) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--insp-gap-1, 4px);
+    min-width: 0;
+}
+
+.value :deep(.p-select),
+.value :deep(.w-32) {
+    min-width: 0;
+    max-width: 100%;
+    flex: 1 1 6rem;
+}
+
+.built-in {
+    font-size: 0.8125rem;
+    color: var(--p-text-muted-color);
 }
 </style>

@@ -21,13 +21,13 @@
         </splitpanes>
         <ContextMenu ref="contextMenu" :model="contextMenuItems" />
         <AssetCreditsDialog v-model:visible="showCredits" />
-        <AddFixtureVisualizationDialog v-model:visible="showAddFixtureDialog" @confirm="addFixtureVisualization" />
+        <ChooseFixtureDialog v-model="showProfileDialog" @set-fixture="applyProfile" />
         <ConfirmDialog group="scene-delete-aim-targets" />
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed, provide, ref, watch } from "vue";
+import { computed, provide, ref, toRaw, watch } from "vue";
 import { Splitpanes, Pane } from "splitpanes";
 import ContextMenu from "primevue/contextmenu";
 import ConfirmDialog from "primevue/confirmdialog";
@@ -35,25 +35,25 @@ import { useConfirm } from "primevue/useconfirm";
 import type { MenuItem } from "primevue/menuitem";
 import { useFocusWithin } from "@vueuse/core";
 
-import { activeStageTab, selectedFixtureId, STAGE_TAB_FIXTURES } from "@/views/stageViewState";
 import { useStage } from "@/stage/stage";
-import { VisualizationType } from "@/visualization/fixtureVisualization";
+import { FixtureType, type DmxFixture } from "@/stage/fixtures";
+import ChooseFixtureDialog from "@/stage/fixtures/dmx/ChooseFixtureDialog.vue";
+import type { Fixture as OpenFixtureDefinition } from "@/stage/fixtures/dmx/open-fixture";
 import { STRIP_PATH_TOOL_KEY, type StripPathToolApi } from "@/visualization/fixtureVisualizations/ledStrip/stripPathToolApi";
 import { useScene } from "../sceneStore";
-import { modelScaleForFixture, preselectionOf } from "../fixtureModels";
-import { isAimTarget, isFixtureVisualization } from "../model/types";
+import { isAimTarget } from "../model/types";
 import { getDescendantIds } from "../model/transformMath";
 import { aimTargetUses } from "@/programming/uses";
 import EditorToolbar, { type AddKind } from "./EditorToolbar.vue";
 import Outliner from "./Outliner.vue";
 import Viewport from "./Viewport.vue";
 import Inspector from "./Inspector.vue";
-import AddFixtureVisualizationDialog from "./AddFixtureVisualizationDialog.vue";
 import AssetLibraryPanel from "./library/AssetLibraryPanel.vue";
 import AssetCreditsDialog from "./library/AssetCreditsDialog.vue";
 import { addAssetById } from "./assetDrop";
 import { importModelFile } from "./modelImport";
 import { useEditorShortcuts } from "./useEditorShortcuts";
+import { EDITOR_ACTIONS_KEY } from "./editorActions";
 
 const store = useScene();
 const stage = useStage();
@@ -90,7 +90,9 @@ const root = ref<HTMLElement>();
 const viewport = ref<InstanceType<typeof Viewport>>();
 const outliner = ref<InstanceType<typeof Outliner>>();
 const contextMenu = ref<InstanceType<typeof ContextMenu>>();
-const showAddFixtureDialog = ref(false);
+const showProfileDialog = ref(false);
+/** Fixture the profile dialog applies its choice to (Add → DMX fixture, inspector "Choose profile…"). */
+const profileFixtureId = ref<string | null>(null);
 const showCredits = ref(false);
 
 const overlay = computed(() => viewport.value?.overlay ?? null);
@@ -153,8 +155,12 @@ function onAdd(kind: AddKind) {
         case "group":
             store.addGroup(hit);
             break;
-        case "fixture":
-            showAddFixtureDialog.value = true;
+        case "dmxFixture":
+            // feature 006: the fixture is created unpatched; the profile dialog patches it (cancel keeps it unpatched)
+            chooseProfile(store.addFixture(FixtureType.DMX, { placement: hit }));
+            break;
+        case "ledStrip":
+            store.addFixture(FixtureType.LED_STRIP, { placement: hit });
             break;
         case "model":
             void importModelFile(store, hit);
@@ -170,13 +176,13 @@ function onAdd(kind: AddKind) {
 
 // --- LED strip path tool (feature 003, T052/T053) --------------------------------------------------------------
 
-/** Toolbar "Draw LED strip": a new unlinked strip, drawn right away (removed again on Esc). */
+/** Toolbar "Draw LED strip": a new LED strip fixture, drawn right away (removed again on Esc). */
 function drawNewStrip() {
     const editorOverlay = overlay.value;
     if (!editorOverlay) {
         return;
     }
-    const id = store.addUnlinkedFixtureVisualization(VisualizationType.LED_STRIP);
+    const id = store.addFixture(FixtureType.LED_STRIP);
     if (!editorOverlay.startStripTool(id, "drawing", { isNew: true })) {
         store.discardAddedObject(id);
     }
@@ -191,32 +197,45 @@ const stripPathToolApi: StripPathToolApi = {
 };
 provide(STRIP_PATH_TOOL_KEY, stripPathToolApi);
 
-/** The scale comes from the preselection for the mapped model, otherwise it is recomputed for the chosen one. */
-function addFixtureVisualization(fixtureId: string, type: VisualizationType, modelId: string) {
-    const hit = overlay.value?.getLastSurfaceHit();
-    const fixture = stage.fixtures.get(fixtureId);
-    const preselection = preselectionOf(fixture);
-    const modelScale = preselection?.modelId === modelId ? preselection.modelScale : modelScaleForFixture(fixture, modelId);
-    store.addFixtureVisualization(fixtureId, type, hit ? { position: hit.point } : undefined, { modelId, modelScale });
+// --- DMX profile (feature 006) ------------------------------------------------------------------------------------
+
+/** Opens the profile dialog for the fixture of the object `objectId` or the fixture `fixtureId`. */
+function chooseProfile(id: string) {
+    const obj = store.scene.objects[id];
+    const fixtureId = obj && "fixtureId" in obj ? (obj.fixtureId as string | null) : id;
+    if (!fixtureId || stage.fixtures.get(fixtureId)?.type !== FixtureType.DMX) {
+        return;
+    }
+    profileFixtureId.value = fixtureId;
+    showProfileDialog.value = true;
 }
+
+/** One undo step; a pristine mapping is auto-mapped and the model preselected (research R8). */
+function applyProfile(definition: OpenFixtureDefinition) {
+    const fixture = profileFixtureId.value ? (stage.fixtures.get(profileFixtureId.value) as DmxFixture | undefined) : undefined;
+    if (!fixture || fixture.type !== FixtureType.DMX) {
+        return;
+    }
+    store.updateFixture(fixture.id, { config: { ...toRaw(fixture.config), definition, mode: definition.modes[0] ?? null } }, "Choose profile");
+}
+
+// the dialog closes when its fixture disappears (undo of the add)
+watch(
+    () => !!profileFixtureId.value && stage.fixtures.has(profileFixtureId.value),
+    (exists) => {
+        if (!exists) {
+            showProfileDialog.value = false;
+        }
+    }
+);
+
+provide(EDITOR_ACTIONS_KEY, { deleteSelection: deleteSelectionConfirmed, chooseProfile });
 
 /** Double-click / Enter on a library tile: the surface point in the viewport center, the origin if nothing is hit. */
 function addAssetAtCenter(assetId: string) {
     const hit = overlay.value?.surfaceHitAt({ x: 0, y: 0 }) ?? null;
     addAssetById(store, assetId, hit);
 }
-
-// --- cross-view selection (FR-026) -----------------------------------------------------------------------------
-
-watch(
-    () => store.activeId,
-    (id) => {
-        const obj = id ? store.scene.objects[id] : undefined;
-        if (obj && isFixtureVisualization(obj) && obj.fixtureId) {
-            selectedFixtureId.value = obj.fixtureId;
-        }
-    }
-);
 
 // --- context menu ----------------------------------------------------------------------------------------------
 
@@ -226,7 +245,6 @@ function showContextMenu(event: MouseEvent) {
 
 const contextMenuItems = computed<MenuItem[]>(() => {
     const selected = store.selection.map((id) => store.scene.objects[id]).filter((o) => !!o);
-    const active = store.activeId ? store.scene.objects[store.activeId] : undefined;
     const anyVisible = selected.some((o) => o.visible);
     const anyLocked = selected.some((o) => o.locked);
     const hasSelection = selected.length > 0;
@@ -258,20 +276,6 @@ const contextMenuItems = computed<MenuItem[]>(() => {
         { label: "Distribute evenly", disabled: selected.length < 3, items: axisItems((axis) => store.distributeSelection(axis)) },
     ];
 
-    if (active && isFixtureVisualization(active)) {
-        items.push(
-            { separator: true },
-            {
-                label: "Open fixture settings",
-                icon: "mdi mdi-lamp",
-                disabled: !active.fixtureId,
-                command: () => {
-                    selectedFixtureId.value = active.fixtureId;
-                    activeStageTab.value = STAGE_TAB_FIXTURES;
-                },
-            }
-        );
-    }
     return items;
 });
 </script>

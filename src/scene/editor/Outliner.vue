@@ -64,7 +64,7 @@ import type { TreeNode } from "primevue/treenode";
 
 import { useScene } from "../sceneStore";
 import { wouldCreateCycle } from "../model/transformMath";
-import type { SceneObject } from "../model/types";
+import { iconFor } from "./objectIcons";
 
 const emit = defineEmits<{
     contextmenu: [MouseEvent];
@@ -114,25 +114,6 @@ watch(
     },
     { immediate: true }
 );
-
-function iconFor(obj: SceneObject): string {
-    switch (obj.kind) {
-        case "shape":
-            return { box: "mdi-cube-outline", cylinder: "mdi-cylinder", plane: "mdi-square-outline", sphere: "mdi-circle-outline" }[obj.shape];
-        case "fixtureVisualization":
-            return "mdi-lightbulb-on-outline";
-        case "importedModel":
-            return "mdi-shape-outline";
-        case "group":
-            return "mdi-folder-outline";
-        case "libraryAsset":
-            return "mdi-package-variant-closed";
-        case "aimTarget":
-            return "mdi-crosshairs";
-        default:
-            return "mdi-help-box-outline";
-    }
-}
 
 function onRowClick(event: MouseEvent, id: string) {
     // locked objects can be selected here (they cannot be picked in 3D)

@@ -42,7 +42,7 @@ export function getCurrentDragAssetId(): string | null {
 
 /**
  * Adds a library asset through store commands only (FR-003): shapes become 001 shape objects, fixture models become
- * unlinked fixture visualizations and everything else a `libraryAsset`. Every command selects the new object.
+ * new fixtures with a fixture object of that model (feature 006) and everything else a `libraryAsset`. Every command selects the new object.
  * With a snap result the object gets the snapped world transform and, when mounted, becomes a child of the target,
  * in the same command (one undo step, T082).
  */
