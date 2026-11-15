@@ -18,7 +18,7 @@
         </div>
         <i v-if="warnings.length > 0 && layout === 'narrow'" class="mdi mdi-alert timeline-item__warning --narrow" @mousedown="dragStart('center', $event)"></i>
         <div v-if="hasTarget && layout !== 'narrow'" class="timeline-item__chip-row" @mousedown="dragStart('center', $event)">
-            <ClipTargetChip :target="item.target" :effective="effective" @update:target="setTarget" />
+            <ClipTargetChip :target="item.target" :effective="effective" :warn-if-none="needsTarget" @update:target="setTarget" />
         </div>
         <div v-show="item.resizable && selected" class="drag-handle --left" @mousedown="dragStart('leftHandle', $event)"></div>
         <div v-show="item.resizable && selected" class="drag-handle --right" @mousedown="dragStart('rightHandle', $event)"></div>
@@ -67,6 +67,8 @@ import { markRaw, computed, ComponentOptions, nextTick, ref, onBeforeUnmount } f
 import ContextMenu from "primevue/contextmenu";
 import type { MenuItem } from "primevue/menuitem";
 import AudioPreview from "@/audio/AudioPreview.vue";
+import type { GraphLibraryItem } from "@/graph/graph.libraryItem";
+import { AttributeOutputNode } from "@/graph/nodes/output/AttributeOutputNode";
 import AutomationPreview from "@/automation/AutomationPreview.vue";
 import GraphPreview from "@/graph/GraphPreview.vue";
 import PatternPreview from "@/pattern/PatternPreview.vue";
@@ -132,7 +134,18 @@ const layout = computed(() => (widthPx.value >= 120 ? "wide" : widthPx.value >= 
 
 const hasTarget = computed(() => TARGET_TYPES.includes(props.item.libraryItem.type));
 const effective = computed(() => (hasTarget.value ? effectiveTarget(props.item) : null));
-const noTarget = computed(() => hasTarget.value && !effective.value);
+/** Graphs only need a clip target if an Attribute Output node uses "Clip target"; other clips always need one. */
+const needsTarget = computed(() => {
+    const libraryItem = props.item.libraryItem;
+    if (libraryItem.type !== LibraryItemType.GRAPH) {
+        return true;
+    }
+    const editor = (libraryItem as GraphLibraryItem).editor.editor;
+    return Array.from(editor.graphs).some((g) =>
+        g.nodes.some((n) => n instanceof AttributeOutputNode && ((n.inputs.target.value as string) || "clip") === "clip")
+    );
+});
+const noTarget = computed(() => hasTarget.value && !effective.value && needsTarget.value);
 const color = computed(() => targetColor(effective.value));
 
 const styles = computed(() => {

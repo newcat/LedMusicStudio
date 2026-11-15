@@ -1,13 +1,14 @@
 <template>
     <span
         class="clip-target-chip"
-        :class="{ '--inherit': target === 'inherit', '--none': !effective }"
+        :class="{ '--inherit': target === 'inherit', '--none': !effective && warnIfNone, '--empty': !effective && !warnIfNone }"
         @mousedown.stop
         @click.stop="toggle"
         @dblclick.stop
     >
         <span v-if="effective" class="__dot" :style="{ background: color ?? undefined }"></span>
-        <i v-else class="mdi mdi-alert __warn"></i>
+        <i v-else-if="warnIfNone" class="mdi mdi-alert __warn"></i>
+        <span v-else class="__dot --hollow"></span>
         <span class="__label">{{ label }}</span>
         <span v-if="target === 'inherit'" class="__suffix">· track</span>
         <Popover v-if="popoverMounted" ref="popover" @hide="popoverMounted = false">
@@ -26,8 +27,14 @@ import { targetColor } from "@/programming/targetColors";
 import type { Target } from "@/programming/types";
 import type { ClipTarget } from "../model/item";
 
-/** Target chip of clips and track headers (feature 005, R12): dot + label, click opens a filterable picker. */
-const props = withDefaults(defineProps<{ target: ClipTarget; effective: Target | null; allowInherit?: boolean }>(), { allowInherit: true });
+/**
+ * Target chip of clips and track headers (feature 005, R12): dot + label, click opens a filterable picker.
+ * `warnIfNone`: show a missing target as a warning (clips that need one) or only as information (tracks).
+ */
+const props = withDefaults(defineProps<{ target: ClipTarget; effective: Target | null; allowInherit?: boolean; warnIfNone?: boolean }>(), {
+    allowInherit: true,
+    warnIfNone: true,
+});
 
 const emit = defineEmits<{ "update:target": [value: ClipTarget] }>();
 
@@ -87,11 +94,18 @@ function pick(value: TargetSelectValue) {
 .clip-target-chip.--none {
     color: var(--p-yellow-400, #facc15);
 }
+.clip-target-chip.--empty {
+    opacity: 0.6;
+}
 .__dot {
     width: 0.5rem;
     height: 0.5rem;
     border-radius: 50%;
     flex: none;
+}
+.__dot.--hollow {
+    box-sizing: border-box;
+    border: 1px solid currentColor;
 }
 .__warn {
     font-size: 0.75rem;

@@ -3,7 +3,7 @@
         <div class="track-header">
             <div class="__title">{{ track.name }}</div>
             <div class="__target">
-                <ClipTargetChip :target="track.defaultTarget" :effective="track.defaultTarget" :allow-inherit="false" @update:target="setTarget" />
+                <ClipTargetChip :target="track.defaultTarget" :effective="track.defaultTarget" :allow-inherit="false" :warn-if-none="false" @update:target="setTarget" />
             </div>
             <div v-if="confirmRemove" class="__actions">
                 <div class="text-caption">Remove?</div>
