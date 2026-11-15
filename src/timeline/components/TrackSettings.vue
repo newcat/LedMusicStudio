@@ -8,7 +8,7 @@
             <div class="field flex flex-col gap-1">
                 <label>Default target</label>
                 <TargetSelect v-model="vTarget" />
-                <small class="opacity-70">New looks, effects and graphs on this track get this target.</small>
+                <small class="opacity-70">Looks, effects and graphs on this track that inherit their target use this one.</small>
             </div>
         </div>
         <template #footer>
@@ -25,7 +25,7 @@ import InputText from "primevue/inputtext";
 import Button from "primevue/button";
 
 import TargetSelect, { type TargetSelectValue } from "@/programming/components/TargetSelect.vue";
-import { Track } from "../model";
+import { Track, useTimeline } from "../model";
 
 const props = defineProps({
     modelValue: { type: Boolean, required: true },
@@ -33,6 +33,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:modelValue"]);
+
+const timeline = useTimeline();
 
 const vName = ref("");
 const vTarget = ref<TargetSelectValue>(null);
@@ -51,8 +53,15 @@ function cancel() {
 
 function save() {
     emit("update:modelValue", false);
-    props.track.name = vName.value;
-    // feature 004 (FR-018): default target new items inherit
-    props.track.defaultTarget = vTarget.value && vTarget.value !== "clip" ? { ...vTarget.value } : null;
+    const track = timeline.getTrackById(props.track.id);
+    if (!track) {
+        return;
+    }
+    const target = vTarget.value;
+    timeline.edit("Track settings", () => {
+        track.name = vName.value;
+        // default target, applied live to clips that inherit (feature 005, FR-019)
+        track.defaultTarget = target && target !== "clip" && target !== "inherit" ? { ...target } : null;
+    });
 }
 </script>

@@ -2,7 +2,6 @@
     <div class="look-preview" :class="{ '--compact': compact }">
         <span class="__swatch" :style="{ background: swatch }"></span>
         <span class="__label">{{ count }} attribute{{ count === 1 ? "" : "s" }}<template v-if="fanTiming > 0"> · fan {{ Math.round(fanTiming * 100) }} %</template></span>
-        <span v-if="!compact && targetText" class="__target">→ {{ targetText }}</span>
     </div>
 </template>
 
@@ -12,7 +11,6 @@ import type { LibraryItem } from "@/library/libraryItem";
 import type { Item } from "@/timeline/model/item";
 import type { Rgb } from "../attributes";
 import { rgbToHex } from "../color";
-import { targetLabel } from "../targets";
 import type { LookLibraryItem } from "./Look.libraryItem";
 
 const props = defineProps<{
@@ -36,8 +34,6 @@ const swatch = computed(() => {
     }
     return "transparent";
 });
-
-const targetText = computed(() => (props.item ? targetLabel(props.item.target) : ""));
 </script>
 
 <style scoped>
@@ -57,8 +53,5 @@ const targetText = computed(() => (props.item ? targetLabel(props.item.target) :
     border-radius: 3px;
     border: 1px solid var(--p-content-border-color);
     flex: none;
-}
-.__target {
-    opacity: 0.7;
 }
 </style>

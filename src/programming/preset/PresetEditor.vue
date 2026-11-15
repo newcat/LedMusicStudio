@@ -138,7 +138,7 @@ function addableFor(id: string): AttributeKey[] {
 }
 
 function addFixture(target: TargetSelectValue) {
-    if (target && target !== "clip" && target.kind === "fixture" && !state.value.perFixture[target.id]) {
+    if (target && target !== "clip" && target !== "inherit" && target.kind === "fixture" && !state.value.perFixture[target.id]) {
         state.value.perFixture[target.id] = {};
     }
 }

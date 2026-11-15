@@ -10,7 +10,7 @@ import { isAimTarget } from "@/scene/model/types";
 import { useTimeline } from "@/timeline/model/editor";
 import { BUILT_IN_DEFAULTS, cloneValue, type AttributeKey, type AttributeValue } from "./attributes";
 import { dmxFixtures, getProfile, profileOptions } from "./profile";
-import { resolveTarget } from "./targets";
+import { effectiveTarget, resolveTarget } from "./targets";
 import type { ResolvedFixture } from "./types";
 
 export function useItemTargetFixtures(libraryItem: () => LibraryItem): ComputedRef<ResolvedFixture[]> {
@@ -18,8 +18,8 @@ export function useItemTargetFixtures(libraryItem: () => LibraryItem): ComputedR
     return computed(() => {
         const item = libraryItem();
         const items = timeline.items.filter((i) => i.libraryItem.id === item.id);
-        const chosen = items.find((i) => i.selected) ?? items[0];
-        return chosen ? resolveTarget(chosen.target).fixtures : [];
+        const chosen = items.find((i) => timeline.isSelected(i.id)) ?? items[0];
+        return chosen ? resolveTarget(effectiveTarget(chosen)).fixtures : [];
     });
 }
 

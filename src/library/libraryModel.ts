@@ -93,11 +93,13 @@ export const useLibrary = defineStore("library", () => {
         events.itemAdded.emit(item);
     }
 
-    async function duplicateItem(item: LibraryItem) {
+    async function duplicateItem(item: LibraryItem): Promise<LibraryItem> {
         const duplicate = reactive(createItemByType(item.type)!);
         await duplicate.load(item.save());
         duplicate.id = uuidv4();
+        duplicate.name = `${item.name} (copy)`;
         items.value.push(duplicate);
+        return duplicate as LibraryItem;
     }
 
     async function removeItem(item: LibraryItem) {

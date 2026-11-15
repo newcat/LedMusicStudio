@@ -11,7 +11,8 @@ import type { LookLibraryItem } from "./look/Look.libraryItem";
 /** Timeline items and tracks whose target is the group. */
 export function groupUses(groupId: string): number {
     const timeline = useTimeline();
-    const items = timeline.items.filter((i) => i.target?.kind === "group" && i.target.id === groupId).length;
+    // clips with an explicit group target; inheriting clips are counted through their track
+    const items = timeline.items.filter((i) => i.target && i.target !== "inherit" && i.target.kind === "group" && i.target.id === groupId).length;
     const tracks = timeline.tracks.filter((t) => t.defaultTarget?.kind === "group" && t.defaultTarget.id === groupId).length;
     return items + tracks;
 }

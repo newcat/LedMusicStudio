@@ -5,10 +5,11 @@
         :class="{ 'disable-child-pointer-events': isDragging }"
         tabindex="-1"
         @mousedown="mousedown"
-        @mouseup="mouseup"
+        @mousemove="onHoverMove"
+        @mouseleave="onHoverLeave"
         @keydown="keydown"
-        @keyup="keyup"
         @wheel="wheel"
+        @scroll="onScroll"
     >
         <div ref="contentEl" class="content" :style="contentStyles">
             <position-marker></position-marker>
@@ -22,19 +23,17 @@
                 v-for="t in tracks"
                 :key="t.id"
                 :track="t"
-                @mouseenter="onTrackMouseenter(t)"
-                @mouseleave="onTrackMouseleave()"
-                @mousemove="onTrackMouseMove"
                 @drag-start="onDragStart"
                 @dragover="$event.preventDefault()"
                 @drop.capture="drop(t, $event)"
             ></track-view>
+            <selection-rect v-if="boxRect" v-bind="boxRect"></selection-rect>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, Ref, ref, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import { useElementBounding } from "@vueuse/core";
 
 import { useGlobalState } from "@/globalState";
@@ -42,7 +41,10 @@ import { TICKS_PER_BEAT } from "@/constants";
 import { normalizeMouseWheel, snap, useTimelineBackground } from "@/utils";
 
 import { ItemArea } from "../types";
-import { Item, Track, IItemState, useTimeline } from "../model";
+import { Item, Track, useTimeline, clampUnitWidth } from "../model";
+import { allowedDelta, clampResize, magneticDelta, magneticEdge, snapCandidates, type Span } from "../model/placement";
+import { startGesture, type Gesture } from "../composables/useGesture";
+import { useTimelineShortcuts } from "../composables/useTimelineShortcuts";
 
 import { LibraryItem, LibraryItemType, useLibrary } from "@/library";
 import { AudioLibraryItem } from "@/audio";
@@ -52,8 +54,16 @@ import { PatternLibraryItem } from "@/pattern";
 import MarkerLabel from "@/components/MarkerLabel.vue";
 import PositionMarker from "./PositionMarker.vue";
 import TrackView from "./Track.vue";
+import SelectionRect from "./SelectionRect.vue";
 
 const DEFAULT_ITEM_LENGTH = TICKS_PER_BEAT * 4;
+/** Must match `.header-row` and `--rowHeight` below. */
+const HEADER_ROW_HEIGHT = 40;
+const ROW_HEIGHT = 100;
+/** Pointer movement below this many pixels is a click, not a drag. */
+const CLICK_TOLERANCE = 3;
+/** Magnetic snapping distance in pixels. */
+const MAGNET_PX = 8;
 
 const globalState = useGlobalState();
 const library = useLibrary();
@@ -62,14 +72,8 @@ const timeline = useTimeline();
 const el = ref<HTMLElement | null>(null);
 const contentEl = ref<HTMLElement | null>(null);
 const lastItemEnd = ref(0);
-const ctrlPressed = ref(false);
 const isDragging = ref(false);
-const dragArea = ref<ItemArea | "">("");
-const dragItem = ref<Item | null>(null);
-const dragStartPosition = ref({ x: 0, y: 0 });
-const dragStartTrack = ref<Track | null>(null) as Ref<Track | null>;
-const dragStartStates = ref<Array<{ item: IItemState; trackIndex: number }>>([]);
-const hoveredTrack = ref<Track | null>(null) as Ref<Track | null>;
+let gesture: Gesture | null = null;
 
 const timelineElBounds = useElementBounding(el);
 
@@ -93,127 +97,326 @@ const tracks = computed(() => {
     return timeline.tracks as Track[];
 });
 
-function unselectAllItems() {
-    timeline.items.forEach((i) => {
-        i.selected = false;
-    });
-}
-
 function updateLastItemEnd() {
     const newLastItemEnd = timeline.items.reduce((p, i) => Math.max(p, i.end), 0);
-    if (dragItem.value && newLastItemEnd < lastItemEnd.value) {
+    if (isDragging.value && newLastItemEnd < lastItemEnd.value) {
         // do nothing because shrinking the content while dragging results in strange behaviour
         return;
     }
     lastItemEnd.value = newLastItemEnd;
 }
-watch(dragItem, updateLastItemEnd);
+watch(isDragging, updateLastItemEnd);
 watch(() => timeline.items.map((i) => i.end), updateLastItemEnd);
+
+// --- coordinates -------------------------------------------------------------------------------------------------
+
+/** Pointer position in `.content` pixels (accounts for scrolling). */
+function contentPoint(ev: MouseEvent): { x: number; y: number } {
+    const r = contentEl.value!.getBoundingClientRect();
+    return { x: ev.clientX - r.left, y: ev.clientY - r.top };
+}
+
+function tickAt(ev: MouseEvent): number {
+    return (contentPoint(ev).x - timeline.headerWidth) / timeline.unitWidth;
+}
+
+/** Track row index under the pointer, unclamped (−1 above the first row). */
+function rowAt(y: number): number {
+    return Math.floor((y - HEADER_ROW_HEIGHT) / ROW_HEIGHT);
+}
+
+// --- hover (paste target track) ----------------------------------------------------------------------------------
+
+function onHoverMove(ev: MouseEvent) {
+    if (gesture || !contentEl.value) {
+        return;
+    }
+    const row = rowAt(contentPoint(ev).y);
+    timeline.hoveredTrackId = timeline.tracks[row]?.id ?? null;
+}
+
+function onHoverLeave() {
+    if (!gesture) {
+        timeline.hoveredTrackId = null;
+    }
+}
+
+// --- keyboard ----------------------------------------------------------------------------------------------------
+
+const keydown = useTimelineShortcuts({
+    undo: () => timeline.undo(),
+    redo: () => timeline.redo(),
+    delete: () => timeline.deleteSelection(),
+    selectAll: () => timeline.selectAll(),
+    escape: () => timeline.clearSelection(),
+    copy: () => timeline.copySelection(),
+    cut: () => timeline.cutSelection(),
+    paste: () => timeline.paste(),
+    duplicate: () => timeline.duplicateSelection(),
+    nudgeLeft: () => timeline.nudge(-Math.max(1, globalState.snapUnits)),
+    nudgeRight: () => timeline.nudge(Math.max(1, globalState.snapUnits)),
+    nudgeLeftBar: () => timeline.nudge(-4 * TICKS_PER_BEAT),
+    nudgeRightBar: () => timeline.nudge(4 * TICKS_PER_BEAT),
+    trackUp: () => timeline.moveSelectionTracks(-1),
+    trackDown: () => timeline.moveSelectionTracks(1),
+    playPause: () => (globalState.isPlaying = !globalState.isPlaying),
+});
+
+// --- mouse -------------------------------------------------------------------------------------------------------
 
 function mousedown(ev: MouseEvent) {
     const target = ev.target as HTMLElement | null;
-    if (target && !isSelfOrIsChildOf(target, ".timeline-item")) {
-        unselectAllItems();
+    if (!target || target.closest("input, textarea, select, [contenteditable]")) {
+        return;
     }
-    isDragging.value = true;
-    dragStartPosition.value = { x: ev.clientX, y: ev.clientY };
+    el.value?.focus({ preventScroll: true });
+    if (ev.button === 0 && target.closest(".item-container") && !target.closest(".timeline-item")) {
+        startBoxSelect(ev);
+    }
 }
 
-function mouseup() {
-    isDragging.value = false;
-    dragItem.value = null;
-}
+// --- box select (R9) ---------------------------------------------------------------------------------------------
 
-function keydown(ev: KeyboardEvent) {
+const box = ref<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+const boxRect = computed(() => {
+    const b = box.value;
+    if (!b) {
+        return null;
+    }
+    return { x: Math.min(b.x0, b.x1), y: Math.min(b.y0, b.y1), width: Math.abs(b.x1 - b.x0), height: Math.abs(b.y1 - b.y0) };
+});
+
+function startBoxSelect(ev: MouseEvent) {
     ev.preventDefault();
-    if (ev.key === "Delete") {
-        const itemsToDelete = timeline.items.filter((i) => i.selected);
-        itemsToDelete.forEach((i) => timeline.removeItem(i));
-    } else if (ev.key === " ") {
-        globalState.isPlaying = !globalState.isPlaying;
-    } else if (ev.key === "Control") {
-        ctrlPressed.value = true;
-    }
-}
+    const start = contentPoint(ev);
+    const startSelection = new Set(timeline.selectedIds);
+    const mode = ev.ctrlKey || ev.metaKey ? "toggle" : ev.shiftKey ? "add" : "replace";
+    let moved = false;
 
-function keyup(ev: KeyboardEvent) {
-    ev.preventDefault();
-    if (ev.key === "Control") {
-        ctrlPressed.value = false;
-    }
-}
+    const update = (e: MouseEvent) => {
+        const p = contentPoint(e);
+        if (!moved && Math.hypot(p.x - start.x, p.y - start.y) < CLICK_TOLERANCE) {
+            return;
+        }
+        moved = true;
+        isDragging.value = true;
+        box.value = { x0: start.x, y0: start.y, x1: p.x, y1: p.y };
 
-function onTrackMouseMove(ev: MouseEvent) {
-    const x = ev.clientX;
-    const diffUnits = Math.floor((x - dragStartPosition.value.x) / timeline.unitWidth);
-    if (isDragging.value && dragItem.value) {
-        if (dragArea.value === "leftHandle" || dragArea.value === "rightHandle") {
-            dragStartStates.value.forEach((state) => {
-                const newStart = dragArea.value === "leftHandle" ? snap(state.item.start + diffUnits) : state.item.start;
-                const newEnd = dragArea.value === "rightHandle" ? snap(state.item.end + diffUnits) : state.item.end;
-                const item = timeline.items.find((i) => i.id === state.item.id);
-                if (item) {
-                    item.move(newStart, newEnd);
+        const t0 = (Math.min(start.x, p.x) - timeline.headerWidth) / timeline.unitWidth;
+        const t1 = (Math.max(start.x, p.x) - timeline.headerWidth) / timeline.unitWidth;
+        const r0 = rowAt(Math.min(start.y, p.y));
+        const r1 = rowAt(Math.max(start.y, p.y));
+        const trackIds = new Set(timeline.tracks.slice(Math.max(0, r0), Math.max(0, r1 + 1)).map((t) => t.id));
+        const hits: string[] = [];
+        for (const i of timeline.items) {
+            if (trackIds.has(i.trackId) && i.start < t1 && i.end > t0) {
+                hits.push(i.id);
+            }
+        }
+        let next: Set<string>;
+        if (mode === "replace") {
+            next = new Set(hits);
+        } else if (mode === "add") {
+            next = new Set([...startSelection, ...hits]);
+        } else {
+            next = new Set(startSelection);
+            hits.forEach((id) => (next.has(id) ? next.delete(id) : next.add(id)));
+        }
+        timeline.select(Array.from(next), "replace");
+    };
+
+    const finish = () => {
+        box.value = null;
+        isDragging.value = false;
+        gesture = null;
+    };
+
+    gesture = startGesture(
+        {
+            onMove: update,
+            onEnd: (e) => {
+                if (!moved) {
+                    timeline.clearSelection();
+                } else {
+                    update(e);
                 }
-            });
-        } else if (dragArea.value === "center") {
-            let diffTracks = 0;
-            if (dragStartTrack.value && hoveredTrack.value) {
-                const startTrackIndex = timeline.tracks.indexOf(dragStartTrack.value);
-                const endTrackIndex = timeline.tracks.indexOf(hoveredTrack.value);
-                if (startTrackIndex >= 0 && endTrackIndex >= 0) {
-                    diffTracks = endTrackIndex - startTrackIndex;
+                finish();
+            },
+            onCancel: () => {
+                timeline.select(Array.from(startSelection), "replace");
+                finish();
+            },
+            autoScroll: { container: el.value! },
+        },
+        ev
+    );
+}
+
+// --- clip drag and resize (R6, R7, R15) --------------------------------------------------------------------------
+
+function onDragStart(item: Item, area: ItemArea, ev: MouseEvent) {
+    if (ev.button !== 0 || gesture) {
+        return;
+    }
+    el.value?.focus({ preventScroll: true });
+
+    // click modes (FR-007)
+    let collapseOnClick = false;
+    if (ev.ctrlKey || ev.metaKey) {
+        timeline.select([item.id], "toggle");
+        timeline.anchorId = item.id;
+        if (!timeline.isSelected(item.id)) {
+            return;
+        }
+    } else if (ev.shiftKey) {
+        timeline.selectRange(item.id);
+    } else if (!timeline.isSelected(item.id)) {
+        timeline.select([item.id], "replace");
+        timeline.anchorId = item.id;
+    } else {
+        collapseOnClick = true;
+        timeline.anchorId = item.id;
+    }
+
+    startClipGesture(item, area, ev, collapseOnClick);
+}
+
+function startClipGesture(item: Item, area: ItemArea, ev: MouseEvent, collapseOnClick: boolean) {
+    const startSelection = Array.from(timeline.selectedIds);
+    const copyOnDrag = area === "center" && ev.altKey;
+    const startClient = { x: ev.clientX, y: ev.clientY };
+    const startTick = tickAt(ev);
+    const startRow = rowAt(contentPoint(ev).y);
+    let moved = false;
+    let dragItemId = item.id;
+    let states: Array<{ id: string; start: number; end: number; trackIndex: number; resizable: boolean }> = [];
+    let statics: Span[] = [];
+    let candidates: number[] = [];
+    let lastDelta = 0;
+    let byId = new Map<string, Item>();
+
+    const captureStates = () => {
+        const selected = timeline.selectedItems;
+        const ids = new Set(selected.map((i) => i.id));
+        byId = new Map(selected.map((i) => [i.id, i]));
+        const trackIndex = new Map(timeline.tracks.map((t, idx) => [t.id, idx]));
+        const span = (i: Item): Span => ({ id: i.id, start: i.start, end: i.end, trackIndex: trackIndex.get(i.trackId) ?? -1 });
+        states = selected.map((i) => ({ ...span(i), resizable: i.resizable }));
+        statics = timeline.items.filter((i) => !ids.has(i.id)).map(span);
+        candidates = snapCandidates(statics, globalState.position);
+    };
+
+    timeline.beginGesture();
+    captureStates();
+
+    const onMove = (e: MouseEvent) => {
+        if (!moved) {
+            if (Math.hypot(e.clientX - startClient.x, e.clientY - startClient.y) < CLICK_TOLERANCE) {
+                return;
+            }
+            moved = true;
+            isDragging.value = true;
+            if (copyOnDrag) {
+                // Alt+drag (FR-015): drag copies, the originals stay
+                const index = timeline.selectedItems.findIndex((i) => i.id === item.id);
+                const clones = timeline.cloneSelectionInPlace();
+                dragItemId = clones[index]?.id ?? clones[0]?.id ?? item.id;
+                captureStates();
+            }
+        }
+        const dragState = states.find((s) => s.id === dragItemId);
+        if (!dragState) {
+            return;
+        }
+        const rawDelta = tickAt(e) - startTick;
+        const noSnap = e.altKey;
+        const threshold = MAGNET_PX / timeline.unitWidth;
+
+        if (area === "center") {
+            const minDiff = -Math.min(...states.map((s) => s.trackIndex));
+            const maxDiff = timeline.tracks.length - 1 - Math.max(...states.map((s) => s.trackIndex));
+            const diffTracks = Math.min(maxDiff, Math.max(minDiff, rowAt(contentPoint(e).y) - startRow));
+            const moving = states.map((s) => ({ ...s, trackIndex: s.trackIndex + diffTracks }));
+
+            let delta: number;
+            if (noSnap) {
+                delta = Math.round(rawDelta);
+            } else {
+                const magnetic = magneticDelta(moving, candidates, rawDelta, threshold);
+                delta = magnetic ?? snap(dragState.start + rawDelta) - dragState.start;
+            }
+            const allowed = allowedDelta(moving, statics, delta);
+            if (allowed === null) {
+                return;
+            }
+            lastDelta = allowed;
+            for (const s of moving) {
+                const i = byId.get(s.id);
+                const track = timeline.tracks[s.trackIndex];
+                if (i && track) {
+                    if (i.trackId !== track.id) {
+                        i.trackId = track.id;
+                    }
+                    if (i.start !== s.start + lastDelta) {
+                        i.move(s.start + lastDelta, s.end + lastDelta);
+                    }
                 }
             }
-
-            // check if some items would be dragged outside of the track bounds
-            dragStartStates.value.forEach((state) => {
-                const trackIndex = state.trackIndex;
-                const newTrackIndex = trackIndex + diffTracks;
-                if (newTrackIndex < 0) {
-                    diffTracks = -trackIndex;
-                } else if (newTrackIndex >= timeline.tracks.length) {
-                    diffTracks = timeline.tracks.length - trackIndex;
+        } else {
+            const edge = area === "leftHandle" ? "start" : "end";
+            const raw = dragState[edge] + rawDelta;
+            let value: number;
+            if (noSnap) {
+                value = Math.round(raw);
+            } else {
+                value = magneticEdge(raw, candidates, threshold) ?? snap(raw);
+            }
+            const delta = value - dragState[edge];
+            for (const s of states) {
+                if (!s.resizable) {
+                    continue;
                 }
-            });
-
-            dragStartStates.value.forEach((state) => {
-                const item = timeline.items.find((j) => j.id === state.item.id)!;
-                const newTrackIndex = state.trackIndex + diffTracks;
-                const newTrack = timeline.tracks[newTrackIndex];
-                const newStart = snap(state.item.start + diffUnits);
-                const newEnd = newStart + (state.item.end - state.item.start);
-                item.trackId = newTrack.id;
-                item.move(newStart, newEnd);
-            });
+                const i = byId.get(s.id);
+                if (!i) {
+                    continue;
+                }
+                const v = clampResize(s, edge, s[edge] + delta, statics);
+                i.move(edge === "start" ? v : s.start, edge === "end" ? v : s.end);
+            }
         }
-    }
+    };
+
+    const finish = () => {
+        isDragging.value = false;
+        gesture = null;
+    };
+
+    gesture = startGesture(
+        {
+            onMove,
+            onEnd: () => {
+                if (!moved) {
+                    timeline.cancelGesture();
+                    if (collapseOnClick) {
+                        timeline.select([item.id], "replace");
+                    }
+                } else {
+                    timeline.endGesture(copyOnDrag ? "Copy clips" : area === "center" ? "Move" : "Resize");
+                }
+                finish();
+            },
+            onCancel: () => {
+                timeline.cancelGesture();
+                timeline.select(startSelection, "replace");
+                finish();
+            },
+            autoScroll: { container: el.value! },
+        },
+        ev
+    );
 }
 
-function onDragStart(item: Item, area: ItemArea) {
-    if (!ctrlPressed.value) {
-        unselectAllItems();
-    }
-    item.selected = true;
-    dragItem.value = item;
-    dragArea.value = area;
-    dragStartTrack.value = hoveredTrack.value;
-    isDragging.value = true;
-    dragStartStates.value = timeline.items
-        .filter((i) => i.selected)
-        .map((i) => ({
-            item: i.save(),
-            trackIndex: timeline.tracks.findIndex((t) => t.id === i.trackId),
-        }));
-}
-
-function onTrackMouseenter(track: Track): void {
-    hoveredTrack.value = track;
-}
-
-function onTrackMouseleave(): void {
-    hoveredTrack.value = null;
-}
+// --- drop from the library ---------------------------------------------------------------------------------------
 
 function drop(track: Track, ev: DragEvent) {
     const id = ev.dataTransfer!.getData("id");
@@ -241,45 +444,33 @@ function drop(track: Track, ev: DragEvent) {
             break;
         case LibraryItemType.LOOK:
         case LibraryItemType.EFFECT:
-            // feature 004: looks and effects start with 4 beats
             item = createItem(DEFAULT_ITEM_LENGTH, libraryItem);
             break;
     }
 
-    if (item) {
-        const x = ev.offsetX;
-        const unit = snap(pixelToUnit(x));
-        item.move(unit, unit + (item.end - item.start));
-
-        const isOverlapping = (i1: Item, i2: Item) => Math.max(i1.start, i2.start) <= Math.min(i1.end, i2.end);
-
-        // check, whether the track is free
-        let chosenTrack: Track | undefined;
-        const trackItems = timeline.items.filter((i) => i.trackId === track.id);
-
-        if (!trackItems.some((i) => isOverlapping(i as Item, item!))) {
-            chosenTrack = track;
-        }
-
-        // if unsuccessful, find a free track
-        if (!chosenTrack) {
-            chosenTrack = timeline.tracks.find((t) => {
-                const trackItems = timeline.items.filter((i) => i.trackId === t.id);
-
-                return !trackItems.some((i) => isOverlapping(i as Item, item!));
-            }) as Track;
-        }
-
-        // if no free track was found, create a new one
-        if (!chosenTrack) {
-            chosenTrack = timeline.addDefaultTrack();
-        }
-
-        item.trackId = chosenTrack.id;
-        // feature 004 (US3.4): new items inherit the track's default target
-        item.target = chosenTrack.defaultTarget ? { ...chosenTrack.defaultTarget } : null;
-        timeline.addItem(reactive(item) as Item);
+    if (!item) {
+        return;
     }
+    const newItem = item;
+    timeline.edit("Add clip", () => {
+        const unit = Math.max(0, snap(Math.floor(tickAt(ev))));
+        newItem.move(unit, unit + (newItem.end - newItem.start));
+
+        // touching clips count as free (FR-045)
+        const isOverlapping = (i1: Item, i2: Item) => Math.max(i1.start, i2.start) < Math.min(i1.end, i2.end);
+        const isFree = (t: Track) => !(timeline.itemsByTrack.get(t.id) ?? []).some((i) => isOverlapping(i, newItem));
+
+        // the drop track if it is free, else the first free track, else a new one
+        const chosenTrack = isFree(track) ? track : ((timeline.tracks as Track[]).find(isFree) ?? timeline.addDefaultTrack());
+
+        newItem.trackId = chosenTrack.id;
+        // new clips follow the track's default target live (FR-018)
+        newItem.target = "inherit";
+        const added = reactive(newItem) as Item;
+        timeline.addItem(added);
+        timeline.select([added.id], "replace");
+        timeline.anchorId = added.id;
+    });
 }
 
 function onHeaderClick(ev: MouseEvent): void {
@@ -293,22 +484,85 @@ function onHeaderClick(ev: MouseEvent): void {
     globalState.setPositionByUser(snap(tick));
 }
 
-function wheel(ev: WheelEvent) {
-    ev.preventDefault();
+// --- wheel, follow playhead (R11) --------------------------------------------------------------------------------
 
-    if (!contentEl.value) {
+function wheel(ev: WheelEvent) {
+    if (globalState.isPlaying && timeline.followPlayhead) {
+        timeline.followPlayhead = false;
+    }
+    if (!(ev.ctrlKey || ev.metaKey)) {
+        // native scrolling: vertical, Shift = horizontal
+        return;
+    }
+    ev.preventDefault();
+    if (!contentEl.value || !el.value) {
         return;
     }
 
     const amount = normalizeMouseWheel(ev);
-    // get offset relative to the content element
+    // offset of the pointer relative to the start of the time area
     const bb = contentEl.value.getBoundingClientRect();
-    const offsetX = ev.screenX - bb.left - timeline.headerWidth;
-    const unit = pixelToUnit(offsetX); // the unit which is currently hovered
-    timeline.unitWidth *= 1 - amount / 1500;
+    const offsetX = ev.clientX - bb.left - timeline.headerWidth;
+    const unit = offsetX / timeline.unitWidth; // the unit which is currently hovered
+    timeline.unitWidth = clampUnitWidth(timeline.unitWidth * (1 - amount / 1500));
     // scroll so that the unit stays at the same place visually
-    el.value!.scrollBy(unitToPixel(unit) - offsetX, 0);
+    el.value.scrollBy(unitToPixel(unit) - offsetX, 0);
 }
+
+let programmaticScroll = false;
+
+function setScrollLeft(value: number) {
+    if (!el.value) {
+        return;
+    }
+    const before = el.value.scrollLeft;
+    programmaticScroll = true;
+    el.value.scrollLeft = Math.max(0, value);
+    if (el.value.scrollLeft === before) {
+        programmaticScroll = false;
+    }
+}
+
+function onScroll() {
+    if (programmaticScroll) {
+        programmaticScroll = false;
+        return;
+    }
+    if (globalState.isPlaying && timeline.followPlayhead && !gesture) {
+        timeline.followPlayhead = false;
+    }
+}
+
+watch(
+    () => globalState.position,
+    (position) => {
+        if (!globalState.isPlaying || !timeline.followPlayhead || !el.value || gesture) {
+            return;
+        }
+        const visibleWidth = el.value.clientWidth - timeline.headerWidth;
+        if (visibleWidth <= 0) {
+            return;
+        }
+        const x = unitToPixel(position);
+        const left = el.value.scrollLeft;
+        if (x > left + 0.9 * visibleWidth || x < left) {
+            setScrollLeft(x - 0.1 * visibleWidth);
+        }
+    }
+);
+
+/** For "Zoom to fit" in the toolbar. */
+function resetScroll() {
+    setScrollLeft(0);
+}
+
+function viewWidth(): number {
+    return el.value?.clientWidth ?? 0;
+}
+
+defineExpose({ resetScroll, viewWidth });
+
+// --- helpers -----------------------------------------------------------------------------------------------------
 
 function unitToPixel(unit: number): number {
     return unit * timeline.unitWidth;
@@ -316,19 +570,6 @@ function unitToPixel(unit: number): number {
 
 function pixelToUnit(pixel: number): number {
     return Math.floor(pixel / timeline.unitWidth);
-}
-
-function isSelfOrIsChildOf(el: HTMLElement, selector: string) {
-    if (el.matches(selector)) {
-        return true;
-    }
-    while (!el.matches(".timeline") && !!el.parentElement) {
-        if (el.matches(selector)) {
-            return true;
-        }
-        el = el.parentElement;
-    }
-    return false;
 }
 
 function addMusicItem(libraryItem: AudioLibraryItem): Item | undefined {
@@ -373,7 +614,7 @@ function createItem(length: number, libraryItem: LibraryItem) {
     outline: none;
 }
 
-.--disable-child-pointer-events * {
+.disable-child-pointer-events :deep(*) {
     pointer-events: none;
 }
 

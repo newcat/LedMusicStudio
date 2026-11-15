@@ -10,11 +10,26 @@ export interface IItemState {
     trackId: string;
     resizable: boolean;
     libraryItemId: string;
-    /** feature 004: target of Look/Effect/Graph items (default null) */
-    target?: Target | null;
+    /** target of Look/Effect/Graph items: a Target, "inherit" (track default, feature 005) or null (none) */
+    target?: ClipTarget;
     /** feature 004: fade lengths in timeline units, ≥ 0 (default 0); used by Look and Effect items */
     fadeIn?: number;
     fadeOut?: number;
+}
+
+/** Clip target (feature 005, research R3): a group/fixture, "inherit" (the track's defaultTarget, live) or null (none). */
+export type ClipTarget = Target | "inherit" | null;
+
+/** Load rule: a valid target is explicit, "inherit" inherits, anything else is none. */
+export function parseClipTarget(value: unknown): ClipTarget {
+    if (isTarget(value)) {
+        return { kind: value.kind, id: value.id };
+    }
+    return value === "inherit" ? "inherit" : null;
+}
+
+export function cloneClipTarget(value: ClipTarget): ClipTarget {
+    return value && value !== "inherit" ? { ...value } : value;
 }
 
 function fadeOf(value: unknown): number {
@@ -28,7 +43,7 @@ export class Item<L extends LibraryItem = LibraryItem> {
         const i = new Item(libraryItem, state.trackId, state.start, state.end);
         i.id = state.id;
         i.resizable = state.resizable;
-        i.target = isTarget(state.target) ? { kind: state.target.kind, id: state.target.id } : null;
+        i.target = parseClipTarget(state.target);
         i.fadeIn = fadeOf(state.fadeIn);
         i.fadeOut = fadeOf(state.fadeOut);
         return i;
@@ -36,12 +51,11 @@ export class Item<L extends LibraryItem = LibraryItem> {
 
     public id = uuidv4();
     public trackId: string;
-    public selected = false;
     public resizable = true;
     public temporary = false;
     public libraryItem: L;
-    /** feature 004 (research R5): group or fixture this item programs; null = none. */
-    public target: Target | null = null;
+    /** Group or fixture this item programs, "inherit" for the track's default target, null = none (feature 005, R3). */
+    public target: ClipTarget = "inherit";
     /** feature 004: fade-in/out in timeline units (Look and Effect items). */
     public fadeIn = 0;
     public fadeOut = 0;
@@ -86,7 +100,7 @@ export class Item<L extends LibraryItem = LibraryItem> {
             trackId: this.trackId,
             resizable: this.resizable,
             libraryItemId: this.libraryItem.id,
-            target: this.target ? { ...this.target } : null,
+            target: cloneClipTarget(this.target),
             fadeIn: this.fadeIn,
             fadeOut: this.fadeOut,
         };

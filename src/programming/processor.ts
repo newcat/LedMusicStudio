@@ -9,7 +9,7 @@ import { useTimeline, type Item } from "@/timeline";
 import type { AttributeKey, AttributeValues } from "./attributes";
 import { mergeFrame } from "./engine";
 import { dmxFixtures, getProgrammingContext } from "./profile";
-import { decodeTarget, resolveTarget } from "./targets";
+import { decodeTarget, effectiveTarget, resolveTarget } from "./targets";
 import type { Contribution, FrameResult, ItemContext, Priority, ResolvedFixture, ResolvedTarget, Target } from "./types";
 import { programmingTimings } from "./debug";
 import { isEffectLibraryItem, isLookLibraryItem } from "./guards";
@@ -42,7 +42,7 @@ export const programmingWarnings = reactive(new Map<string, string[]>());
 
 /** Target of an Attribute Output node: "clip" uses the item's target. */
 export function attributeOutputTarget(item: Item, target: string): Target | null {
-    return target === "clip" || !target ? item.target : decodeTarget(target);
+    return target === "clip" || !target ? effectiveTarget(item) : decodeTarget(target);
 }
 
 function priorityOf(item: Item, trackIndex: Map<string, number>): Priority {
@@ -138,11 +138,11 @@ export function processProgramming(activeItems: readonly Item[], unit: number, g
         }
         const library = item.libraryItem;
         if (isEffectLibraryItem(library)) {
-            const target = resolveTarget(item.target);
+            const target = resolveTarget(effectiveTarget(item));
             addWarnings(warnings, item.id, target.warnings);
             contributions.push(...evaluateEffect(library.state, itemContext(item, unit, priority, target), (id) => getProgrammingContext(id)?.profile ?? null));
         } else if (isLookLibraryItem(library)) {
-            const target = resolveTarget(item.target);
+            const target = resolveTarget(effectiveTarget(item));
             addWarnings(warnings, item.id, target.warnings);
             const ctx = itemContext(item, unit, priority, target);
             const lookWarnings: string[] = [];

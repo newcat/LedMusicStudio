@@ -8,6 +8,8 @@ import { useScene } from "@/scene/sceneStore";
 import { getWorldMatrix } from "@/scene/model/transformMath";
 import { isFixtureVisualization, type Vec3 } from "@/scene/model/types";
 import { FixtureType, useStage } from "@/stage";
+import { useTimeline } from "@/timeline/model/editor";
+import type { Item } from "@/timeline/model/item";
 import type { FixtureGroup, ResolvedFixture, ResolvedTarget, Target } from "./types";
 
 /** World position of the visualization object linked to each fixture (reactive). */
@@ -93,6 +95,11 @@ function groupOrder(groupId: string): ResolvedFixture[] | null {
 
 function fixtureName(fixtureId: string): string {
     return useStage().fixtures.get(fixtureId)?.name ?? fixtureId;
+}
+
+/** The target a clip programs: its own, or its track's default target for "inherit" (feature 005, R3). */
+export function effectiveTarget(item: Item): Target | null {
+    return item.target === "inherit" ? (useTimeline().getTrackById(item.trackId)?.defaultTarget ?? null) : item.target;
 }
 
 export function targetLabel(target: Target | null | undefined): string {
