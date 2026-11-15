@@ -21,17 +21,29 @@
                     <InputText :model-value="group.name" @change="rename(($event.target as HTMLInputElement).value)" />
                 </LabelledFormField>
                 <LabelledFormField label="Members">
-                    <MultiSelect
-                        :model-value="group.fixtureIds"
-                        :options="dmxFixtures"
-                        option-label="name"
-                        option-value="id"
-                        filter
-                        display="chip"
-                        placeholder="Choose DMX fixtures"
-                        class="w-full"
-                        @update:model-value="setMembers"
-                    />
+                    <div class="flex gap-2 items-center">
+                        <MultiSelect
+                            :model-value="group.fixtureIds"
+                            :options="dmxFixtures"
+                            option-label="name"
+                            option-value="id"
+                            filter
+                            display="chip"
+                            placeholder="Choose DMX fixtures"
+                            class="w-full min-w-0"
+                            @update:model-value="setMembers"
+                        />
+                        <Button
+                            v-tooltip.bottom="addableIds.length > 0 ? `Adds ${addableIds.length} fixture${addableIds.length === 1 ? '' : 's'}` : 'Select DMX fixtures in the scene first'"
+                            outlined
+                            size="small"
+                            label="Add selected fixtures"
+                            icon="pi pi-plus"
+                            class="shrink-0"
+                            :disabled="addableIds.length === 0"
+                            @click="addSelected"
+                        />
+                    </div>
                 </LabelledFormField>
                 <LabelledFormField label="Ordering">
                     <Select :model-value="group.ordering" :options="GROUP_ORDERINGS" option-label="label" option-value="value" @update:model-value="setOrdering" />
@@ -84,6 +96,8 @@ import { fixturePosition, orderGroup } from "@/programming/targets";
 import { groupUses } from "@/programming/uses";
 import { FixtureType } from "../fixtures";
 import { useStage } from "../stage";
+import { useScene } from "@/scene/sceneStore";
+import { isFixtureVisualization } from "@/scene/model/types";
 
 const stage = useStage();
 const confirm = useConfirm();
@@ -91,6 +105,30 @@ const confirm = useConfirm();
 const selectedGroupId = ref<string | null>(stage.groups[0]?.id ?? null);
 const group = computed(() => stage.groups.find((g) => g.id === selectedGroupId.value) ?? null);
 const dmxFixtures = computed(() => Array.from(stage.fixtures.values()).filter((f) => f.type === FixtureType.DMX));
+const scene = useScene();
+
+/** DMX fixtures of the objects selected in the scene that are not members yet (feature 006). */
+const addableIds = computed(() => {
+    const g = group.value;
+    if (!g) {
+        return [];
+    }
+    const ids: string[] = [];
+    for (const id of scene.selection) {
+        const obj = scene.scene.objects[id];
+        if (obj && isFixtureVisualization(obj) && obj.fixtureId && stage.fixtures.get(obj.fixtureId)?.type === FixtureType.DMX && !g.fixtureIds.includes(obj.fixtureId)) {
+            ids.push(obj.fixtureId);
+        }
+    }
+    return ids;
+});
+
+function addSelected() {
+    if (group.value && addableIds.value.length > 0) {
+        stage.setGroupMembers(group.value.id, [...group.value.fixtureIds, ...addableIds.value]);
+    }
+}
+
 const resolved = computed(() => (group.value ? orderGroup(group.value, fixturePosition) : []));
 
 const dragFrom = ref<number | null>(null);

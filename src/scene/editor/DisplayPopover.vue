@@ -3,6 +3,20 @@
         <Button outlined size="small" icon="mdi mdi-monitor" label="Display" @click="popover?.toggle($event)" />
         <Popover ref="popover">
             <div class="display-panel">
+                <label class="field-label">Scene editor</label>
+                <div class="checkbox-row">
+                    <Checkbox :model-value="settings.showGrid" input-id="display-grid" binary @update:model-value="store.updateSettings({ showGrid: $event })" />
+                    <label for="display-grid">Grid</label>
+                </div>
+                <div class="checkbox-row">
+                    <Checkbox :model-value="settings.showAxes" input-id="display-axes" binary @update:model-value="store.updateSettings({ showAxes: $event })" />
+                    <label for="display-axes">Axes</label>
+                </div>
+                <div class="checkbox-row">
+                    <Checkbox :model-value="settings.showLabels" input-id="display-labels" binary @update:model-value="store.updateSettings({ showLabels: $event })" />
+                    <label for="display-labels">Labels</label>
+                </div>
+
                 <label class="field-label">Editor quality</label>
                 <SelectButton v-model="editorQuality" :options="qualityOptions" option-label="label" option-value="value" :allow-empty="false" size="small" aria-label="Editor quality" />
 
@@ -42,7 +56,11 @@ import SelectButton from "primevue/selectbutton";
 
 import { useViewPreferences, viewPreferences } from "@/visualization/viewPreferences";
 import type { QualityLevel } from "@/visualization/quality";
+import { useScene } from "../sceneStore";
 
+const store = useScene();
+/** Grid, axes and labels are scene editor settings (stored in the scene, feature 006 moved them here). */
+const settings = computed(() => store.scene.settings);
 const prefs = useViewPreferences();
 const popover = ref<InstanceType<typeof Popover>>();
 

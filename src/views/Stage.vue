@@ -2,10 +2,18 @@
     <Card class="h-full" :pt="{ body: { class: 'p-0 h-full' }, content: { class: 'p-0 h-full' } }">
         <template #content>
             <div class="flex flex-col h-full">
-                <div class="flex">
-                    <TabMenu v-model:active-index="activeStageTab" :model="menuItems" />
-                    <Button text label="Import Stage" icon="mdi mdi-upload" @click="importStage" />
-                    <Button text label="Export Stage" icon="mdi mdi-content-save" @click="exportStage" />
+                <div class="stage-header">
+                    <Tabs v-model:value="activeStageTab">
+                        <TabList>
+                            <Tab v-for="tab in tabs" :key="tab.value" :value="tab.value">
+                                <i :class="tab.icon" class="mr-2"></i>{{ tab.label }}
+                            </Tab>
+                        </TabList>
+                    </Tabs>
+                    <div class="stage-actions">
+                        <Button v-tooltip.bottom="'Import stage…'" text size="small" label="Import" icon="mdi mdi-upload" @click="importStage" />
+                        <Button v-tooltip.bottom="'Export stage…'" text size="small" label="Export" icon="mdi mdi-content-save" @click="exportStage" />
+                    </div>
                 </div>
 
                 <div class="content">
@@ -19,7 +27,9 @@
 </template>
 
 <script setup lang="ts">
-import TabMenu, { TabMenuProps } from "primevue/tabmenu";
+import Tabs from "primevue/tabs";
+import TabList from "primevue/tablist";
+import Tab from "primevue/tab";
 import Card from "primevue/card";
 import Button from "primevue/button";
 import { useToast } from "primevue/usetoast";
@@ -38,10 +48,10 @@ const errorHandler = useErrorHandler();
 const stage = useStage();
 const nativeAdapter = getNativeAdapter();
 
-const menuItems: TabMenuProps["model"] = [
-    { label: "Controllers", icon: "mdi mdi-chip" },
-    { label: "Visualization", icon: "mdi mdi-eye" },
-    { label: "Groups", icon: "mdi mdi-lamps" },
+const tabs = [
+    { label: "Controllers", icon: "mdi mdi-chip", value: STAGE_TAB_CONTROLLERS },
+    { label: "Visualization", icon: "mdi mdi-eye", value: STAGE_TAB_VISUALIZATION },
+    { label: "Groups", icon: "mdi mdi-lamps", value: STAGE_TAB_GROUPS },
 ];
 
 async function importStage() {
@@ -74,6 +84,19 @@ async function exportStage() {
 </script>
 
 <style scoped>
+.stage-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding-right: 0.75rem;
+}
+
+.stage-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 0.25rem;
+}
+
 .content {
     margin: 1rem;
     display: flex;

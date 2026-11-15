@@ -5,7 +5,7 @@
             <pane size="18" min-size="10">
                 <splitpanes horizontal class="left-column">
                     <pane size="50" min-size="15">
-                        <Outliner ref="outliner" @contextmenu="showContextMenu" />
+                        <Outliner ref="outliner" @contextmenu="showContextMenu" @add="onAdd" />
                     </pane>
                     <pane size="50" min-size="15">
                         <AssetLibraryPanel @add="addAssetAtCenter" @show-credits="showCredits = true" />
@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, provide, ref, toRaw, watch } from "vue";
+import { computed, nextTick, provide, ref, toRaw, watch } from "vue";
 import { Splitpanes, Pane } from "splitpanes";
 import ContextMenu from "primevue/contextmenu";
 import ConfirmDialog from "primevue/confirmdialog";
@@ -36,6 +36,7 @@ import type { MenuItem } from "primevue/menuitem";
 import { useElementSize, useFocusWithin } from "@vueuse/core";
 
 import { useStage } from "@/stage/stage";
+import { focusRequest } from "@/views/stageViewState";
 import { FixtureType, type DmxFixture } from "@/stage/fixtures";
 import ChooseFixtureDialog from "@/stage/fixtures/dmx/ChooseFixtureDialog.vue";
 import type { Fixture as OpenFixtureDefinition } from "@/stage/fixtures/dmx/open-fixture";
@@ -237,6 +238,24 @@ watch(
 );
 
 provide(EDITOR_ACTIONS_KEY, { deleteSelection: deleteSelectionConfirmed, chooseProfile });
+
+// --- focus requests from other Stage tabs (Controllers → fixture link) ----------------------------------------
+
+watch(
+    [focusRequest, overlay],
+    ([id, editorOverlay]) => {
+        if (!id || !editorOverlay) {
+            return;
+        }
+        if (store.scene.objects[id]) {
+            store.select([id]);
+            // after the selection reached the viewport
+            void nextTick(() => editorOverlay.focusSelection());
+        }
+        focusRequest.value = null;
+    },
+    { immediate: true }
+);
 
 /** Double-click / Enter on a library tile: the surface point in the viewport center, the origin if nothing is hit. */
 function addAssetAtCenter(assetId: string) {

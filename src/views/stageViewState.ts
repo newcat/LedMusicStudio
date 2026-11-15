@@ -6,3 +6,6 @@ export const STAGE_TAB_VISUALIZATION = 1;
 export const STAGE_TAB_GROUPS = 2;
 
 export const activeStageTab = ref(STAGE_TAB_VISUALIZATION);
+
+/** Scene object to select and frame when the scene editor is (or becomes) visible; reset by the editor. */
+export const focusRequest = ref<string | null>(null);

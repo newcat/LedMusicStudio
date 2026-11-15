@@ -51,21 +51,10 @@
         />
         <InputNumber v-model="rotationSnap" v-tooltip.bottom="'Rotation step (°)'" :min="0.1" :max-fraction-digits="1" suffix="°" size="small" class="snap-input" />
 
-        <span class="separator"></span>
-        <Button size="small" icon="mdi mdi-grid" label="Grid" :outlined="!settings.showGrid" @click="store.updateSettings({ showGrid: !settings.showGrid })" />
-        <Button size="small" icon="mdi mdi-axis-arrow" label="Axes" :outlined="!settings.showAxes" @click="store.updateSettings({ showAxes: !settings.showAxes })" />
-        <Button
-            size="small"
-            icon="mdi mdi-label-outline"
-            label="Labels"
-            :outlined="!settings.showLabels"
-            @click="store.updateSettings({ showLabels: !settings.showLabels })"
-        />
 
         <span class="separator"></span>
         <Button outlined size="small" icon="mdi mdi-video-3d" label="View" @click="viewMenu?.toggle($event)" />
         <Menu ref="viewMenu" :model="viewItems" popup />
-        <Button v-tooltip.bottom="'Focus selection (F)'" outlined size="small" icon="mdi mdi-crosshairs-gps" label="Focus" :disabled="!overlay" @click="overlay?.focusSelection()" />
         <CameraMenu :get-pose="() => overlay?.getCameraPose() ?? null" @apply="(pose) => overlay?.setCameraPose(pose)" />
 
         <span class="separator"></span>
@@ -96,7 +85,9 @@ import CameraMenu from "./CameraMenu.vue";
 import EnvironmentPopover from "./EnvironmentPopover.vue";
 import DisplayPopover from "./DisplayPopover.vue";
 
-export type AddKind = "box" | "cylinder" | "plane" | "sphere" | "group" | "dmxFixture" | "ledStrip" | "model" | "aimTarget";
+import { addMenuItems, type AddKind } from "./addMenu";
+
+export type { AddKind };
 
 const props = defineProps<{
     overlay: EditorOverlay | null;
@@ -135,30 +126,20 @@ const rotationSnap = computed({
     },
 });
 
-const addItems: MenuItem[] = [
-    { label: "Box", icon: "mdi mdi-cube-outline", command: () => emit("add", "box") },
-    { label: "Cylinder", icon: "mdi mdi-cylinder", command: () => emit("add", "cylinder") },
-    { label: "Plane", icon: "mdi mdi-square-outline", command: () => emit("add", "plane") },
-    { label: "Sphere", icon: "mdi mdi-circle-outline", command: () => emit("add", "sphere") },
-    { label: "Group", icon: "mdi mdi-folder-outline", command: () => emit("add", "group") },
-    { separator: true },
-    { label: "DMX fixture", icon: "mdi mdi-spotlight-beam", command: () => emit("add", "dmxFixture") },
-    { label: "LED strip", icon: "mdi mdi-led-strip-variant", command: () => emit("add", "ledStrip") },
-    { label: "Import model (GLB)…", icon: "mdi mdi-shape-outline", command: () => emit("add", "model") },
-    { separator: true },
-    { label: "Aim target", icon: "mdi mdi-crosshairs", command: () => emit("add", "aimTarget") },
-];
+const addItems = addMenuItems((kind) => emit("add", kind));
 
 function viewItem(label: string, key: string, preset: ViewPreset): MenuItem {
     return { label: `${label} (${key})`, command: () => props.overlay?.setView(preset) };
 }
 
-const viewItems: MenuItem[] = [
+const viewItems = computed<MenuItem[]>(() => [
     viewItem("Perspective", "5", "perspective"),
     viewItem("Top", "7", "top"),
     viewItem("Front", "1", "front"),
     viewItem("Side", "3", "side"),
-];
+    { separator: true },
+    { label: "Focus selection (F)", icon: "mdi mdi-crosshairs-gps", disabled: !props.overlay, command: () => props.overlay?.focusSelection() },
+]);
 
 const arrangeItems = computed<MenuItem[]>(() => [
     {
@@ -178,6 +159,7 @@ const arrangeItems = computed<MenuItem[]>(() => [
 .editor-toolbar {
     display: flex;
     flex-wrap: wrap;
+    row-gap: 0.35rem;
     align-items: center;
     gap: 0.35rem;
     padding: 0.4rem;

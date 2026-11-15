@@ -1,58 +1,65 @@
 <template>
-    <div class="outliner" @dragover.prevent="onRootDragOver" @drop.prevent="onRootDrop" @click.self="store.clearSelection()">
-        <Tree
-            :value="nodes"
-            v-model:expanded-keys="expandedKeys"
-            class="outliner-tree"
-            :pt="{ root: { class: 'p-0 bg-transparent border-0' }, nodeContent: { class: 'p-0' } }"
-        >
-            <template #default="{ node }">
-                <div
-                    class="row"
-                    :class="{
-                        selected: store.selection.includes(node.key),
-                        hidden: !node.data.visible,
-                        active: store.activeId === node.key,
-                        'drop-into': dropTarget?.id === node.key && dropTarget.zone === 'into',
-                        'drop-before': dropTarget?.id === node.key && dropTarget.zone === 'before',
-                        'drop-after': dropTarget?.id === node.key && dropTarget.zone === 'after',
-                    }"
-                    draggable="true"
-                    @click.stop="onRowClick($event, node.key)"
-                    @dblclick.stop="startRename(node.key)"
-                    @contextmenu.prevent.stop="onRowContextMenu($event, node.key)"
-                    @dragstart="onDragStart($event, node.key)"
-                    @dragover.prevent.stop="onDragOver($event, node.key)"
-                    @dragleave="dropTarget = null"
-                    @drop.prevent.stop="onDrop($event, node.key)"
-                    @dragend="dropTarget = null"
-                >
-                    <i :class="['mdi', iconFor(node.data)]"></i>
-                    <InputText
-                        v-if="renamingId === node.key"
-                        ref="renameInput"
-                        v-model="renameDraft"
-                        size="small"
-                        class="rename"
-                        @click.stop
-                        @keydown.enter.stop="commitRename"
-                        @keydown.esc.stop="renamingId = null"
-                        @blur="commitRename"
-                    />
-                    <span v-else class="name">{{ node.label }}</span>
-                    <i
-                        :class="['mdi toggle', node.data.visible ? 'mdi-eye' : 'mdi-eye-off']"
-                        :title="node.data.visible ? 'Hide' : 'Show'"
-                        @click.stop="store.setVisible([node.key], !node.data.visible)"
-                    ></i>
-                    <i
-                        :class="['mdi toggle', node.data.locked ? 'mdi-lock' : 'mdi-lock-open-variant-outline']"
-                        :title="node.data.locked ? 'Unlock' : 'Lock'"
-                        @click.stop="store.setLocked([node.key], !node.data.locked)"
-                    ></i>
-                </div>
-            </template>
-        </Tree>
+    <div class="outliner-panel">
+        <div class="header">
+            <span class="title">Scene</span>
+            <Button v-tooltip.bottom="'Add'" icon="pi pi-plus" text rounded size="small" aria-label="Add" aria-haspopup="true" @click="addMenu?.toggle($event)" />
+            <Menu ref="addMenu" :model="addItems" popup />
+        </div>
+        <div class="outliner" @dragover.prevent="onRootDragOver" @drop.prevent="onRootDrop" @click.self="store.clearSelection()">
+            <Tree
+                v-model:expanded-keys="expandedKeys"
+                :value="nodes"
+                class="outliner-tree"
+                :pt="treePt"
+            >
+                <template #default="{ node }">
+                    <div
+                        class="row"
+                        :class="{
+                            selected: store.selection.includes(node.key),
+                            hidden: !node.data.visible,
+                            active: store.activeId === node.key,
+                            'drop-into': dropTarget?.id === node.key && dropTarget.zone === 'into',
+                            'drop-before': dropTarget?.id === node.key && dropTarget.zone === 'before',
+                            'drop-after': dropTarget?.id === node.key && dropTarget.zone === 'after',
+                        }"
+                        draggable="true"
+                        @click.stop="onRowClick($event, node.key)"
+                        @dblclick.stop="startRename(node.key)"
+                        @contextmenu.prevent.stop="onRowContextMenu($event, node.key)"
+                        @dragstart="onDragStart($event, node.key)"
+                        @dragover.prevent.stop="onDragOver($event, node.key)"
+                        @dragleave="dropTarget = null"
+                        @drop.prevent.stop="onDrop($event, node.key)"
+                        @dragend="dropTarget = null"
+                    >
+                        <i :class="['mdi', iconFor(node.data)]"></i>
+                        <InputText
+                            v-if="renamingId === node.key"
+                            ref="renameInput"
+                            v-model="renameDraft"
+                            size="small"
+                            class="rename"
+                            @click.stop
+                            @keydown.enter.stop="commitRename"
+                            @keydown.esc.stop="renamingId = null"
+                            @blur="commitRename"
+                        />
+                        <span v-else class="name">{{ node.label }}</span>
+                        <i
+                            :class="['mdi toggle', node.data.visible ? 'mdi-eye' : 'mdi-eye-off']"
+                            :title="node.data.visible ? 'Hide' : 'Show'"
+                            @click.stop="store.setVisible([node.key], !node.data.visible)"
+                        ></i>
+                        <i
+                            :class="['mdi toggle', node.data.locked ? 'mdi-lock' : 'mdi-lock-open-variant-outline']"
+                            :title="node.data.locked ? 'Unlock' : 'Lock'"
+                            @click.stop="store.setLocked([node.key], !node.data.locked)"
+                        ></i>
+                    </div>
+                </template>
+            </Tree>
+        </div>
     </div>
 </template>
 
@@ -60,14 +67,18 @@
 import { computed, nextTick, ref, watch } from "vue";
 import Tree from "primevue/tree";
 import InputText from "primevue/inputtext";
+import Button from "primevue/button";
+import Menu from "primevue/menu";
 import type { TreeNode } from "primevue/treenode";
 
 import { useScene } from "../sceneStore";
 import { wouldCreateCycle } from "../model/transformMath";
 import { iconFor } from "./objectIcons";
+import { addMenuItems, type AddKind } from "./addMenu";
 
 const emit = defineEmits<{
     contextmenu: [MouseEvent];
+    add: [kind: AddKind];
 }>();
 
 type DropZone = "before" | "into" | "after";
@@ -114,6 +125,16 @@ watch(
     },
     { immediate: true }
 );
+
+const addMenu = ref<InstanceType<typeof Menu>>();
+const addItems = addMenuItems((kind) => emit("add", kind));
+
+/** Tree pass-through: no padding/background, and leaf nodes are marked so their toggle can be hidden. */
+const treePt = {
+    root: { class: "p-0 bg-transparent border-0" },
+    nodeContent: { class: "p-0" },
+    nodeToggleButton: ({ context }: { context: { leaf: boolean } }) => ({ class: context.leaf ? "leaf" : undefined }),
+};
 
 function onRowClick(event: MouseEvent, id: string) {
     // locked objects can be selected here (they cannot be picked in 3D)
@@ -215,10 +236,51 @@ defineExpose({ startRename });
 </script>
 
 <style scoped>
-.outliner {
+.outliner-panel {
+    display: flex;
+    flex-direction: column;
     height: 100%;
+    min-height: 0;
+}
+
+/* like the asset library header */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.5rem 0.25rem;
+}
+
+.title {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.outliner {
+    flex: 1;
+    min-height: 0;
     overflow: auto;
-    padding: 0.25rem;
+    padding: 0 0.25rem 0.25rem;
+}
+
+/* leaf rows get no toggle placeholder; children are indented by a fixed step */
+.outliner :deep(.p-tree-node-toggle-button.leaf) {
+    display: none;
+}
+
+.outliner :deep(.p-tree-node-children) {
+    padding-left: 1rem;
+}
+
+/* the theme's tree paddings win over utility classes */
+.outliner :deep(.p-tree),
+.outliner :deep(.p-tree-node-content) {
+    padding: 0;
+}
+
+.outliner :deep(.p-tree-node-label) {
+    flex: 1;
+    min-width: 0;
 }
 
 .row {
@@ -226,7 +288,8 @@ defineExpose({ startRename });
     align-items: center;
     gap: 0.4rem;
     width: 100%;
-    padding: 0.15rem 0.4rem;
+    height: 28px;
+    padding: 0 8px;
     border-radius: 4px;
     border: 1px solid transparent;
     cursor: default;

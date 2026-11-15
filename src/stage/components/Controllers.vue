@@ -57,7 +57,19 @@
 
                 <Divider />
 
-                <div>Controlled fixtures: {{ selectedController.controlledFixtures.map((f) => f.name).join(", ") }}</div>
+                <div class="controlled">
+                    <span>Controlled fixtures:</span>
+                    <span v-if="selectedController.controlledFixtures.length === 0" class="opacity-70">none</span>
+                    <Button
+                        v-for="fixture in selectedController.controlledFixtures"
+                        :key="fixture.id"
+                        v-tooltip.bottom="'Show in the scene'"
+                        text
+                        size="small"
+                        :label="fixture.name"
+                        @click="showInScene(fixture.id)"
+                    />
+                </div>
             </div>
         </Panel>
     </div>
@@ -72,6 +84,8 @@ import Chip from "primevue/chip";
 import Menu, { MenuProps } from "primevue/menu";
 import Divider from "primevue/divider";
 import Message from "primevue/message";
+import { useScene } from "@/scene/sceneStore";
+import { activeStageTab, focusRequest, STAGE_TAB_VISUALIZATION } from "@/views/stageViewState";
 
 import LabelledInputText from "@/components/LabelledInputText.vue";
 
@@ -80,6 +94,7 @@ import { BaseController, ControllerType } from "../controllers";
 import { createController } from "../controllers/factory";
 
 const stage = useStage();
+const scene = useScene();
 
 const selectedController = ref<BaseController | null>(null);
 const menu = ref<ComponentInstance<typeof Menu> | null>(null);
@@ -103,9 +118,25 @@ function removeSelectedController() {
     stage.controllers.delete(selectedController.value.id);
     selectedController.value = null;
 }
+
+/** Opens the Visualization tab with the fixture's object selected and framed (feature 006). */
+function showInScene(fixtureId: string) {
+    const object = scene.findObjectByFixture(fixtureId);
+    if (object) {
+        activeStageTab.value = STAGE_TAB_VISUALIZATION;
+        focusRequest.value = object.id;
+    }
+}
 </script>
 
 <style scoped>
+.controlled {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+}
+
 .controllers {
     width: 100%;
     height: 100%;
