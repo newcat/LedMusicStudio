@@ -7,6 +7,7 @@ import { VisualizationServer } from "@/visualization";
 import { createDefaultScene } from "@/scene/model/defaults";
 import { convertLegacyVisualization } from "@/scene/model/legacy";
 import { sanitizeScene } from "@/scene/model/sanitize";
+import { migrateFixtureLinks, UNPLACED_GROUP_NAME } from "@/scene/model/fixtureLinks";
 import { isFixtureVisualization, type LegacyStageVisualization, type PersistedSceneState, type SceneState } from "@/scene/model/types";
 import { BroadcastSceneSink } from "@/scene/sceneSink";
 import { useScene } from "@/scene/sceneStore";
@@ -321,7 +322,29 @@ export const useStage = defineStore("stage", () => {
             }
         }
 
+        // feature 006 (research R9): one fixture object per fixture and one fixture per fixture object
+        const migration = migrateFixtureLinks(
+            sceneState,
+            fixtures.value.getArray().map((f) => ({ id: f.id, type: f.type, name: f.name, config: toRaw(f.config) }))
+        );
+        sceneState = migration.scene;
+        for (const snapshot of migration.newFixtures) {
+            applyFixtureSnapshot(snapshot.state.id, snapshot);
+        }
+
         scene.load(sceneState);
+
+        const { placed, created } = migration.report;
+        if (placed + created > 0) {
+            const parts: string[] = [];
+            if (placed > 0) {
+                parts.push(`${placed} fixture${placed === 1 ? " was" : "s were"} placed in "${UNPLACED_GROUP_NAME}"`);
+            }
+            if (created > 0) {
+                parts.push(`${created} fixture${created === 1 ? " was" : "s were"} created for unlinked visualizations`);
+            }
+            emitSceneToast({ severity: "info", summary: "Fixtures added to the scene", detail: `${parts.join(", ")}.`, life: 8000 });
+        }
 
         if (problems.length > 0) {
             console.warn("Scene problems:", problems);
