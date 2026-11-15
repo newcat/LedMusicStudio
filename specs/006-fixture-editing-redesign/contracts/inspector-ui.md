@@ -124,3 +124,11 @@ Slider + `InputNumber` (width 4.5rem, `size="small"`) in one row; used for edge 
 ## Groups tab
 
 "Add selected fixtures" `Button outlined small` next to the member select; disabled when no DMX fixture object is selected in the scene; tooltip shows how many would be added.
+
+## Implementation notes (deviations)
+
+- The DMX profile dialog exists once, in `SceneEditor.vue`; the inspector opens it through `EDITOR_ACTIONS_KEY` (`src/scene/editor/editorActions.ts`, `{ deleteSelection, chooseProfile }`), which also provides the confirmed delete for the header menu.
+- The Profile button shows the OFL fixture name only: OFL definitions carry no manufacturer name.
+- The address hint reads "Channels 25–48" ("Channel 25" for one channel).
+- The Appearance, type settings and Channel mapping sections are rendered by `FixtureVisualizationProperties.vue` (not directly by `Inspector.vue`); it exposes `revealMapping()` for the validation summary.
+- The Add menu items are shared by the toolbar and the outliner header through `src/scene/editor/addMenu.ts`.

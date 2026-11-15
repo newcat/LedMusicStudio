@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-15
 
-**Status**: Draft
+**Status**: Implemented (2026-11-16). Browser build checked during implementation (add/duplicate/delete/undo with controller and group restore, profile auto-mapping, LED count from path, migration incl. re-import, no inspector overflow at 340 px, ranges dialog, Controllers link, Groups "Add selected fixtures"). Open: full manual procedure in the desktop build (`pnpm electron:dev`), migration with a real pre-feature file (T002), DMX output on hardware.
 
 **Input**: User description: "I want to redesign the way that fixture editing works. Currently, there is a lot of duplication between the 'Fixtures' and the 'Visualization' tabs. The visualization tab should be the only way to add/edit/remove fixtures and all fixture properties should be editable in the properties panel for the fixture. We'll still need 'Controllers' and 'Groups' for now. Additionally, the layout looks very cluttered in the visualization tab, especially in the properties panel / channel mapping. The overflow doesn't work well and in general all the margins and paddings look off." Design direction agreed in the preceding analysis: one scene object = one fixture; fixture add/delete/duplicate and fixture edits are undoable; existing projects are migrated on load; the inspector is reorganised into collapsible sections with label|control rows; the channel mapping shows mapped capabilities by default and moves wide tables into a dialog.
 

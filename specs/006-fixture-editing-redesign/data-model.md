@@ -116,3 +116,8 @@ Runs before `scene.load`, so the history starts after it. Idempotent: a migrated
 | controller | `null` or a compatible controller id | select offers only compatible controllers |
 | visualizationType | compatible with fixture type (I3) | select filtered |
 | modelId | model supports the visualization type | select filtered (existing) |
+
+## Implementation notes
+
+- Objects created by the migration for fixtures without an object are placed 0.5 m apart along X inside "Unplaced fixtures".
+- Default visualization of a new unpatched DMX fixture: Generic Fixture (see contracts/fixture-commands.md → Implementation notes).

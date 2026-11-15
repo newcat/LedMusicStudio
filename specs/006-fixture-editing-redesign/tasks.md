@@ -175,9 +175,9 @@ Single Vite project: all paths are relative to the repository root (`src/…`). 
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T060 Search the codebase for leftovers and remove them: `selectedFixtureId`, `STAGE_TAB_FIXTURES`, `addFixtureVisualization`, `linkFixture`, `addUnlinkedFixtureVisualization`, `settingsComponent` on fixtures, `LabelledInputText` (delete `src/components/LabelledInputText.vue` if unused), stale comments mentioning "unlinked" or "Open fixture settings" in `src/scene/` and `src/visualization/`
-- [ ] T061 [P] Update `specs/006-fixture-editing-redesign/contracts/*.md` and `data-model.md` where the implementation deviated (names, file locations)
-- [ ] T062 Run `pnpm lint` and `pnpm build`; fix all findings
+- [X] T060 Search the codebase for leftovers and remove them: `selectedFixtureId`, `STAGE_TAB_FIXTURES`, `addFixtureVisualization`, `linkFixture`, `addUnlinkedFixtureVisualization`, `settingsComponent` on fixtures, `LabelledInputText` (delete `src/components/LabelledInputText.vue` if unused), stale comments mentioning "unlinked" or "Open fixture settings" in `src/scene/` and `src/visualization/`
+- [X] T061 [P] Update `specs/006-fixture-editing-redesign/contracts/*.md` and `data-model.md` where the implementation deviated (names, file locations)
+- [X] T062 Run `pnpm lint` and `pnpm build`; fix all findings
 - [ ] T063 Run the full manual verification from spec.md (steps 1–8) in the browser build (`pnpm dev`) and the desktop build (`pnpm electron:dev`); record results and any deviations in the spec's Status line
 
 ---

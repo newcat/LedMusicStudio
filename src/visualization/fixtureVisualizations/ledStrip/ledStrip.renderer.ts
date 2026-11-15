@@ -115,7 +115,7 @@ export class LedStripRenderer extends BaseRenderer<LedStripVisualizationConfig> 
     private intensity = 1;
     private pixelSize = 0.6;
 
-    /** Raw value bytes (whole pixels), null = no value (unlinked). */
+    /** Raw value bytes (whole pixels), null = no value yet. */
     private raw: Uint8Array | null = null;
     private pixelCount = -1;
     /** Object-local pixel positions (lifted above the diffuser) and normals. */

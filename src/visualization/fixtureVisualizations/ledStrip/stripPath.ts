@@ -6,10 +6,10 @@ import type { StripPath, StripPathPoint } from "./types";
 const SAMPLES_PER_SEGMENT = 16;
 /** Below this total length (meters) all pixels collapse onto the first point. */
 const MIN_LENGTH = 0.01;
-/** Pixel density of an unlinked LED strip (pixels per meter). */
+/** Pixel density of a strip without fixture values and of new strip fixtures (pixels per meter). */
 const PIXELS_PER_METER = 30;
 
-/** Pixel count of an unlinked LED strip with the given length in meters (N = round(length × 30)). */
+/** Pixel count of a strip with the given length in meters when no fixture value is known (N = round(length × 30)). */
 export function unlinkedPixelCount(length: number): number {
     return Math.round(length * PIXELS_PER_METER);
 }

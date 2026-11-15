@@ -47,3 +47,11 @@ The Controllers and Groups tabs keep calling `controller.addFixture/removeFixtur
 ## Load (`stage.loadScene`)
 
 `migrateFixtureLinks(sceneState, fixtures)` (pure, `src/scene/model/fixtureLinks.ts`) runs after sanitizing and link repair, before `scene.load`. Its new fixtures are created with `applyFixtureSnapshot` (no history). A single info toast reports what was created when anything changed.
+
+## Implementation notes (deviations)
+
+- A new DMX fixture without a model uses `DEFAULT_DMX_VISUALIZATION` = **Generic Fixture** (`src/scene/fixtureModels.ts`), not the first compatible type in enum order (Spot); R8's "default type" check uses the same constant. Helpers `compatibleVisualizationTypes(type)` and `usesDefaultModel(object)` live there too.
+- The stage store additionally exports `controllerOf(fixtureId)`, used by the inspector and the validation summary.
+- `addFixture` also accepts `label`; LED strip LED counts use `stripPathLedCount(path)` (`ledStrip/stripPath.ts`, 30 per metre, at least 1).
+- `updateFixture` ignores a patch that changes nothing (no history entry) and rejects incompatible controllers by returning without a change.
+- `migrateFixtureLinks` spaces new objects in "Unplaced fixtures" 0.5 m apart along X (instead of stacking them at the origin) and returns the input scene unchanged when nothing needs migrating.
